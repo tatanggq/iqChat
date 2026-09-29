@@ -3,13 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iqChat - Mobile Messenger</title>
+    <title>iqChat - Cloud Realtime Messenger</title>
     <!-- PWA MANIFEST & META -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#075E54">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- FIREBASE SDK (CDN) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
     <style>
         :root {
             --wa-green: #25D366;
@@ -21,24 +26,19 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: #111b21; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
         
-        /* CONTAINER UTAMA KHUSUS LAYAR HP */
         .app-window { width: 100%; max-width: 480px; height: 100vh; background: var(--wa-bg); display: flex; flex-direction: column; position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         @media(min-width: 481px) { .app-window { height: 92vh; border-radius: 12px; } }
 
-        /* VIEW LAYAR (DIPENGARUHI STATE AKTIF) */
         .view-panel { display: none; flex-direction: column; height: 100%; width: 100%; position: absolute; inset: 0; background: var(--panel-bg); }
         .view-panel.active { display: flex; }
 
-        /* HEADER */
         .app-header { background: var(--wa-dark-green); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* HALAMAN DAFTAR KONTAK */
         .contact-list { flex: 1; overflow-y: auto; background: #fff; }
         .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; border-bottom: 1px solid #f0f2f5; }
         .contact-item:active { background: #f0f2f5; }
         .avatar { width: 45px; height: 45px; border-radius: 50%; background: #075E54; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; }
 
-        /* HALAMAN RUANG CHAT */
         .chat-room-panel { background: var(--wa-bg); background-image: radial-gradient(#0000000f 1px, transparent 1px); background-size: 20px 20px; }
         .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
         .bubble { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 13px; position: relative; word-break: break-word; box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); }
@@ -48,12 +48,9 @@
         .chat-input-area { background: #f0f2f5; padding: 10px 12px; display: flex; align-items: center; gap: 8px; }
         .chat-input-box { flex: 1; padding: 10px 14px; border: none; border-radius: 20px; outline: none; font-size: 13px; background: #fff; }
 
-        /* MODAL LOGIN & OTP */
         .overlay-screen { position: absolute; inset: 0; background: #111b21; color: white; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
         .form-input { width: 100%; max-width: 300px; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; font-size: 14px; margin-top: 10px; text-align: center; outline: none; }
         .btn-green { width: 100%; max-width: 300px; padding: 12px; background: var(--wa-green); color: #111; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; margin-top: 12px; cursor: pointer; }
-        
-        /* TOMBOL PWA INSTALL */
         .btn-pwa-install { background: #0288d1; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer; display: none; align-items: center; gap: 4px; }
     </style>
 </head>
@@ -62,7 +59,7 @@
     <!-- 1. LOGIN MODAL -->
     <div id="loginModal" class="overlay-screen">
         <i class="fa-brands fa-whatsapp" style="font-size: 64px; color: var(--wa-green); margin-bottom: 16px;"></i>
-        <h2>Login iqChat</h2>
+        <h2>Login iqChat Cloud</h2>
         <p style="font-size: 12px; color: #8696a0; margin-top: 4px;">Masukkan nomor WhatsApp aktif Anda</p>
         <input type="tel" id="inputPhone" class="form-input" placeholder="08xxxxxxxxxx">
         <button class="btn-green" onclick="requestOtpCode()">Kirim Kode OTP</button>
@@ -72,15 +69,15 @@
     <div id="otpModal" class="overlay-screen" style="display:none;">
         <i class="fa-solid fa-shield-halved" style="font-size: 54px; color: var(--wa-green); margin-bottom: 16px;"></i>
         <h2>Verifikasi OTP</h2>
-        <p style="font-size: 12px; color: #8696a0; margin-top: 4px;">Gunakan kode OTP simulasi: <b style="color:#25D366;">8888</b></p>
+        <p style="font-size: 12px; color: #8696a0; margin-top: 4px;">Kode OTP simulasi: <b style="color:#25D366;">8888</b></p>
         <input type="text" id="inputOtp" class="form-input" placeholder="4 Digit OTP" maxlength="4">
         <button class="btn-green" onclick="verifyOtpCode()">Verifikasi & Masuk</button>
     </div>
 
-    <!-- CONTAINER UTAMA APLIKASI MOBILE -->
+    <!-- APLIKASI UTAMA -->
     <div class="app-window">
 
-        <!-- VIEW A: HALAMAN UTAMA / DAFTAR KONTAK (CHAT LIST) -->
+        <!-- VIEW A: DAFTAR KONTAK -->
         <div id="viewContactList" class="view-panel active">
             <div class="app-header">
                 <div style="font-weight: bold; font-size: 18px;"><i class="fa-solid fa-comments"></i> iqChat</div>
@@ -98,12 +95,10 @@
                 </button>
             </div>
 
-            <div class="contact-list" id="contactListContainer">
-                <!-- Daftar kontak dirender dinamis -->
-            </div>
+            <div class="contact-list" id="contactListContainer"></div>
         </div>
 
-        <!-- VIEW B: RUANG CHAT (CHAT ROOM) -->
+        <!-- VIEW B: RUANG CHAT -->
         <div id="viewChatRoom" class="view-panel chat-room-panel">
             <div class="app-header">
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -111,7 +106,7 @@
                     <div class="avatar" id="activeAvatar" style="width: 36px; height: 36px; font-size: 13px;">T</div>
                     <div>
                         <div id="activeName" style="font-weight: bold; font-size: 14px;">Kontak</div>
-                        <div style="font-size: 10px; color: #dcf8c6;">Online</div>
+                        <div style="font-size: 10px; color: #dcf8c6;">Online (Cloud Synced)</div>
                     </div>
                 </div>
                 <div style="display: flex; gap: 14px;">
@@ -120,13 +115,11 @@
                 </div>
             </div>
 
-            <div class="chat-messages" id="chatMessagesArea">
-                <!-- Pesan chat masuk & keluar -->
-            </div>
+            <div class="chat-messages" id="chatMessagesArea"></div>
 
             <div class="chat-input-area">
                 <button style="background:none; border:none; color:#555; font-size:18px; cursor:pointer;"><i class="fa-solid fa-paperclip"></i></button>
-                <input type="text" id="messageInput" class="chat-input-box" placeholder="Ketik pesan...">
+                <input type="text" id="messageInput" class="chat-input-box" placeholder="Ketik pesan..." onkeypress="handleKeyPress(event)">
                 <button onclick="sendChatMessage()" style="background:var(--wa-green); border:none; width:40px; height:40px; border-radius:50%; color:white; cursor:pointer;"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
@@ -134,12 +127,20 @@
     </div>
 
     <script>
+        // KONFIGURASI FIREBASE (Gunakan database yang sama dengan proyek ojol Anda)
+        const firebaseConfig = {
+            databaseURL: "https://iqdriver-default-rtdb.firebaseio.com/" // Sesuaikan URL database Firebase Anda jika berbeda
+        };
+        
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
         let currentUser = localStorage.getItem('iq_user_phone') || "";
         let activeTarget = localStorage.getItem('iq_active_target') || "";
         let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["08997032209", "6285934602965"]');
-        let chatLogs = JSON.parse(localStorage.getItem('iq_chat_logs') || '{}');
 
-        // PWA Install Handler
         let deferredPrompt;
         const installBtn = document.getElementById('btnInstall');
 
@@ -166,7 +167,6 @@
             }
         }
 
-        // Login OTP Alur
         function requestOtpCode() {
             const phone = document.getElementById('inputPhone').value.trim();
             if(!phone || phone.length < 10) {
@@ -206,7 +206,7 @@
                     <div class="avatar">${num.substring(num.length - 2)}</div>
                     <div style="flex:1;">
                         <div style="font-weight:bold; font-size:14px; color:#333;">${num}</div>
-                        <div style="font-size:12px; color:#666;">Ketuk untuk mulai percakapan</div>
+                        <div style="font-size:12px; color:#666;">Klik untuk membuka ruang chat cloud</div>
                     </div>
                 `;
                 container.appendChild(div);
@@ -228,10 +228,11 @@
             document.getElementById('activeName').innerText = activeTarget;
             document.getElementById('activeAvatar').innerText = activeTarget.substring(activeTarget.length - 2);
             
-            // Pindah View ke Ruang Chat HP
             document.getElementById('viewContactList').classList.remove('active');
             document.getElementById('viewChatRoom').classList.add('active');
-            renderChatMessages();
+            
+            // Tarik data pesan secara real-time dari Firebase Cloud
+            listenToRealtimeMessages();
         }
 
         function backToContactList() {
@@ -245,40 +246,47 @@
             const text = input.value.trim();
             if(!text || !activeTarget) return;
 
-            const key = [currentUser, activeTarget].sort().join('_');
-            if(!chatLogs[key]) chatLogs[key] = [];
+            const chatRoomId = [currentUser, activeTarget].sort().join('_');
+            const messageData = {
+                sender: currentUser,
+                text: text,
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+            };
 
-            chatLogs[key].push({ sender: currentUser, text: text, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
-            localStorage.setItem('iq_chat_logs', JSON.stringify(chatLogs));
-
+            // Kirim pesan ke Cloud Firebase Database
+            db.ref('chats/' + chatRoomId).push(messageData);
             input.value = "";
-            renderChatMessages();
         }
 
-        function renderChatMessages() {
-            const area = document.getElementById('chatMessagesArea');
-            area.innerHTML = "";
-            const key = [currentUser, activeTarget].sort().join('_');
-            const messages = chatLogs[key] || [];
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
 
-            messages.forEach(msg => {
-                const bubble = document.createElement('div');
-                bubble.className = `bubble ${msg.sender === currentUser ? 'outgoing' : 'incoming'}`;
-                bubble.innerHTML = `${msg.text} <div style="font-size:9px; color:#666; text-align:right; margin-top:2px;">${msg.time}</div>`;
-                area.appendChild(bubble);
+        function listenToRealtimeMessages() {
+            if(!activeTarget) return;
+            const chatRoomId = [currentUser, activeTarget].sort().join('_');
+            const area = document.getElementById('chatMessagesArea');
+
+            // Ambil dan dengarkan perubahan data secara live dari Cloud
+            db.ref('chats/' + chatRoomId).on('value', (snapshot) => {
+                area.innerHTML = "";
+                const data = snapshot.val();
+                if(data) {
+                    Object.values(data).forEach(msg => {
+                        const bubble = document.createElement('div');
+                        bubble.className = `bubble ${msg.sender === currentUser ? 'outgoing' : 'incoming'}`;
+                        bubble.innerHTML = `${msg.text} <div style="font-size:9px; color:#666; text-align:right; margin-top:2px;">${msg.time}</div>`;
+                        area.appendChild(bubble);
+                    });
+                    area.scrollTop = area.scrollHeight;
+                }
             });
-            area.scrollTop = area.scrollHeight;
         }
 
         function startVoiceCall() { alert(`Memulai Panggilan Suara ke ${activeTarget}...`); }
         function startVideoCall() { alert(`Memulai Video Call ke ${activeTarget}...`); }
-
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'iq_chat_logs') {
-                chatLogs = JSON.parse(e.newValue || '{}');
-                renderChatMessages();
-            }
-        });
 
         window.onload = function() {
             if (!currentUser) {
