@@ -106,7 +106,7 @@
                     <div class="avatar" id="activeAvatar" style="width: 36px; height: 36px; font-size: 13px;">T</div>
                     <div>
                         <div id="activeName" style="font-weight: bold; font-size: 14px;">Kontak</div>
-                        <div style="font-size: 10px; color: #dcf8c6;">Online (Cloud Synced)</div>
+                        <div id="cloudStatusLabel" style="font-size: 10px; color: #dcf8c6;">Connecting to Cloud...</div>
                     </div>
                 </div>
                 <div style="display: flex; gap: 14px;">
@@ -127,9 +127,9 @@
     </div>
 
     <script>
-        // KONFIGURASI FIREBASE (Gunakan database yang sama dengan proyek ojol Anda)
+        // INISIALISASI FIREBASE CLOUD REALTIME DATABASE
         const firebaseConfig = {
-            databaseURL: "https://iqdriver-default-rtdb.firebaseio.com/" // Sesuaikan URL database Firebase Anda jika berbeda
+            databaseURL: "https://iqdriver-default-rtdb.firebaseio.com/"
         };
         
         if (!firebase.apps.length) {
@@ -206,7 +206,7 @@
                     <div class="avatar">${num.substring(num.length - 2)}</div>
                     <div style="flex:1;">
                         <div style="font-weight:bold; font-size:14px; color:#333;">${num}</div>
-                        <div style="font-size:12px; color:#666;">Klik untuk membuka ruang chat cloud</div>
+                        <div style="font-size:12px; color:#666;">Ketuk untuk buka ruang chat</div>
                     </div>
                 `;
                 container.appendChild(div);
@@ -231,7 +231,6 @@
             document.getElementById('viewContactList').classList.remove('active');
             document.getElementById('viewChatRoom').classList.add('active');
             
-            // Tarik data pesan secara real-time dari Firebase Cloud
             listenToRealtimeMessages();
         }
 
@@ -246,16 +245,24 @@
             const text = input.value.trim();
             if(!text || !activeTarget) return;
 
-            const chatRoomId = [currentUser, activeTarget].sort().join('_');
+            // Membuat Room ID unik gabungan kedua nomor agar konsisten terhubung
+            const sortedNumbers = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort();
+            const chatRoomId = sortedNumbers.join('_');
+
             const messageData = {
                 sender: currentUser,
                 text: text,
                 time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
             };
 
-            // Kirim pesan ke Cloud Firebase Database
-            db.ref('chats/' + chatRoomId).push(messageData);
-            input.value = "";
+            // Kirim data ke Firebase dengan callback penanganan error
+            db.ref('iqchat_rooms/' + chatRoomId).push(messageData, (error) => {
+                if (error) {
+                    alert("Gagal mengirim pesan ke cloud: " + error.message);
+                } else {
+                    input.value = "";
+                }
+            });
         }
 
         function handleKeyPress(e) {
@@ -266,11 +273,16 @@
 
         function listenToRealtimeMessages() {
             if(!activeTarget) return;
-            const chatRoomId = [currentUser, activeTarget].sort().join('_');
+            const sortedNumbers = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort();
+            const chatRoomId = sortedNumbers.join('_');
             const area = document.getElementById('chatMessagesArea');
+            const statusLabel = document.getElementById('cloudStatusLabel');
 
-            // Ambil dan dengarkan perubahan data secara live dari Cloud
-            db.ref('chats/' + chatRoomId).on('value', (snapshot) => {
+            statusLabel.innerText = "Connecting to Cloud...";
+
+            // Mengambil dan mendengarkan data secara real-time
+            db.ref('iqchat_rooms/' + chatRoomId).on('value', (snapshot) => {
+                statusLabel.innerText = "Online (Cloud Synced)";
                 area.innerHTML = "";
                 const data = snapshot.val();
                 if(data) {
@@ -282,6 +294,9 @@
                     });
                     area.scrollTop = area.scrollHeight;
                 }
+            }, (error) => {
+                statusLabel.innerText = "Cloud Sync Error!";
+                console.error("Firebase read error:", error);
             });
         }
 
