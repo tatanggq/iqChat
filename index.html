@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iqChat - Real-time P2P Messenger</title>
+    <title>iqChat - Mobile Messenger</title>
     <!-- PWA MANIFEST & META -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#075E54">
@@ -16,138 +16,137 @@
             --wa-dark-green: #075E54;
             --wa-light-green: #dcf8c6;
             --wa-bg: #efeae2;
-            --sidebar-bg: #ffffff;
-            --panel-bg: #f0f2f5;
+            --panel-bg: #ffffff;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: #111b21; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
         
-        .app-window { width: 100%; max-width: 900px; height: 100vh; background: var(--panel-bg); display: flex; box-shadow: 0 4px 20px rgba(0,0,0,0.5); position: relative; }
-        @media(min-width: 768px) { .app-window { height: 92vh; border-radius: 8px; } }
+        /* CONTAINER UTAMA KHUSUS LAYAR HP */
+        .app-window { width: 100%; max-width: 480px; height: 100vh; background: var(--wa-bg); display: flex; flex-direction: column; position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        @media(min-width: 481px) { .app-window { height: 92vh; border-radius: 12px; } }
 
-        /* SIDEBAR KONTAK & CHAT LIST */
-        .sidebar { width: 35%; background: var(--sidebar-bg); border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; }
-        .sidebar-header { background: var(--panel-bg); padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; }
-        .contact-list { flex: 1; overflow-y: auto; }
-        .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; border-bottom: 1px solid #f5f5f5; transition: background 0.2s; }
-        .contact-item:hover, .contact-item.active { background: #f0f2f5; }
-        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #ccc; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+        /* VIEW LAYAR (DIPENGARUHI STATE AKTIF) */
+        .view-panel { display: none; flex-direction: column; height: 100%; width: 100%; position: absolute; inset: 0; background: var(--panel-bg); }
+        .view-panel.active { display: flex; }
 
-        /* KOTAK RUANG CHAT UTAMA */
-        .chat-container { flex: 1; display: flex; flex-direction: column; background: var(--wa-bg); background-image: radial-gradient(#0000000f 1px, transparent 1px); background-size: 20px 20px; }
-        .chat-header { background: var(--panel-bg); padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; }
+        /* HEADER */
+        .app-header { background: var(--wa-dark-green); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* HALAMAN DAFTAR KONTAK */
+        .contact-list { flex: 1; overflow-y: auto; background: #fff; }
+        .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; border-bottom: 1px solid #f0f2f5; }
+        .contact-item:active { background: #f0f2f5; }
+        .avatar { width: 45px; height: 45px; border-radius: 50%; background: #075E54; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; }
+
+        /* HALAMAN RUANG CHAT */
+        .chat-room-panel { background: var(--wa-bg); background-image: radial-gradient(#0000000f 1px, transparent 1px); background-size: 20px 20px; }
         .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-        .bubble { max-width: 65%; padding: 8px 12px; border-radius: 8px; font-size: 13px; position: relative; word-break: break-word; box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); }
+        .bubble { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 13px; position: relative; word-break: break-word; box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); }
         .incoming { background: #ffffff; align-self: flex-start; border-top-left-radius: 0; }
         .outgoing { background: var(--wa-light-green); align-self: flex-end; border-top-right-radius: 0; }
         
-        .chat-input-area { background: var(--panel-bg); padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
+        .chat-input-area { background: #f0f2f5; padding: 10px 12px; display: flex; align-items: center; gap: 8px; }
         .chat-input-box { flex: 1; padding: 10px 14px; border: none; border-radius: 20px; outline: none; font-size: 13px; background: #fff; }
 
-        /* MODAL LOGIN OTP & INSTALL PWA */
+        /* MODAL LOGIN & OTP */
         .overlay-screen { position: absolute; inset: 0; background: #111b21; color: white; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
-        .form-input { width: 100%; max-width: 320px; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; font-size: 14px; margin-top: 10px; text-align: center; outline: none; }
-        .btn-green { width: 100%; max-width: 320px; padding: 12px; background: var(--wa-green); color: #111; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; margin-top: 12px; cursor: pointer; }
+        .form-input { width: 100%; max-width: 300px; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; font-size: 14px; margin-top: 10px; text-align: center; outline: none; }
+        .btn-green { width: 100%; max-width: 300px; padding: 12px; background: var(--wa-green); color: #111; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; margin-top: 12px; cursor: pointer; }
         
-        /* TOMBOL PWA & CALL */
-        .btn-pwa-install { background: #0288d1; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: none; align-items: center; gap: 6px; }
-        .call-btn { background: none; border: none; font-size: 18px; color: var(--wa-dark-green); cursor: pointer; padding: 6px; }
+        /* TOMBOL PWA INSTALL */
+        .btn-pwa-install { background: #0288d1; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer; display: none; align-items: center; gap: 4px; }
     </style>
 </head>
 <body>
 
-    <!-- 1. MODAL LOGIN DENGAN VERIFIKASI OTP SIMULASI -->
+    <!-- 1. LOGIN MODAL -->
     <div id="loginModal" class="overlay-screen">
         <i class="fa-brands fa-whatsapp" style="font-size: 64px; color: var(--wa-green); margin-bottom: 16px;"></i>
-        <h2>Login iqChat Messenger</h2>
-        <p style="font-size: 12px; color: #8696a0; margin-top: 4px; max-width: 300px;">Masukkan nomor WhatsApp aktif Anda untuk menerima kode OTP verifikasi sesi.</p>
+        <h2>Login iqChat</h2>
+        <p style="font-size: 12px; color: #8696a0; margin-top: 4px;">Masukkan nomor WhatsApp aktif Anda</p>
         <input type="tel" id="inputPhone" class="form-input" placeholder="08xxxxxxxxxx">
         <button class="btn-green" onclick="requestOtpCode()">Kirim Kode OTP</button>
     </div>
 
-    <!-- MODAL INPUT OTP -->
+    <!-- 2. OTP MODAL -->
     <div id="otpModal" class="overlay-screen" style="display:none;">
         <i class="fa-solid fa-shield-halved" style="font-size: 54px; color: var(--wa-green); margin-bottom: 16px;"></i>
         <h2>Verifikasi OTP</h2>
-        <p style="font-size: 12px; color: #8696a0; margin-top: 4px;">Kode OTP simulasi telah dikirim (Gunakan kode: <b style="color:#25D366;">8888</b>)</p>
-        <input type="text" id="inputOtp" class="form-input" placeholder="Masukkan 4 digit OTP" maxlength="4">
+        <p style="font-size: 12px; color: #8696a0; margin-top: 4px;">Gunakan kode OTP simulasi: <b style="color:#25D366;">8888</b></p>
+        <input type="text" id="inputOtp" class="form-input" placeholder="4 Digit OTP" maxlength="4">
         <button class="btn-green" onclick="verifyOtpCode()">Verifikasi & Masuk</button>
     </div>
 
-    <!-- 2. APLIKASI UTAMA (WHATSAPP WEB STYLE) -->
+    <!-- CONTAINER UTAMA APLIKASI MOBILE -->
     <div class="app-window">
-        <!-- SIDEBAR KIRI: DAFTAR CHAT / KONTAK -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div class="avatar" id="myAvatar">U</div>
-                    <span id="myPhoneLabel" style="font-weight: bold; font-size: 13px; color: #333;">-</span>
+
+        <!-- VIEW A: HALAMAN UTAMA / DAFTAR KONTAK (CHAT LIST) -->
+        <div id="viewContactList" class="view-panel active">
+            <div class="app-header">
+                <div style="font-weight: bold; font-size: 18px;"><i class="fa-solid fa-comments"></i> iqChat</div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button id="btnInstall" class="btn-pwa-install" onclick="triggerPwaInstall()">
+                        <i class="fa-solid fa-download"></i> Install
+                    </button>
+                    <span id="myPhoneBadge" style="font-size: 11px; background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 12px;">-</span>
                 </div>
-                <!-- TOMBOL INSTALL PWA (OTOMATIS HILANG JIKA SUDAH TERINSTALL) -->
-                <button id="btnInstall" class="btn-pwa-install" onclick="triggerPwaInstall()">
-                    <i class="fa-solid fa-download"></i> Install App
-                </button>
             </div>
             
-            <div style="padding: 10px;">
-                <button onclick="addNewContactPrompt()" style="width:100%; padding:8px; background:var(--wa-dark-green); color:white; border:none; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer;">
-                    <i class="fa-solid fa-user-plus"></i> + Chat Nomor Baru
+            <div style="padding: 10px; background: #f0f2f5;">
+                <button onclick="addNewContactPrompt()" style="width:100%; padding:10px; background:var(--wa-dark-green); color:white; border:none; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer;">
+                    <i class="fa-solid fa-user-plus"></i> + Mulai Chat Nomor Baru
                 </button>
             </div>
 
             <div class="contact-list" id="contactListContainer">
-                <!-- Daftar kontak akan dirender dinamis di sini -->
+                <!-- Daftar kontak dirender dinamis -->
             </div>
         </div>
 
-        <!-- PANEL KANAN: RUANG PERCAKAPAN (CHAT ROOM) -->
-        <div class="chat-container">
-            <div class="chat-header">
+        <!-- VIEW B: RUANG CHAT (CHAT ROOM) -->
+        <div id="viewChatRoom" class="view-panel chat-room-panel">
+            <div class="app-header">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="avatar" id="activeContactAvatar" style="background:#075E54;">T</div>
+                    <button onclick="backToContactList()" style="background:none; border:none; color:white; font-size:18px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i></button>
+                    <div class="avatar" id="activeAvatar" style="width: 36px; height: 36px; font-size: 13px;">T</div>
                     <div>
-                        <div id="activeContactName" style="font-weight: bold; font-size: 14px; color: #333;">Pilih Kontak</div>
-                        <div id="activeContactStatus" style="font-size: 10px; color: #666;">Online</div>
+                        <div id="activeName" style="font-weight: bold; font-size: 14px;">Kontak</div>
+                        <div style="font-size: 10px; color: #dcf8c6;">Online</div>
                     </div>
                 </div>
-                <!-- TOMBOL TELEPON & VIDEO CALL -->
-                <div style="display: flex; gap: 12px;">
-                    <button class="call-btn" onclick="startVoiceCall()" title="Panggilan Suara"><i class="fa-solid fa-phone"></i></button>
-                    <button class="call-btn" onclick="startVideoCall()" title="Video Call"><i class="fa-solid fa-video"></i></button>
+                <div style="display: flex; gap: 14px;">
+                    <button onclick="startVoiceCall()" style="background:none; border:none; color:white; font-size:16px; cursor:pointer;"><i class="fa-solid fa-phone"></i></button>
+                    <button onclick="startVideoCall()" style="background:none; border:none; color:white; font-size:16px; cursor:pointer;"><i class="fa-solid fa-video"></i></button>
                 </div>
             </div>
 
             <div class="chat-messages" id="chatMessagesArea">
-                <div class="bubble incoming">
-                    Selamat datang di iqChat! Pilih kontak di sebelah kiri atau tambahkan nomor baru untuk mulai mengirim pesan, melakukan panggilan suara, atau video call.
-                </div>
+                <!-- Pesan chat masuk & keluar -->
             </div>
 
             <div class="chat-input-area">
                 <button style="background:none; border:none; color:#555; font-size:18px; cursor:pointer;"><i class="fa-solid fa-paperclip"></i></button>
                 <input type="text" id="messageInput" class="chat-input-box" placeholder="Ketik pesan...">
-                <button onclick="sendChatMessage()" style="background:var(--wa-green); border:none; width:38px; height:38px; border-radius:50%; color:white; cursor:pointer;"><i class="fa-solid fa-paper-plane"></i></button>
+                <button onclick="sendChatMessage()" style="background:var(--wa-green); border:none; width:40px; height:40px; border-radius:50%; color:white; cursor:pointer;"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
+
     </div>
 
     <script>
-        // State Global Aplikasi
         let currentUser = localStorage.getItem('iq_user_phone') || "";
         let activeTarget = localStorage.getItem('iq_active_target') || "";
-        
-        // Mock Database Kontak & Pesan Lokal (Bisa disinkronkan ke Cloud/Firebase)
         let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["08997032209", "6285934602965"]');
         let chatLogs = JSON.parse(localStorage.getItem('iq_chat_logs') || '{}');
 
-        // PWA Install Prompt Handler
+        // PWA Install Handler
         let deferredPrompt;
         const installBtn = document.getElementById('btnInstall');
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.style.display = 'flex'; // Muncul hanya jika belum terinstall
+            installBtn.style.display = 'flex';
         });
 
         window.addEventListener('appinstalled', () => {
@@ -167,7 +166,7 @@
             }
         }
 
-        // Alur Login OTP
+        // Login OTP Alur
         function requestOtpCode() {
             const phone = document.getElementById('inputPhone').value.trim();
             if(!phone || phone.length < 10) {
@@ -192,52 +191,55 @@
         }
 
         function initAppSession() {
-            document.getElementById('myPhoneLabel').innerText = currentUser;
-            document.getElementById('myAvatar').innerText = currentUser.substring(currentUser.length - 2);
+            document.getElementById('myPhoneBadge').innerText = currentUser;
             renderContactList();
-            if(contacts.length > 0 && !activeTarget) {
-                selectContact(contacts[0]);
-            }
         }
 
-        // Render Sidebar Kontak
         function renderContactList() {
             const container = document.getElementById('contactListContainer');
             container.innerHTML = "";
             contacts.forEach(num => {
                 const div = document.createElement('div');
-                div.className = `contact-item ${activeTarget === num ? 'active' : ''}`;
-                div.onclick = () => selectContact(num);
+                div.className = 'contact-item';
+                div.onclick = () => openChatRoom(num);
                 div.innerHTML = `
-                    <div class="avatar" style="background:#075E54;">${num.substring(num.length - 2)}</div>
+                    <div class="avatar">${num.substring(num.length - 2)}</div>
                     <div style="flex:1;">
-                        <div style="font-weight:bold; font-size:13px; color:#333;">${num}</div>
-                        <div style="font-size:11px; color:#666;">Ketuk untuk melihat pesan</div>
+                        <div style="font-weight:bold; font-size:14px; color:#333;">${num}</div>
+                        <div style="font-size:12px; color:#666;">Ketuk untuk mulai percakapan</div>
                     </div>
                 `;
                 container.appendChild(div);
             });
         }
 
-        function selectContact(num) {
-            activeTarget = num;
-            localStorage.setItem('iq_active_target', activeTarget);
-            document.getElementById('activeContactName').innerText = activeTarget;
-            document.getElementById('activeContactAvatar').innerText = activeTarget.substring(activeTarget.length - 2);
-            renderChatMessages();
-            renderContactList();
-        }
-
         function addNewContactPrompt() {
-            const newNum = prompt("Masukkan Nomor WhatsApp Tujuan Baru (Contoh: 08123456789):");
+            const newNum = prompt("Masukkan Nomor WhatsApp Tujuan:");
             if(newNum && !contacts.includes(newNum.trim())) {
                 contacts.push(newNum.trim());
                 localStorage.setItem('iq_contacts', JSON.stringify(contacts));
-                selectContact(newNum.trim());
+                openChatRoom(newNum.trim());
             }
         }
 
-        // Kirim & Render Pesan Real-time (Multi-tab support via storage event)
+        function openChatRoom(num) {
+            activeTarget = num;
+            localStorage.setItem('iq_active_target', activeTarget);
+            document.getElementById('activeName').innerText = activeTarget;
+            document.getElementById('activeAvatar').innerText = activeTarget.substring(activeTarget.length - 2);
+            
+            // Pindah View ke Ruang Chat HP
+            document.getElementById('viewContactList').classList.remove('active');
+            document.getElementById('viewChatRoom').classList.add('active');
+            renderChatMessages();
+        }
+
+        function backToContactList() {
+            document.getElementById('viewChatRoom').classList.remove('active');
+            document.getElementById('viewContactList').classList.add('active');
+            renderContactList();
+        }
+
         function sendChatMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
@@ -256,8 +258,6 @@
         function renderChatMessages() {
             const area = document.getElementById('chatMessagesArea');
             area.innerHTML = "";
-            if(!activeTarget) return;
-
             const key = [currentUser, activeTarget].sort().join('_');
             const messages = chatLogs[key] || [];
 
@@ -270,18 +270,9 @@
             area.scrollTop = area.scrollHeight;
         }
 
-        // Fitur Panggilan Suara & Video Call WebRTC
-        function startVoiceCall() {
-            if(!activeTarget) return alert("Pilih kontak terlebih dahulu!");
-            alert(`Menghubungkan Panggilan Suara (Voice Call) ke ${activeTarget} via P2P WebRTC...`);
-        }
+        function startVoiceCall() { alert(`Memulai Panggilan Suara ke ${activeTarget}...`); }
+        function startVideoCall() { alert(`Memulai Video Call ke ${activeTarget}...`); }
 
-        function startVideoCall() {
-            if(!activeTarget) return alert("Pilih kontak terlebih dahulu!");
-            alert(`Menghubungkan Video Call ke ${activeTarget} via P2P WebRTC...`);
-        }
-
-        // Sinkronisasi Real-time Antar Tab di Device yang Sama
         window.addEventListener('storage', (e) => {
             if (e.key === 'iq_chat_logs') {
                 chatLogs = JSON.parse(e.newValue || '{}');
@@ -289,7 +280,6 @@
             }
         });
 
-        // Inisialisasi Saat Halaman Dimuat
         window.onload = function() {
             if (!currentUser) {
                 document.getElementById('loginModal').style.display = 'flex';
@@ -298,7 +288,6 @@
                 initAppSession();
             }
 
-            // Deteksi Status PWA Installed
             if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
                 installBtn.style.display = 'none';
             }
