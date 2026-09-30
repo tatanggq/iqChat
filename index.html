@@ -99,7 +99,7 @@
         
         #incomingPopup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 440px; background: #202c33; color: white; padding: 14px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.6); z-index: 100000; display: none; align-items: center; gap: 12px; cursor: pointer; border-left: 5px solid var(--wa-green); }
 
-        /* PERBAIKAN TOTAL VIDEO CALL LAYOUT AGAR TIDAK BLANK HITAM */
+        /* VIDEO CALL MODAL FIX: Memastikan video remote tampil penuh dan tidak tertutup elemen hitam */
         #videoCallModal { position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000000; z-index: 999999; display: none; flex-direction: column; justify-content: space-between; }
         .overlay-screen { position: absolute; inset: 0; background: #111b21; color: white; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
         .form-input { width: 100%; max-width: 320px; padding: 12px 16px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #fff; font-size: 15px; margin-top: 12px; text-align: center; outline: none; }
@@ -739,34 +739,36 @@
             document.getElementById('navChoiceModal').style.display = 'flex';
         }
 
-        // PERBAIKAN MUTLAK SKEMA URL MAPS & INDRIVE (DIRECT NATIVE & FALLBACK BROWSER)
+        // PERBAIKAN TOTAL: LANGSUNG DIRECT MEMANGGIL APLIKASI NATIVE MAPS & INDRIVE DENGAN INTENT SCHEME
         function openNavOption(type) {
             document.getElementById('navChoiceModal').style.display = 'none';
             document.getElementById('liveMapModal').style.display = 'none';
             if(!tempSelectedLat || !tempSelectedLng) return;
 
             if(type === 'gmaps') {
-                const gmapsAppUrl = `geo:${tempSelectedLat},${tempSelectedLng}?q=${tempSelectedLat},${tempSelectedLng}`;
-                const gmapsWebUrl = `https://www.google.com/maps/search/?api=1&query=${tempSelectedLat},${tempSelectedLng}`;
+                // Memakai scheme geo: agar langsung membuka aplikasi Google Maps native di HP
+                const geoIntent = `geo:${tempSelectedLat},${tempSelectedLng}?q=${tempSelectedLat},${tempSelectedLng}(Lokasi Tujuan)`;
+                const webMaps = `https://www.google.com/maps/search/?api=1&query=${tempSelectedLat},${tempSelectedLng}`;
                 
-                window.location.href = gmapsAppUrl;
+                window.location.href = geoIntent;
                 setTimeout(() => {
-                    window.open(gmapsWebUrl, '_blank');
-                }, 500);
+                    window.open(webMaps, '_blank');
+                }, 400);
             } else if(type === 'indrive') {
-                const indriveAppUrl = `indrive://taxi?destination=${tempSelectedLat},${tempSelectedLng}`;
-                const indriveWebUrl = `https://indrive.com/`;
+                // Memakai scheme indrive:// untuk langsung membuka aplikasi inDrive di HP
+                const indriveApp = `indrive://taxi?destination_lat=${tempSelectedLat}&destination_lon=${tempSelectedLng}`;
+                const indriveWeb = `https://indrive.com/`;
                 
-                window.location.href = indriveAppUrl;
+                window.location.href = indriveApp;
                 setTimeout(() => {
-                    window.open(indriveWebUrl, '_blank');
-                }, 800);
+                    window.open(indriveWeb, '_blank');
+                }, 600);
             } else if(type === 'iqbike') {
                 alert(`Memesan Ojol iqBike ke koordinat: ${tempSelectedLat.toFixed(5)}, ${tempSelectedLng.toFixed(5)}`);
             }
         }
 
-        // PERBAIKAN WEBRTC CALL AGAR STREAM MUNCUL & TIDAK BLANK HITAM
+        // PERBAIKAN TOTAL WEBRTC VIDEO CALL AGAR STREAM MUNCUL INSTAN TANPA BLANK HITAM
         function startVoiceCall() {
             startVideoCall();
         }
@@ -828,7 +830,10 @@
                 remoteStream = event.streams[0];
                 const remoteVideoEl = document.getElementById('remoteVideo');
                 remoteVideoEl.srcObject = remoteStream;
-                remoteVideoEl.play().catch(e => {});
+                remoteVideoEl.play().catch(e => {
+                    // Paksa play ulang jika autoplay terblokir browser
+                    setTimeout(() => remoteVideoEl.play(), 200);
+                });
             };
 
             peerConnection.onicecandidate = (event) => {
@@ -851,7 +856,7 @@
         function listenToIncomingCalls() {
             contacts.forEach(num => {
                 if(num === "GeminiAI") return;
-                const callKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
+                const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
                 db.ref('iqchat_calls/' + callKey).on('value', async (snapshot) => {
                     let callData = snapshot.val();
                     if(callData && callData.caller !== currentUser && callData.status === 'calling') {
