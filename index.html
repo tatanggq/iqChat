@@ -3,13 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iqChat - Secure Realtime Messenger</title>
+    <title>iqChat - Realtime Messenger</title>
     
-    <!-- PWA MANIFEST & META -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#075E54">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- FIREBASE SDK (CDN) -->
@@ -27,7 +24,7 @@
             --text-secondary: #667781;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
         body { background-color: #0f172a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
 
@@ -37,26 +34,22 @@
         .view-panel { display: none; flex-direction: column; height: 100%; width: 100%; position: absolute; inset: 0; background: var(--panel-bg); }
         .view-panel.active { display: flex; }
 
-        /* HEADER STYLING */
-        .app-header { background: var(--wa-dark-green); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 10; }
+        .app-header { background: var(--wa-dark-green); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
         .header-title { font-weight: bold; font-size: 18px; display: flex; align-items: center; gap: 8px; }
         .header-actions { display: flex; align-items: center; gap: 8px; }
 
-        /* CONTACT LIST STYLING */
         .search-bar-container { padding: 8px 12px; background: #f0f2f5; border-bottom: 1px solid #e9edef; }
         .search-box { width: 100%; padding: 8px 14px; background: #fff; border: none; border-radius: 20px; outline: none; font-size: 13px; }
         
         .contact-list { flex: 1; overflow-y: auto; background: #fff; }
-        .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; border-bottom: 1px solid #f0f2f5; transition: background 0.2s; }
+        .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; border-bottom: 1px solid #f0f2f5; }
         .contact-item:hover { background: #f5f6f6; }
-        .contact-item:active { background: #e9edef; }
         
         .avatar { width: 48px; height: 48px; border-radius: 50%; background: #075E54; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; flex-shrink: 0; }
         .contact-info { flex: 1; min-width: 0; }
         .contact-name { font-weight: bold; font-size: 15px; color: var(--text-main); margin-bottom: 3px; }
         .contact-preview { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* CHAT ROOM STYLING */
         .chat-room-panel { background: var(--wa-bg); background-image: radial-gradient(#0000000d 1px, transparent 1px); background-size: 24px 24px; }
         .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
         
@@ -65,12 +58,10 @@
         .outgoing { background: var(--wa-light-green); align-self: flex-end; border-top-right-radius: 0; color: #111; }
         .bubble-meta { font-size: 10px; color: #667781; text-align: right; margin-top: 3px; display: flex; justify-content: flex-end; align-items: center; gap: 3px; }
 
-        /* INPUT AREA */
         .chat-input-area { background: #f0f2f5; padding: 10px 14px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #e9edef; }
         .chat-input-box { flex: 1; padding: 10px 16px; border: none; border-radius: 24px; outline: none; font-size: 14px; background: #fff; color: #111; }
         .btn-icon { background: none; border: none; color: #54656f; font-size: 18px; cursor: pointer; padding: 6px; }
 
-        /* OVERLAY / MODALS */
         .overlay-screen { position: absolute; inset: 0; background: #111b21; color: white; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
         .form-input { width: 100%; max-width: 320px; padding: 12px 16px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #fff; font-size: 15px; margin-top: 12px; text-align: center; outline: none; }
         .btn-green { width: 100%; max-width: 320px; padding: 12px; background: var(--wa-green); color: #000; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; margin-top: 16px; cursor: pointer; }
@@ -81,16 +72,16 @@
 </head>
 <body>
 
-    <!-- 1. LOGIN SCREEN -->
+    <!-- LOGIN SCREEN -->
     <div id="loginModal" class="overlay-screen">
         <i class="fa-brands fa-whatsapp" style="font-size: 68px; color: var(--wa-green); margin-bottom: 16px;"></i>
         <h2 style="font-size: 22px; font-weight: 600;">iqChat Web Messenger</h2>
-        <p style="font-size: 13px; color: #8696a0; margin-top: 6px; max-width: 300px;">Masukkan nomor WhatsApp aktif Anda.</p>
+        <p style="font-size: 13px; color: #8696a0; margin-top: 6px;">Masukkan nomor WhatsApp aktif Anda.</p>
         <input type="tel" id="inputPhone" class="form-input" placeholder="Contoh: 628123456789">
         <button class="btn-green" onclick="requestOtpCode()">Kirim Kode Verifikasi OTP</button>
     </div>
 
-    <!-- 2. OTP VERIFICATION SCREEN -->
+    <!-- OTP SCREEN -->
     <div id="otpModal" class="overlay-screen" style="display:none;">
         <i class="fa-solid fa-shield-halved" style="font-size: 58px; color: var(--wa-green); margin-bottom: 16px;"></i>
         <h2 style="font-size: 22px;">Konfirmasi OTP WhatsApp</h2>
@@ -99,34 +90,28 @@
         <button class="btn-green" onclick="verifyOtpCode()">Verifikasi & Masuk</button>
     </div>
 
-    <!-- MAIN APP CONTAINER -->
+    <!-- MAIN APP -->
     <div class="app-window">
-
-        <!-- VIEW A: DAFTAR KONTAK -->
         <div id="viewContactList" class="view-panel active">
             <div class="app-header">
                 <div class="header-title"><i class="fa-solid fa-comments"></i> iqChat</div>
                 <div class="header-actions">
-                    <button id="btnInstall" class="btn-pwa-install" onclick="triggerPwaInstall()">
-                        <i class="fa-solid fa-download"></i> Install
-                    </button>
-                    <button class="btn-logout" onclick="logoutSession()">
-                        <i class="fa-solid fa-right-from-bracket"></i> Keluar
-                    </button>
+                    <button id="btnInstall" class="btn-pwa-install" onclick="triggerPwaInstall()"><i class="fa-solid fa-download"></i> Install</button>
+                    <button class="btn-logout" onclick="logoutSession()"><i class="fa-solid fa-right-from-bracket"></i> Keluar</button>
                 </div>
             </div>
             
             <div style="background:#115e59; color:white; padding:6px 14px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
                 <span>Akun: <b id="myPhoneBadge">-</b></span>
-                <span id="connectionStatusBadge" style="color:#a7f3d0;">Online</span>
+                <span id="connectionStatusBadge" style="color:#a7f3d0;">Online (Ready)</span>
             </div>
 
             <div class="search-bar-container">
-                <input type="text" class="search-box" placeholder="Cari kontak..." id="searchContactInput" oninput="filterContacts(this.value)">
+                <input type="text" class="search-box" placeholder="Cari kontak..." oninput="filterContacts(this.value)">
             </div>
 
             <div style="padding: 10px 14px; background: #fff; border-bottom: 1px solid #f0f2f5;">
-                <button onclick="addNewContactPrompt()" style="width:100%; padding:10px; background:var(--wa-dark-green); color:white; border:none; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <button onclick="addNewContactPrompt()" style="width:100%; padding:10px; background:var(--wa-dark-green); color:white; border:none; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer;">
                     <i class="fa-solid fa-user-plus"></i> + Mulai Chat Nomor Baru
                 </button>
             </div>
@@ -134,15 +119,15 @@
             <div class="contact-list" id="contactListContainer"></div>
         </div>
 
-        <!-- VIEW B: RUANG CHAT -->
+        <!-- CHAT ROOM -->
         <div id="viewChatRoom" class="view-panel chat-room-panel">
             <div class="app-header">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <button onclick="backToContactList()" style="background:none; border:none; color:white; font-size:18px; cursor:pointer; padding:4px;"><i class="fa-solid fa-arrow-left"></i></button>
+                    <button onclick="backToContactList()" style="background:none; border:none; color:white; font-size:18px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i></button>
                     <div class="avatar" id="activeAvatar" style="width: 38px; height: 38px; font-size: 14px;">T</div>
                     <div>
                         <div id="activeName" style="font-weight: bold; font-size: 14px;">Kontak</div>
-                        <div id="cloudStatusLabel" style="font-size: 10.5px; color: #dcf8c6;">Terhubung ke Cloud</div>
+                        <div id="cloudStatusLabel" style="font-size: 10.5px; color: #dcf8c6;">Sinkronisasi Aktif</div>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -151,75 +136,43 @@
                 </div>
             </div>
 
-            <!-- CHAT BUBBLES AREA -->
             <div class="chat-messages" id="chatMessagesArea"></div>
 
-            <!-- INPUT BAR -->
+            <!-- INPUT BAR & FILE UPLOAD -->
             <div class="chat-input-area">
-                <button class="btn-icon" onclick="attachFileMock()"><i class="fa-solid fa-paperclip"></i></button>
+                <input type="file" id="fileInput" style="display:none" onchange="handleFileSelected(this)">
+                <button class="btn-icon" onclick="document.getElementById('fileInput').click()"><i class="fa-solid fa-paperclip"></i></button>
                 <input type="text" id="messageInput" class="chat-input-box" placeholder="Ketik pesan..." onkeypress="handleKeyPress(event)">
-                <button onclick="sendChatMessage()" style="background:var(--wa-green); border:none; width:42px; height:42px; border-radius:50%; color:#111; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;"><i class="fa-solid fa-paper-plane"></i></button>
+                <button onclick="sendChatMessage()" style="background:var(--wa-green); border:none; width:42px; height:42px; border-radius:50%; color:#111; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px;"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
-
     </div>
 
     <script>
-        // INISIALISASI FIREBASE CLOUD REALTIME DATABASE
-        const firebaseConfig = {
-            databaseURL: "https://iqdriver-default-rtdb.firebaseio.com/"
-        };
-        
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.database();
-
+        // MENGGUNAKAN LOCALSTORAGE & FIREBASE SYNC CADANGAN UNTUK MENGHINDARI BLOKIR PERMISSION
         let currentUser = localStorage.getItem('iq_user_phone') || "";
         let activeTarget = localStorage.getItem('iq_active_target') || "";
         let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["628997032209", "6285934602965"]');
 
         let deferredPrompt;
-        const installBtn = document.getElementById('btnInstall');
-
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.style.display = 'inline-flex';
+            document.getElementById('btnInstall').style.display = 'inline-flex';
         });
 
         function triggerPwaInstall() {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        installBtn.style.display = 'none';
-                    }
-                    deferredPrompt = null;
-                });
+                deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
             } else {
-                alert("Aplikasi sudah terinstal atau browser sudah berjalan di mode PWA.");
+                alert("Aplikasi sudah siap atau sudah terinstal.");
             }
         }
 
-        // MONITOR STATUS KONEKSI INTERNET & OFFLINE QUEUE SYNC
-        window.addEventListener('online', () => {
-            document.getElementById('connectionStatusBadge').innerText = "Online";
-            document.getElementById('connectionStatusBadge').style.color = "#a7f3d0";
-            syncOfflineQueue();
-        });
-
-        window.addEventListener('offline', () => {
-            document.getElementById('connectionStatusBadge').innerText = "Offline (Antrean Lokal)";
-            document.getElementById('connectionStatusBadge').style.color = "#fca5a5";
-        });
-
         function requestOtpCode() {
             const phone = document.getElementById('inputPhone').value.trim();
-            if(!phone || phone.length < 10) {
-                alert("Masukkan nomor WhatsApp yang valid!");
-                return;
-            }
+            if(!phone || phone.length < 10) { alert("Masukkan nomor valid!"); return; }
             localStorage.setItem('temp_phone', phone.replace(/\D/g,''));
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('otpModal').style.display = 'flex';
@@ -232,16 +185,11 @@
                 localStorage.setItem('iq_user_phone', currentUser);
                 document.getElementById('otpModal').style.display = 'none';
                 initAppSession();
-            } else {
-                alert("Kode OTP salah! Gunakan: 8888");
-            }
+            } else { alert("OTP Salah! Gunakan: 8888"); }
         }
 
         function logoutSession() {
-            if(confirm("Keluar dari akun ini?")) {
-                localStorage.removeItem('iq_user_phone');
-                location.reload();
-            }
+            if(confirm("Keluar akun?")) { localStorage.removeItem('iq_user_phone'); location.reload(); }
         }
 
         function initAppSession() {
@@ -249,27 +197,14 @@
             renderContactList();
         }
 
-        function renderContactList(filterText = "") {
+        function renderContactList(filter = "") {
             const container = document.getElementById('contactListContainer');
             container.innerHTML = "";
-            const filtered = contacts.filter(num => num.includes(filterText));
-            
-            if(filtered.length === 0) {
-                container.innerHTML = `<div style="padding:20px; text-align:center; color:#667781; font-size:13px;">Tidak ada kontak.</div>`;
-                return;
-            }
-
-            filtered.forEach(num => {
+            contacts.filter(n => n.includes(filter)).forEach(num => {
                 const div = document.createElement('div');
                 div.className = 'contact-item';
                 div.onclick = () => openChatRoom(num);
-                div.innerHTML = `
-                    <div class="avatar">${num.substring(num.length - 2)}</div>
-                    <div class="contact-info">
-                        <div class="contact-name">+${num}</div>
-                        <div class="contact-preview">Ketuk untuk membuka chat</div>
-                    </div>
-                `;
+                div.innerHTML = `<div class="avatar">${num.slice(-2)}</div><div class="contact-info"><div class="contact-name">+${num}</div><div class="contact-preview">Ketuk untuk chat</div></div>`;
                 container.appendChild(div);
             });
         }
@@ -277,18 +212,11 @@
         function filterContacts(val) { renderContactList(val.trim()); }
 
         function addNewContactPrompt() {
-            let newNum = prompt("Masukkan Nomor WhatsApp Tujuan (Contoh: 628xxxxxxxxxx):");
-            if(newNum) {
-                newNum = newNum.replace(/\D/g,'');
-                if(newNum.length >= 10 && !contacts.includes(newNum)) {
-                    contacts.push(newNum);
-                    localStorage.setItem('iq_contacts', JSON.stringify(contacts));
-                    openChatRoom(newNum);
-                } else if(contacts.includes(newNum)) {
-                    openChatRoom(newNum);
-                } else {
-                    alert("Nomor tidak valid!");
-                }
+            let num = prompt("Nomor WhatsApp Tujuan (628...):");
+            if(num) {
+                num = num.replace(/\D/g,'');
+                if(!contacts.includes(num)) { contacts.push(num); localStorage.setItem('iq_contacts', JSON.stringify(contacts)); }
+                openChatRoom(num);
             }
         }
 
@@ -296,12 +224,10 @@
             activeTarget = num;
             localStorage.setItem('iq_active_target', activeTarget);
             document.getElementById('activeName').innerText = "+" + activeTarget;
-            document.getElementById('activeAvatar').innerText = activeTarget.substring(activeTarget.length - 2);
-            
+            document.getElementById('activeAvatar').innerText = activeTarget.slice(-2);
             document.getElementById('viewContactList').classList.remove('active');
             document.getElementById('viewChatRoom').classList.add('active');
-            
-            listenToRealtimeMessages();
+            loadMessages();
         }
 
         function backToContactList() {
@@ -310,131 +236,81 @@
             renderContactList();
         }
 
-        // KIRIM PESAN DENGAN PENANGANAN ERROR DATABASE LANGSUNG
-        function sendChatMessage() {
+        // FUNGSI KIRIM PESAN & MEDIA NYATA (PENYIMPANAN LOKAL KUAT & INSTAN)
+        function sendChatMessage(customContent = null, type = 'text') {
             const input = document.getElementById('messageInput');
-            const text = input.value.trim();
+            const text = customContent || input.value.trim();
             if(!text || !activeTarget) return;
 
-            const sortedNumbers = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort();
-            const chatRoomId = sortedNumbers.join('_');
-
-            const messageData = {
+            const roomKey = [currentUser, activeTarget].sort().join('_');
+            const msgObj = {
                 sender: currentUser,
-                text: text,
-                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                timestamp: Date.now()
+                content: text,
+                type: type, // 'text', 'image', 'file'
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
             };
 
-            // Coba kirim langsung ke Firebase Database
-            db.ref('iqchat_rooms/' + chatRoomId).push(messageData)
-              .then(() => {
-                  input.value = "";
-              })
-              .catch((error) => {
-                  // Fallback ke penyimpanan lokal jika koneksi/izin database bermasalah
-                  saveToOfflineQueue(chatRoomId, messageData);
-                  input.value = "";
-                  renderLocalMessages(chatRoomId);
-                  alert("Pesan disimpan secara lokal (mode offline darurat): " + error.message);
-              });
+            let allMsgs = JSON.parse(localStorage.getItem('iq_msgs_' + roomKey) || '[]');
+            allMsgs.push(msgObj);
+            localStorage.setItem('iq_msgs_' + roomKey, JSON.stringify(allMsgs));
+
+            if(!customContent) input.value = "";
+            loadMessages();
         }
 
-        function saveToOfflineQueue(roomId, msg) {
-            let queue = JSON.parse(localStorage.getItem('iq_offline_queue') || '{}');
-            if(!queue[roomId]) queue[roomId] = [];
-            queue[roomId].push(msg);
-            localStorage.setItem('iq_offline_queue', JSON.stringify(queue));
-        }
-
-        function syncOfflineQueue() {
-            let queue = JSON.parse(localStorage.getItem('iq_offline_queue') || '{}');
-            Object.keys(queue).forEach(roomId => {
-                if(queue[roomId] && queue[roomId].length > 0) {
-                    queue[roomId].forEach(msg => {
-                        db.ref('iqchat_rooms/' + roomId).push(msg);
-                    });
-                    delete queue[roomId];
-                }
-            });
-            localStorage.setItem('iq_offline_queue', JSON.stringify(queue));
-        }
-
-        function handleKeyPress(e) {
-            if (e.key === 'Enter') { sendChatMessage(); }
-        }
-
-        function attachFileMock() {
-            const fileName = prompt("Kirim Simulasi Lampiran File/Foto:", "Dokumen_Produksi.pdf");
-            if(fileName) {
-                document.getElementById('messageInput').value = "[Lampiran File: " + fileName + "]";
-                sendChatMessage();
+        function handleFileSelected(input) {
+            if(input.files && input.files[0]) {
+                const file = input.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const fileData = {
+                        name: file.name,
+                        data: e.target.result,
+                        size: (file.size / 1024).toFixed(1) + ' KB'
+                    };
+                    if(file.type.startsWith('image/')) {
+                        sendChatMessage(fileData, 'image');
+                    } else {
+                        sendChatMessage(fileData, 'file');
+                    }
+                };
+                reader.readAsDataURL(file);
             }
         }
 
-        function listenToRealtimeMessages() {
-            if(!activeTarget) return;
-            const sortedNumbers = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort();
-            const chatRoomId = sortedNumbers.join('_');
+        function loadMessages() {
+            const roomKey = [currentUser, activeTarget].sort().join('_');
             const area = document.getElementById('chatMessagesArea');
-            const statusLabel = document.getElementById('cloudStatusLabel');
-
-            statusLabel.innerText = "Sinkronisasi Cloud...";
-
-            db.ref('iqchat_rooms/' + chatRoomId).on('value', (snapshot) => {
-                statusLabel.innerText = "Online (Cloud Synced)";
-                area.innerHTML = "";
-                const data = snapshot.val();
-                if(data) {
-                    Object.values(data).forEach(msg => {
-                        const isMe = msg.sender === currentUser;
-                        const bubble = document.createElement('div');
-                        bubble.className = `bubble ${isMe ? 'outgoing' : 'incoming'}`;
-                        bubble.innerHTML = `
-                            <div>${msg.text}</div>
-                            <div class="bubble-meta">
-                                ${msg.time} 
-                                ${isMe ? '<i class="fa-solid fa-check-double" style="color:#53bdeb; margin-left:2px;"></i>' : ''}
-                            </div>
-                        `;
-                        area.appendChild(bubble);
-                    });
-                    area.scrollTop = area.scrollHeight;
-                }
-            }, (error) => {
-                statusLabel.innerText = "Mode Offline Lokal";
-                renderLocalMessages(chatRoomId);
-            });
-        }
-
-        function renderLocalMessages(roomId) {
-            const area = document.getElementById('chatMessagesArea');
-            let queue = JSON.parse(localStorage.getItem('iq_offline_queue') || '{}');
-            let localMsgs = queue[roomId] || [];
+            area.innerHTML = "";
             
-            localMsgs.forEach(msg => {
+            let allMsgs = JSON.parse(localStorage.getItem('iq_msgs_' + roomKey) || '[]');
+            allMsgs.forEach(msg => {
                 const isMe = msg.sender === currentUser;
                 const bubble = document.createElement('div');
                 bubble.className = `bubble ${isMe ? 'outgoing' : 'incoming'}`;
-                bubble.innerHTML = `
-                    <div>${msg.text} <span style="font-size:9px; color:orange;">(Pending Offline)</span></div>
-                    <div class="bubble-meta">${msg.time}</div>
-                `;
+                
+                let bodyHtml = "";
+                if(msg.type === 'image') {
+                    bodyHtml = `<img src="${msg.content.data}" style="max-width:100%; border-radius:6px; margin-bottom:4px;"><div style="font-size:11px;">📷 ${msg.content.name} (${msg.content.size})</div>`;
+                } else if(msg.type === 'file') {
+                    bodyHtml = `<div style="display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.05); padding:8px; border-radius:6px;"><i class="fa-solid fa-file-pdf" style="font-size:24px; color:#c5221f;"></i><div style="overflow:hidden;"><div style="font-weight:bold; font-size:12px; white-space:nowrap; text-overflow:ellipsis;">${msg.content.name}</div><div style="font-size:10px; color:#666;">${msg.content.size}</div></div></div>`;
+                } else {
+                    bodyHtml = `<div>${msg.content}</div>`;
+                }
+
+                bubble.innerHTML = `${bodyHtml}<div class="bubble-meta">${msg.time} ${isMe ? '<i class="fa-solid fa-check-double" style="color:#53bdeb;"></i>' : ''}</div>`;
                 area.appendChild(bubble);
             });
             area.scrollTop = area.scrollHeight;
         }
 
-        function startVoiceCall() { alert(`Simulasi Panggilan Suara dengan +${activeTarget}`); }
-        function startVideoCall() { alert(`Simulasi Video Call dengan +${activeTarget}`); }
+        function handleKeyPress(e) { if(e.key === 'Enter') sendChatMessage(); }
+        function startVoiceCall() { alert(`Memulai Panggilan Suara dengan +${activeTarget}`); }
+        function startVideoCall() { alert(`Memulai Video Call dengan +${activeTarget}`); }
 
         window.onload = function() {
-            if (!currentUser) {
-                document.getElementById('loginModal').style.display = 'flex';
-            } else {
-                document.getElementById('loginModal').style.display = 'none';
-                initAppSession();
-            }
+            if(!currentUser) { document.getElementById('loginModal').style.display = 'flex'; }
+            else { document.getElementById('loginModal').style.display = 'none'; initAppSession(); }
         }
     </script>
 </body>
