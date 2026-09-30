@@ -48,11 +48,11 @@
         .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; border-bottom: 1px solid #f0f2f5; position: relative; user-select: none; }
         .contact-item:hover { background: #f5f6f6; }
         
-        /* AVATAR RAPI TANPA BENTROK TITIK HIJAU & BADGE */
+        /* AVATAR RAPI TANPA BOCOR / PUTING (Eksklusif Badge atau Dot) */
         .avatar-wrapper { position: relative; width: 48px; height: 48px; flex-shrink: 0; display: inline-block; }
         .avatar { width: 48px; height: 48px; border-radius: 50%; background: #075E54; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; overflow: hidden; background-size: cover; background-position: center; border: none; }
-        .online-dot { position: absolute; top: 1px; right: 1px; width: 12px; height: 12px; background: #25D366; border-radius: 50%; border: 2px solid white; z-index: 5; }
-        .unread-badge { background: #25D366; color: #000; font-size: 11px; font-weight: bold; padding: 2px 7px; border-radius: 12px; min-width: 20px; text-align: center; z-index: 6; }
+        .online-dot { position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background: #25D366; border-radius: 50%; border: 2px solid white; z-index: 5; }
+        .unread-badge { position: absolute; top: 0; right: 0; background: #25D366; color: #000; font-size: 11px; font-weight: bold; padding: 2px 7px; border-radius: 12px; min-width: 20px; text-align: center; border: 2px solid white; z-index: 6; }
 
         .contact-info { flex: 1; min-width: 0; }
         .contact-name { font-weight: bold; font-size: 15px; color: var(--text-main); margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; }
@@ -88,7 +88,7 @@
         #liveMapModal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; display: none; flex-direction: column; padding: 16px; }
         #liveMapContainer { flex: 1; border-radius: 12px; width: 100%; position: relative; margin-top: 8px; margin-bottom: 8px; }
 
-        /* MODAL PILIHAN NAVIGASI 3 OPSI */
+        /* MODAL PILIHAN NAVIGASI */
         #navChoiceModal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100000; display: none; align-items: center; justify-content: center; padding: 20px; }
         .nav-choice-box { background: white; width: 100%; max-width: 320px; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 12px; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
         .nav-btn { padding: 12px; border-radius: 8px; border: none; font-weight: bold; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: white; }
@@ -97,9 +97,9 @@
 
         /* CHAT HEAD BUBBLE (GAYA FB MESSENGER) */
         .chat-head-bubble { position: fixed; bottom: 100px; right: 25px; width: 60px; height: 60px; background: #075E54; border-radius: 50%; display: none; align-items: center; justify-content: center; color: white; box-shadow: 0 6px 25px rgba(0,0,0,0.5); cursor: pointer; z-index: 99999; background-size: cover; background-position: center; border: 3px solid white; touch-action: none; }
-        .chat-head-unread { position: absolute; top: 2px; right: 2px; background: #25D366; color: #000; font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 50%; border: 2px solid white; display: none; z-index: 5; }
+        .chat-head-unread { position: absolute; top: 0; right: 0; background: #25D366; color: #000; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 50%; border: 2px solid white; display: none; z-index: 5; }
 
-        /* AREA DROP ZONE X DI TENGAH BAWAH (GAYA FB MESSENGER) */
+        /* AREA DROP ZONE X DI TENGAH BAWAH */
         #dropZoneX { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); width: 54px; height: 54px; background: rgba(0,0,0,0.75); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 22px; z-index: 99998; border: 2px dashed #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
         
         #incomingPopup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 440px; background: #202c33; color: white; padding: 14px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.6); z-index: 100000; display: none; align-items: center; gap: 12px; cursor: pointer; border-left: 5px solid var(--wa-green); }
@@ -115,7 +115,7 @@
 </head>
 <body>
 
-    <!-- MODAL PILIHAN NAVIGASI 3 OPSI -->
+    <!-- MODAL PILIHAN NAVIGASI -->
     <div id="navChoiceModal">
         <div class="nav-choice-box">
             <h3 style="font-size: 16px; color: #111;">Pilih Aplikasi Navigasi</h3>
@@ -127,7 +127,7 @@
         </div>
     </div>
 
-    <!-- MODAL PREVIEW PETA LIVE LOCATION DI DALAM CHAT -->
+    <!-- MODAL PREVIEW PETA LIVE LOCATION -->
     <div id="liveMapModal">
         <div style="display:flex; justify-content:space-between; align-items:center; color:white; padding: 0 4px;">
             <b>Peta Berbagi Lokasi Terkini (Real-time)</b>
@@ -135,8 +135,9 @@
         </div>
         <div id="liveMapContainer"></div>
         <div style="background: white; padding: 12px; border-radius: 8px; display: flex; gap: 8px;">
-            <button onclick="openNavOption('indrive')" style="flex:1; background:#0066cc; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-car"></i> Buka inDrive</button>
-            <button onclick="openNavOption('iqbike')" style="flex:1; background:var(--wa-dark-green); color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-motorcycle"></i> Ojol iqBike</button>
+            <button onclick="openNavOption('gmaps')" style="flex:1; background:#1a73e8; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-map"></i> Google Maps</button>
+            <button onclick="openNavOption('indrive')" style="flex:1; background:#0066cc; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-car"></i> inDrive</button>
+            <button onclick="openNavOption('iqbike')" style="flex:1; background:var(--wa-dark-green); color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-motorcycle"></i> iqBike</button>
         </div>
     </div>
 
@@ -150,7 +151,7 @@
         <i class="fa-solid fa-chevron-right" style="color: #8696a0; font-size: 14px;"></i>
     </div>
 
-    <!-- CHAT HEAD BUBBLE & DROP ZONE X (GAYA FB MESSENGER) -->
+    <!-- CHAT HEAD BUBBLE & DROP ZONE X -->
     <div id="chatHead" class="chat-head-bubble" title="Geser ke X untuk menutup">
         <div id="chatHeadAvatarContainer" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; position:relative;"></div>
         <div id="chatHeadUnread" class="chat-head-unread">0</div>
@@ -179,7 +180,7 @@
         <button onclick="stopRoundVideoRecord()" style="background:red; color:white; border:none; padding:10px 20px; border-radius:20px; margin-top:20px; font-weight:bold; cursor:pointer;">Selesai & Kirim</button>
     </div>
 
-    <!-- VIDEO CALL MODAL (FULL WEBRTC) -->
+    <!-- VIDEO CALL MODAL (FULL WEBRTC DENGAN PERBAIKAN TRACK & STREAM) -->
     <div id="videoCallModal">
         <div style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 10; background: rgba(0,0,0,0.6); padding: 12px;">
             <h3 id="videoCallTitle" style="font-size: 18px; color: #fff;">Video Call</h3>
@@ -393,7 +394,7 @@
             updateMyPresence();
         }
 
-        // FUNGSI AVATAR BERSIH: Logika prioritas badge unread (jika ada) baru titik hijau online
+        /* AVATAR RAPI TANPA TONJOLAN / BOCOR (Eksklusif Badge atau Dot) */
         function getOnlineAvatarHTML(nameOrNumber, photoData, size = 48, isOnline = true, unreadCount = 0) {
             let styleAttr = `width: ${size}px; height: ${size}px; font-size: ${size * 0.35}px;`;
             let avatarText = "";
@@ -405,7 +406,7 @@
 
             let indicatorHtml = '';
             if (unreadCount > 0) {
-                indicatorHtml = `<div class="unread-badge" style="position:absolute; top:0; right:0;">${unreadCount}</div>`;
+                indicatorHtml = `<div class="unread-badge">${unreadCount}</div>`;
             } else if (isOnline) {
                 indicatorHtml = `<div class="online-dot"></div>`;
             }
@@ -727,6 +728,9 @@
                                 liveMarkers[userNum].setLatLng([pos.lat, pos.lng]);
                             } else {
                                 liveMarkers[userNum] = L.marker([pos.lat, pos.lng], {icon: customIcon}).addTo(liveMapInstance);
+                                liveMarkers[userNum].on('click', () => {
+                                    triggerNavOptions(pos.lat, pos.lng);
+                                });
                             }
                         });
                     }
@@ -734,7 +738,7 @@
             }, 300);
         }
 
-        // INTEGRASI PILIHAN NAVIGASI DENGAN INDRIVE NATIVE APP
+        // INTEGRASI NAVIGASI DENGAN INTENT INDRIVE & GMAPS LANGSUNG
         function triggerNavOptions(lat, lng) {
             tempSelectedLat = lat;
             tempSelectedLng = lng;
@@ -749,10 +753,8 @@
             if(type === 'gmaps') {
                 window.open(`https://www.google.com/maps?q=${tempSelectedLat},${tempSelectedLng}`, '_blank');
             } else if(type === 'indrive') {
-                // Membuka aplikasi inDrive langsung via intent skema / Universal Link
                 window.location.href = `indrive://taxi?destination=${tempSelectedLat},${tempSelectedLng}`;
                 setTimeout(() => {
-                    // Fallback jika aplikasi belum terpasang
                     window.open(`https://indrive.com/`, '_blank');
                 }, 1500);
             } else if(type === 'iqbike') {
@@ -760,7 +762,7 @@
             }
         }
 
-        // WEBRTC VIDEO & VOICE CALL FUNCTIONS
+        // WEBRTC VIDEO & VOICE CALL FUNCTIONS (DENGAN PERBAIKAN TRACK & STREAM AGAR TIDAK BLANK HITAM)
         function startVoiceCall() {
             alert("Memulai panggilan suara...");
             startVideoCall();
@@ -784,24 +786,48 @@
                     document.getElementById('localVideo').srcObject = stream;
                     setupPeerConnection();
                     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                    
+                    // Buat Offer WebRTC
+                    peerConnection.createOffer().then(offer => peerConnection.setLocalDescription(offer)).then(() => {
+                        activeCallRef.update({ offer: JSON.stringify(peerConnection.localDescription) });
+                    });
                 }).catch(e => alert("Gagal akses kamera/mic"));
 
-            activeCallRef.on('value', (snapshot) => {
+            activeCallRef.on('value', async (snapshot) => {
                 let callData = snapshot.val();
-                if(callData && callData.status === 'accepted') {
+                if(!callData) return;
+                
+                if(callData.status === 'accepted') {
                     document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen)";
-                } else if(!callData || callData.status === 'ended') {
+                    if(callData.answer && !peerConnection.currentRemoteDescription && peerConnection.signalingState === "have-local-offer") {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.answer)));
+                    }
+                } else if(callData.status === 'ended') {
                     endVideoCall();
+                }
+
+                if(callData.candidates) {
+                    db.ref('iqchat_calls/' + callKey + '/candidates').on('child_added', snapshot => {
+                        let cand = snapshot.val();
+                        if(cand && peerConnection && peerConnection.remoteDescription) {
+                            peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(cand))).catch(e => {});
+                        }
+                    });
                 }
             });
         }
 
         function setupPeerConnection() {
+            if(peerConnection) return;
             peerConnection = new RTCPeerConnection(rtcConfig);
+            
             peerConnection.ontrack = (event) => {
                 remoteStream = event.streams[0];
-                document.getElementById('remoteVideo').srcObject = remoteStream;
+                const remoteVideoEl = document.getElementById('remoteVideo');
+                remoteVideoEl.srcObject = remoteStream;
+                remoteVideoEl.play().catch(e => {});
             };
+
             peerConnection.onicecandidate = (event) => {
                 if(event.candidate) {
                     const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
@@ -823,7 +849,7 @@
             contacts.forEach(num => {
                 if(num === "GeminiAI") return;
                 const callKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
-                db.ref('iqchat_calls/' + callKey).on('value', (snapshot) => {
+                db.ref('iqchat_calls/' + callKey).on('value', async (snapshot) => {
                     let callData = snapshot.val();
                     if(callData && callData.caller !== currentUser && callData.status === 'calling') {
                         activeCallRef = db.ref('iqchat_calls/' + callKey);
@@ -842,23 +868,42 @@
             });
         }
 
-        function answerIncomingCall() {
+        async function answerIncomingCall() {
             if(activeCallRef) {
-                activeCallRef.update({ status: 'accepted' });
-                document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen)";
                 document.getElementById('btnAnswerCall').style.display = 'none';
+                document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
 
                 setupPeerConnection();
                 if(localStream) {
                     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
                 }
+
+                activeCallRef.once('value', async (snapshot) => {
+                    let callData = snapshot.val();
+                    if(callData && callData.offer) {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.offer)));
+                        let answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        
+                        activeCallRef.update({ answer: JSON.stringify(peerConnection.localDescription), status: 'accepted' });
+                        document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen)";
+                    }
+                });
+
+                const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
+                db.ref('iqchat_calls/' + callKey + '/candidates').on('child_added', snapshot => {
+                    let cand = snapshot.val();
+                    if(cand && peerConnection && peerConnection.remoteDescription) {
+                        peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(cand))).catch(e => {});
+                    }
+                });
             }
         }
 
         function endVideoCall() {
             if(activeCallRef) { activeCallRef.update({ status: 'ended' }); }
             if(localStream) { localStream.getTracks().forEach(track => track.stop()); }
-            if(peerConnection) { peerConnection.close(); }
+            if(peerConnection) { peerConnection.close(); peerConnection = null; }
             document.getElementById('videoCallModal').style.display = 'none';
         }
 
