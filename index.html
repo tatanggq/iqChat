@@ -48,9 +48,9 @@
         .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; border-bottom: 1px solid #f0f2f5; position: relative; user-select: none; }
         .contact-item:hover { background: #f5f6f6; }
         
-        /* AVATAR PROPORSIONAL TANPA SILUET BIRU */
-        .avatar-wrapper { position: relative; width: 48px; height: 48px; flex-shrink: 0; }
-        .avatar { width: 48px; height: 48px; border-radius: 50%; background: #075E54; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; overflow: hidden; background-size: cover; background-position: center; }
+        /* AVATAR PROPORSIONAL SEMPURNA TANPA SILUET */
+        .avatar-wrapper { position: relative; width: 48px; height: 48px; flex-shrink: 0; display: inline-block; }
+        .avatar { width: 48px; height: 48px; border-radius: 50%; background: #075E54; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; overflow: hidden; background-size: cover; background-position: center; border: none; outline: none; }
         .online-dot { position: absolute; top: 1px; right: 1px; width: 12px; height: 12px; background: #25D366; border-radius: 50%; border: 2px solid white; z-index: 5; }
 
         .contact-info { flex: 1; min-width: 0; }
@@ -79,7 +79,7 @@
         .attach-item { color: white; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; }
         .attach-item:hover { background: #374248; }
 
-        /* MODAL PETA & NAVIGASI 3 OPSI (GOOGLE MAPS, INDRIVE, IQBIKE) */
+        /* MODAL PETA & NAVIGASI 3 OPSI */
         #mapModal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; display: none; flex-direction: column; padding: 16px; }
         #mapContainer { flex: 1; border-radius: 12px; width: 100%; position: relative; margin-top: 8px; margin-bottom: 8px; }
         .btn-gps-locate { position: absolute; top: 15px; right: 15px; z-index: 1000; background: white; border: none; width: 42px; height: 42px; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #075E54; }
@@ -88,6 +88,10 @@
         #navChoiceModal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100000; display: none; align-items: center; justify-content: center; padding: 20px; }
         .nav-choice-box { background: white; width: 100%; max-width: 320px; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 12px; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
         .nav-btn { padding: 12px; border-radius: 8px; border: none; font-weight: bold; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: white; }
+
+        /* MODAL PREVIEW LIVE LOCATION DI DALAM CHAT */
+        #liveMapModal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; display: none; flex-direction: column; padding: 16px; }
+        #liveMapContainer { flex: 1; border-radius: 12px; width: 100%; position: relative; margin-top: 8px; margin-bottom: 8px; }
 
         #videoRoundModal { position: fixed; inset: 0; background: #000; z-index: 99999; display: none; flex-direction: column; align-items: center; justify-content: center; }
 
@@ -108,7 +112,7 @@
 </head>
 <body>
 
-    <!-- MODAL PILIHAN NAVIGASI 3 OPSI (GOOGLE MAPS, INDRIVE, IQBIKE) -->
+    <!-- MODAL PILIHAN NAVIGASI 3 OPSI -->
     <div id="navChoiceModal">
         <div class="nav-choice-box">
             <h3 style="font-size: 16px; color: #111;">Pilih Aplikasi Navigasi</h3>
@@ -117,6 +121,19 @@
             <button class="nav-btn" style="background: #0066cc;" onclick="openNavOption('indrive')"><i class="fa-solid fa-car"></i> inDrive</button>
             <button class="nav-btn" style="background: var(--wa-dark-green);" onclick="openNavOption('iqbike')"><i class="fa-solid fa-motorcycle"></i> Ojol iqBike</button>
             <button onclick="document.getElementById('navChoiceModal').style.display='none'" style="background:none; border:none; color:#dc2626; font-weight:bold; margin-top:4px; cursor:pointer;">Batal</button>
+        </div>
+    </div>
+
+    <!-- MODAL PREVIEW LIVE LOCATION DI DALAM CHAT -->
+    <div id="liveMapModal">
+        <div style="display:flex; justify-content:space-between; align-items:center; color:white; padding: 0 4px;">
+            <b>Peta Berbagi Lokasi Terkini (Real-time)</b>
+            <button onclick="document.getElementById('liveMapModal').style.display='none'" style="background:red; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Tutup</button>
+        </div>
+        <div id="liveMapContainer"></div>
+        <div style="background: white; padding: 12px; border-radius: 8px; display: flex; gap: 8px;">
+            <button onclick="openNavOption('indrive')" style="flex:1; background:#0066cc; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-car"></i> Buka inDrive</button>
+            <button onclick="openNavOption('iqbike')" style="flex:1; background:var(--wa-dark-green); color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-motorcycle"></i> Ojol iqBike</button>
         </div>
     </div>
 
@@ -137,7 +154,7 @@
     </div>
     <div id="dropZoneX"><i class="fa-solid fa-xmark"></i></div>
 
-    <!-- MODAL SHARELOK & LIVE LOCATION -->
+    <!-- MODAL SHARELOK -->
     <div id="mapModal">
         <div style="display:flex; justify-content:space-between; align-items:center; color:white; padding: 0 4px;">
             <b id="mapModalTitle">Kirim Lokasi Terkini</b>
@@ -288,6 +305,7 @@
         let localStream = null;
         let pendingPopupTarget = null;
         let mapInstance = null, markerInstance = null, blueDotCircle = null;
+        let liveMapInstance = null, liveMarkers = {};
         let currentLat = -6.9175, currentLng = 107.6191;
         let liveLocationInterval = null;
         let mediaRecorder = null, audioChunks = [];
@@ -368,19 +386,25 @@
             updateMyPresence();
         }
 
-        // AVATAR PROPORSIONAL SEMPURNA
-        function getOnlineAvatarHTML(nameOrNumber, photoData, size = 48, isOnline = true) {
+        // AVATAR PROPORSIONAL SEMPURNA TANPA SILUET
+        function getOnlineAvatarHTML(nameOrNumber, photoData, size = 48, isOnline = true, unreadCount = 0) {
             let styleAttr = `width: ${size}px; height: ${size}px; font-size: ${size * 0.35}px;`;
-            let avatarText = "";
             if (photoData) {
                 styleAttr += ` background-image: url('${photoData}');`;
-            } else {
-                avatarText = nameOrNumber;
             }
+            
+            // Logika bergantian titik hijau online / badge angka unread seperti WhatsApp asli
+            let indicatorHtml = '';
+            if (unreadCount > 0) {
+                indicatorHtml = `<div class="unread-badge" style="position:absolute; top:0; right:0; font-size:9px; padding:1px 5px; z-index:5;">${unreadCount}</div>`;
+            } else if (isOnline) {
+                indicatorHtml = `<div class="online-dot"></div>`;
+            }
+
             return `
                 <div class="avatar-wrapper" style="width:${size}px; height:${size}px;">
-                    <div class="avatar" style="${styleAttr}">${avatarText}</div>
-                    ${isOnline ? '<div class="online-dot"></div>' : ''}
+                    <div class="avatar" style="${styleAttr}">${photoData ? '' : nameOrNumber}</div>
+                    ${indicatorHtml}
                 </div>
             `;
         }
@@ -391,7 +415,7 @@
             let headerName = myProf.name || ("+" + currentUser);
             document.getElementById('headerMyName').innerText = headerName;
             let identifier = myProf.name ? myProf.name.slice(0,2).toUpperCase() : currentUser.slice(-2);
-            document.getElementById('myHeaderAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, myProf.photo, 32, true);
+            document.getElementById('myHeaderAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, myProf.photo, 32, true, 0);
         }
 
         function openProfileSettings() {
@@ -456,8 +480,8 @@
                 let details = contactDetails[num] || {};
                 let displayName = isAI ? "Gemini AI" : (details.name || ("+" + num));
                 let identifier = isAI ? "🤖" : (details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2));
-                let avatarHtml = getOnlineAvatarHTML(identifier, details.photo, 48, true);
                 let unreadCount = unreadCounts[roomKey] || 0;
+                let avatarHtml = getOnlineAvatarHTML(identifier, details.photo, 48, true, unreadCount);
 
                 const div = document.createElement('div');
                 div.className = 'contact-item';
@@ -529,7 +553,7 @@
             document.getElementById('activeName').innerText = isAI ? "Gemini AI" : (details.name || ("+" + num));
             
             let identifier = isAI ? "🤖" : (details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2));
-            document.getElementById('activeAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 38, true);
+            document.getElementById('activeAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 38, true, 0);
 
             document.getElementById('viewContactList').classList.remove('active');
             document.getElementById('viewChatRoom').classList.add('active');
@@ -660,7 +684,52 @@
             alert("Berbagi lokasi terkini dihentikan.");
         }
 
-        // FUNGSI MEMBUKA MODAL 3 OPSI NAVIGASI (GOOGLE MAPS, INDRIVE, IQBIKE)
+        // FUNGSI MEMBUKA PETA LIVE LOCATION DENGAN AVATAR BERGERAK DI DALAM CHAT
+        function openLiveLocationMap(roomKey) {
+            document.getElementById('liveMapModal').style.display = 'flex';
+            setTimeout(() => {
+                if (!liveMapInstance) {
+                    liveMapInstance = L.map('liveMapContainer').setView([currentLat, currentLng], 16);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(liveMapInstance);
+                } else {
+                    liveMapInstance.invalidateSize();
+                }
+
+                // Ambil data live location real-time dari Firebase
+                db.ref('iqchat_liveloc/' + roomKey).on('value', snapshot => {
+                    const locs = snapshot.val();
+                    let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
+                    let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
+
+                    if (locs) {
+                        Object.keys(locs).forEach(userNum => {
+                            let pos = locs[userNum];
+                            let prof = profiles[userNum] || contactDetails[userNum] || {};
+                            let initial = prof.name ? prof.name.slice(0,2).toUpperCase() : userNum.slice(-2);
+                            let photo = prof.photo || "";
+
+                            // Buat custom marker avatar bulat proporsional
+                            let avatarHtml = `<div style="width:36px; height:36px; border-radius:50%; background:#075E54; color:white; font-weight:bold; font-size:12px; display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.3); ${photo ? 'background-image:url('+photo+'); background-size:cover;' : ''}">${photo ? '' : initial}</div>`;
+                            
+                            let customIcon = L.divIcon({
+                                html: avatarHtml,
+                                className: 'custom-live-avatar-marker',
+                                iconSize: [36, 36],
+                                iconAnchor: [18, 18]
+                            });
+
+                            if (liveMarkers[userNum]) {
+                                liveMarkers[userNum].setLatLng([pos.lat, pos.lng]);
+                            } else {
+                                liveMarkers[userNum] = L.marker([pos.lat, pos.lng], {icon: customIcon}).addTo(liveMapInstance);
+                            }
+                        });
+                    }
+                });
+            }, 300);
+        }
+
+        // FUNGSI NAVIGASI 3 OPSI (GOOGLE MAPS, INDRIVE, IQBIKE)
         function triggerNavOptions(lat, lng) {
             tempSelectedLat = lat;
             tempSelectedLng = lng;
@@ -669,16 +738,16 @@
 
         function openNavOption(type) {
             document.getElementById('navChoiceModal').style.display = 'none';
+            document.getElementById('liveMapModal').style.display = 'none';
             if(!tempSelectedLat || !tempSelectedLng) return;
 
             if(type === 'gmaps') {
                 window.open(`https://www.google.com/maps?q=${tempSelectedLat},${tempSelectedLng}`, '_blank');
             } else if(type === 'indrive') {
-                alert(`Membuka inDrive dengan tujuan koordinat: ${tempSelectedLat.toFixed(5)}, ${tempSelectedLng.toFixed(5)}`);
-                window.open(`https://maps.google.com/?q=${tempSelectedLat},${tempSelectedLng}`, '_blank');
+                alert(`Memanggil inDrive dengan tujuan koordinat: ${tempSelectedLat.toFixed(5)}, ${tempSelectedLng.toFixed(5)}`);
+                // Simulasi sukses membuka aplikasi inDrive tanpa lari ke Google Maps
             } else if(type === 'iqbike') {
                 alert(`Memesan Ojol iqBike ke titik koordinat: ${tempSelectedLat.toFixed(5)}, ${tempSelectedLng.toFixed(5)}`);
-                // Navigasi internal atau simulasi ojol iqBike
             }
         }
 
@@ -876,7 +945,7 @@
                 
                 let details = contactDetails[msg.sender] || {};
                 let senderInitial = details.name ? details.name.slice(0,2).toUpperCase() : (msg.sender === currentUser ? currentUser.slice(-2) : msg.sender.slice(-2));
-                let avatarMini = getOnlineAvatarHTML(senderInitial, details.photo, 28, true);
+                let avatarMini = getOnlineAvatarHTML(senderInitial, details.photo, 28, true, 0);
 
                 let bodyHtml = "";
                 if(msg.type === 'image') {
@@ -896,7 +965,7 @@
                             <i class="fa-solid fa-location-arrow" style="font-size:22px; color:#075E54; margin-bottom:4px;"></i>
                             <div><b>Berbagi Lokasi Terkini</b></div>
                             <div style="font-size:11px; color:#555; margin:2px 0;">${msg.content.duration}</div>
-                            <div onclick="triggerNavOptions(${msg.content.lat}, ${msg.content.lng})" style="color:#1a73e8; font-size:12px; display:block; margin-top:4px; cursor:pointer; font-weight:bold;">Lihat Peta Real-time (Maps / inDrive / iqBike)</div>
+                            <div onclick="openLiveLocationMap('${roomKey}')" style="color:#1a73e8; font-size:12px; display:block; margin-top:4px; cursor:pointer; font-weight:bold;">Lihat di Peta Real-time (Avatar Bergerak)</div>
                             ${isMe ? `<button onclick="stopLiveLocation()" style="background:#dc2626; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; margin-top:6px; cursor:pointer;">Berhenti Berbagi</button>` : ''}
                         </div>`;
                 } else if(msg.type === 'voicename') {
@@ -955,7 +1024,7 @@
             let unread = unreadCounts[roomKey] || 1;
 
             let identifier = details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2);
-            document.getElementById('chatHeadAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 60, true);
+            document.getElementById('chatHeadAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 60, true, unread);
 
             let unreadEl = document.getElementById('chatHeadUnread');
             unreadEl.innerText = unread;
@@ -1013,7 +1082,7 @@
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
             let details = contactDetails[num] || {};
             let identifier = details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2);
-            document.getElementById('popupAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 42, true);
+            document.getElementById('popupAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 42, true, 0);
 
             document.getElementById('popupSenderName').innerText = "+" + num;
             document.getElementById('popupMessageText').innerText = typeof text === 'object' ? '[Media/Berkas]' : text;
