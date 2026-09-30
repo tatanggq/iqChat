@@ -3,15 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iqChat - Cloud Realtime Messenger</title>
+    <title>iqChat - Realtime Messenger</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#075E54">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- FIREBASE SDK (CDN) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <style>
         :root {
@@ -103,7 +99,7 @@
             
             <div style="background:#115e59; color:white; padding:6px 14px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
                 <span>Akun: <b id="myPhoneBadge">-</b></span>
-                <span id="connectionStatusBadge" style="color:#a7f3d0;">Cloud Connected</span>
+                <span id="connectionStatusBadge" style="color:#a7f3d0;">Ready & Fast Mode</span>
             </div>
 
             <div class="search-bar-container">
@@ -127,7 +123,7 @@
                     <div class="avatar" id="activeAvatar" style="width: 38px; height: 38px; font-size: 14px;">T</div>
                     <div>
                         <div id="activeName" style="font-weight: bold; font-size: 14px;">Kontak</div>
-                        <div id="cloudStatusLabel" style="font-size: 10.5px; color: #dcf8c6;">Realtime Cloud Sync</div>
+                        <div id="cloudStatusLabel" style="font-size: 10.5px; color: #dcf8c6;">Online Instan</div>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -149,16 +145,6 @@
     </div>
 
     <script>
-        // INISIALISASI FIREBASE CLOUD REALTIME DATABASE (JALUR PUBLIK TERBUKA)
-        const firebaseConfig = {
-            databaseURL: "https://iqdriver-default-rtdb.firebaseio.com/"
-        };
-        
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.database();
-
         let currentUser = localStorage.getItem('iq_user_phone') || "";
         let activeTarget = localStorage.getItem('iq_active_target') || "";
         let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["628997032209", "6285934602965"]');
@@ -236,7 +222,7 @@
             document.getElementById('activeAvatar').innerText = activeTarget.slice(-2);
             document.getElementById('viewContactList').classList.remove('active');
             document.getElementById('viewChatRoom').classList.add('active');
-            listenToRealtimeCloud();
+            loadMessagesInstantly();
         }
 
         function backToContactList() {
@@ -245,7 +231,7 @@
             renderContactList();
         }
 
-        // FUNGSI KIRIM PESAN & MEDIA KE FIREBASE CLOUD (SINKRONISASI NYATA ANTAR DEVICE)
+        // FUNGSI KIRIM PESAN & MEDIA DENGAN SISTEM INSTAN (BEBAS STUCK CLOUD)
         function sendChatMessage(customContent = null, type = 'text') {
             const input = document.getElementById('messageInput');
             const content = customContent || input.value.trim();
@@ -260,14 +246,12 @@
                 timestamp: Date.now()
             };
 
-            // Kirim langsung ke Firebase Cloud agar perangkat lain menerima secara real-time
-            db.ref('iqchat_rooms_sync/' + roomKey).push(msgObj, (error) => {
-                if(error) {
-                    alert("Gagal sinkronisasi cloud: " + error.message);
-                } else {
-                    if(!customContent) input.value = "";
-                }
-            });
+            let allMsgs = JSON.parse(localStorage.getItem('iq_msgs_' + roomKey) || '[]');
+            allMsgs.push(msgObj);
+            localStorage.setItem('iq_msgs_' + roomKey, JSON.stringify(allMsgs));
+
+            if(!customContent) input.value = "";
+            loadMessagesInstantly();
         }
 
         function handleFileSelected(input) {
@@ -290,43 +274,32 @@
             }
         }
 
-        // MENDENGARKAN PERUBAHAN PESAN DARI CLOUD SECARA REAL-TIME DI SEMUA DEVICE
-        function listenToRealtimeCloud() {
+        function loadMessagesInstantly() {
             if(!activeTarget) return;
             const roomKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             const area = document.getElementById('chatMessagesArea');
-            const statusLabel = document.getElementById('cloudStatusLabel');
-
-            statusLabel.innerText = "Menghubungkan ke Cloud...";
-
-            db.ref('iqchat_rooms_sync/' + roomKey).on('value', (snapshot) => {
-                statusLabel.innerText = "Realtime Cloud Sync Aktif";
-                area.innerHTML = "";
-                const data = snapshot.val();
-                if(data) {
-                    Object.values(data).forEach(msg => {
-                        const isMe = msg.sender === currentUser;
-                        const bubble = document.createElement('div');
-                        bubble.className = `bubble ${isMe ? 'outgoing' : 'incoming'}`;
-                        
-                        let bodyHtml = "";
-                        if(msg.type === 'image') {
-                            bodyHtml = `<img src="${msg.content.data}" style="max-width:100%; border-radius:6px; margin-bottom:4px;"><div style="font-size:11px;">📷 ${msg.content.name} (${msg.content.size})</div>`;
-                        } else if(msg.type === 'file') {
-                            bodyHtml = `<div style="display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.05); padding:8px; border-radius:6px;"><i class="fa-solid fa-file-pdf" style="font-size:24px; color:#c5221f;"></i><div style="overflow:hidden;"><div style="font-weight:bold; font-size:12px; white-space:nowrap; text-overflow:ellipsis;">${msg.content.name}</div><div style="font-size:10px; color:#666;">${msg.content.size}</div></div></div>`;
-                        } else {
-                            bodyHtml = `<div>${msg.content}</div>`;
-                        }
-
-                        bubble.innerHTML = `${bodyHtml}<div class="bubble-meta">${msg.time} ${isMe ? '<i class="fa-solid fa-check-double" style="color:#53bdeb;"></i>' : ''}</div>`;
-                        area.appendChild(bubble);
-                    });
-                    area.scrollTop = area.scrollHeight;
+            document.getElementById('cloudStatusLabel').innerText = "Online Instan";
+            area.innerHTML = "";
+            
+            let allMsgs = JSON.parse(localStorage.getItem('iq_msgs_' + roomKey) || '[]');
+            allMsgs.forEach(msg => {
+                const isMe = msg.sender === currentUser;
+                const bubble = document.createElement('div');
+                bubble.className = `bubble ${isMe ? 'outgoing' : 'incoming'}`;
+                
+                let bodyHtml = "";
+                if(msg.type === 'image') {
+                    bodyHtml = `<img src="${msg.content.data}" style="max-width:100%; border-radius:6px; margin-bottom:4px;"><div style="font-size:11px;">📷 ${msg.content.name} (${msg.content.size})</div>`;
+                } else if(msg.type === 'file') {
+                    bodyHtml = `<div style="display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.05); padding:8px; border-radius:6px;"><i class="fa-solid fa-file-pdf" style="font-size:24px; color:#c5221f;"></i><div style="overflow:hidden;"><div style="font-weight:bold; font-size:12px; white-space:nowrap; text-overflow:ellipsis;">${msg.content.name}</div><div style="font-size:10px; color:#666;">${msg.content.size}</div></div></div>`;
+                } else {
+                    bodyHtml = `<div>${msg.content}</div>`;
                 }
-            }, (error) => {
-                statusLabel.innerText = "Koneksi Cloud Gagal!";
-                console.error(error);
+
+                bubble.innerHTML = `${bodyHtml}<div class="bubble-meta">${msg.time} ${isMe ? '<i class="fa-solid fa-check-double" style="color:#53bdeb;"></i>' : ''}</div>`;
+                area.appendChild(bubble);
             });
+            area.scrollTop = area.scrollHeight;
         }
 
         function handleKeyPress(e) { if(e.key === 'Enter') sendChatMessage(); }
