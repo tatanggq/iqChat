@@ -28,7 +28,7 @@
         
         body { background-color: #0f172a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
 
-        .app-window { width: 100%; max-width: 480px; height: 100vh; background: var(--wa-bg); display: flex; flex-direction: column; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; }
+        .app-window { width: 100%; max-width: 480px; height: 100vh; background: var(--wa-bg); display: flex; flex-direction: column; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; z-index: 5; }
         @media(min-width: 481px) { .app-window { height: 92vh; border-radius: 16px; border: 1px solid #334155; } }
 
         .view-panel { display: none; flex-direction: column; height: 100%; width: 100%; position: absolute; inset: 0; background: var(--panel-bg); }
@@ -42,7 +42,7 @@
         .search-box { flex: 1; padding: 8px 14px; background: #fff; border: none; border-radius: 20px; outline: none; font-size: 13px; }
         
         .contact-list { flex: 1; overflow-y: auto; background: #fff; }
-        .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; border-bottom: 1px solid #f0f2f5; position: relative; }
+        .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; border-bottom: 1px solid #f0f2f5; position: relative; user-select: none; }
         .contact-item:hover { background: #f5f6f6; }
         
         .avatar { width: 48px; height: 48px; border-radius: 50%; background: #075E54; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; flex-shrink: 0; overflow: hidden; background-size: cover; background-position: center; }
@@ -63,16 +63,14 @@
         .chat-input-box { flex: 1; padding: 10px 16px; border: none; border-radius: 24px; outline: none; font-size: 14px; background: #fff; color: #111; }
         .btn-icon { background: none; border: none; color: #54656f; font-size: 18px; cursor: pointer; padding: 6px; }
 
-        /* FB MESSENGER STYLE CHAT HEAD BUBBLE DENGAN FOTO PROFIL */
-        .chat-head-bubble { position: fixed; bottom: 30px; right: 20px; width: 56px; height: 56px; background: #0084ff; border-radius: 50%; display: none; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 20px rgba(0,0,0,0.4); cursor: pointer; z-index: 9999; background-size: cover; background-position: center; border: 2px solid white; }
-        .chat-head-badge { position: absolute; top: 0; right: 0; background: red; color: white; font-size: 10px; padding: 2px 5px; border-radius: 50%; font-weight: bold; display: none; }
+        /* CHAT HEAD BUBBLE */
+        .chat-head-bubble { position: fixed; bottom: 35px; right: 25px; width: 60px; height: 60px; background: #0084ff; border-radius: 50%; display: none; align-items: center; justify-content: center; color: white; box-shadow: 0 6px 25px rgba(0,0,0,0.5); cursor: pointer; z-index: 99999; background-size: cover; background-position: center; border: 3px solid white; }
 
-        /* POPUP NOTIFIKASI MELAYANG (TRIGGER PESAN MASUK) */
-        #incomingPopup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 440px; background: #202c33; color: white; padding: 14px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.6); z-index: 10000; display: none; align-items: center; gap: 12px; cursor: pointer; border-left: 5px solid var(--wa-green); animation: slideDown 0.3s ease; }
-        @keyframes slideDown { from { transform: translate(-50%, -50px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+        /* POPUP NOTIFIKASI MELAYANG */
+        #incomingPopup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 440px; background: #202c33; color: white; padding: 14px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.6); z-index: 100000; display: none; align-items: center; gap: 12px; cursor: pointer; border-left: 5px solid var(--wa-green); }
 
-        /* FULLSCREEN VIDEO CALL MODAL */
-        #videoCallModal { position: fixed; inset: 0; background: #0b141a; z-index: 99999; display: none; flex-direction: column; justify-content: space-between; padding: 24px; }
+        /* TRUE FULLSCREEN VIDEO CALL MODAL */
+        #videoCallModal { position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000000; z-index: 999999; display: none; flex-direction: column; justify-content: space-between; }
 
         .overlay-screen { position: absolute; inset: 0; background: #111b21; color: white; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
         .form-input { width: 100%; max-width: 320px; padding: 12px 16px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #fff; font-size: 15px; margin-top: 12px; text-align: center; outline: none; }
@@ -94,22 +92,21 @@
         <i class="fa-solid fa-chevron-right" style="color: #8696a0; font-size: 14px;"></i>
     </div>
 
-    <!-- FLOATING CHAT HEAD ALA FB MESSENGER (DENGAN FOTO PROFIL) -->
-    <div id="chatHead" class="chat-head-bubble" onclick="toggleChatHead()" title="Buka Bubble Chat">
-        <span id="chatHeadBadge" class="chat-head-badge">0</span>
-    </div>
+    <!-- CHAT HEAD BUBBLE -->
+    <div id="chatHead" class="chat-head-bubble" onclick="toggleChatHead()" title="Buka Bubble Chat"></div>
 
-    <!-- FULLSCREEN VIDEO CALL MODAL -->
+    <!-- TRUE FULLSCREEN VIDEO CALL MODAL -->
     <div id="videoCallModal">
-        <div style="color: white; text-align: center; margin-top: 20px;">
-            <h3 id="videoCallTitle" style="font-size: 20px;">Video Call</h3>
-            <p id="videoCallStatus" style="font-size: 13px; color: #00a884; margin-top: 4px;">Menghubungkan kamera & audio...</p>
+        <div style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 10; background: rgba(0,0,0,0.6); padding: 12px;">
+            <h3 id="videoCallTitle" style="font-size: 18px; color: #fff;">Video Call</h3>
+            <p id="videoCallStatus" style="font-size: 12px; color: #00ffcc; margin-top: 2px;">Menghubungkan...</p>
         </div>
-        <div style="flex: 1; display: flex; justify-content: center; align-items: center; position: relative; margin: 20px 0;">
-            <video id="localVideo" autoplay playsinline muted style="width: 100%; height: 100%; max-height: 550px; border-radius: 16px; object-fit: cover; background: #111;"></video>
+        <div style="width: 100vw; height: 100vh; position: absolute; inset: 0; background: #111;">
+            <video id="localVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
         </div>
-        <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 30px;">
-            <button onclick="endVideoCall()" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(239,68,68,0.4);"><i class="fa-solid fa-phone-slash"></i></button>
+        <div style="position: absolute; bottom: 40px; left: 0; right: 0; display: flex; justify-content: center; gap: 30px; z-index: 10;" id="videoCallActionButtons">
+            <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none;"><i class="fa-solid fa-phone"></i></button>
+            <button onclick="endVideoCall()" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer;"><i class="fa-solid fa-phone-slash"></i></button>
         </div>
     </div>
 
@@ -193,7 +190,7 @@
         </div>
     </div>
 
-    <!-- AUDIO ELEMEN CADANGAN KUSTOM -->
+    <!-- AUDIO ELEMEN KUSTOM -->
     <audio id="customRingtoneAudio" style="display:none;"></audio>
 
     <script>
@@ -209,9 +206,9 @@
         let currentUser = localStorage.getItem('iq_user_phone') || "";
         let activeTarget = localStorage.getItem('iq_active_target') || "";
         let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["628997032209", "6285934602965"]');
-        let lastMessageCount = {};
         let localStream = null;
         let pendingPopupTarget = null;
+        let activeCallRef = null;
 
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -256,6 +253,7 @@
             
             renderContactList();
             setupGlobalListeners();
+            listenToIncomingCalls();
         }
 
         function openProfileSettings() {
@@ -283,7 +281,7 @@
             }
         }
 
-        // RENDER LIST KONTRAK (MEMBEDAKAN RIWAYAT PESAN AKTIF & KONTAK BIASA)
+        // RENDER LIST KONTAK DENGAN FITUR TEKAN LAMA (LONG PRESS) UNTUK HAPUS
         function renderContactList(filter = "") {
             const container = document.getElementById('contactListContainer');
             container.innerHTML = "";
@@ -294,7 +292,7 @@
                 const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 let allMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
                 let lastMsg = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1].content : "Ketuk untuk mulai percakapan";
-                if(typeof lastMsg === 'object') lastmsg = "[Media/File]";
+                if(typeof lastMsg === 'object') lastMsg = "[Media/File]";
 
                 let details = contactDetails[num] || {};
                 let displayName = details.name || ("+" + num);
@@ -304,6 +302,20 @@
                 const div = document.createElement('div');
                 div.className = 'contact-item';
                 div.onclick = () => openChatRoom(num);
+                
+                // Fitur Tekan Lama (Long Press / Context Menu) untuk Hapus Percakapan / Kontak
+                let pressTimer;
+                div.onmousedown = div.ontouchstart = () => {
+                    pressTimer = setTimeout(() => {
+                        if(confirm(`Hapus riwayat pesan / kontak +${num}?`)) {
+                            localStorage.removeItem('iq_msgs_history_' + roomKey);
+                            db.ref('iqchat_rooms_live/' + roomKey).remove();
+                            renderContactList();
+                        }
+                    }, 800); // 0.8 detik tekan lama
+                };
+                div.onmouseup = div.onmouseleave = div.ontouchend = () => clearTimeout(pressTimer);
+
                 div.innerHTML = `
                     <div class="avatar" style="${avatarStyle}">${avatarText}</div>
                     <div class="contact-info">
@@ -349,6 +361,9 @@
 
             document.getElementById('viewContactList').classList.remove('active');
             document.getElementById('viewChatRoom').classList.add('active');
+            
+            // Sembunyikan bubble chat head saat masuk ke ruang pesan
+            document.getElementById('chatHead').style.display = 'none';
             loadAndListenMessages();
         }
 
@@ -374,7 +389,7 @@
                     let tones = JSON.parse(localStorage.getItem('iq_tones') || '{}');
                     tones[activeTarget] = 'custom';
                     localStorage.setItem('iq_tones', JSON.stringify(tones));
-                    alert("Audio nada dering kustom berhasil disimpan untuk kontak ini!");
+                    alert("Audio nada dering kustom berhasil disimpan!");
                 };
                 reader.readAsDataURL(file);
             }
@@ -389,16 +404,19 @@
         function toggleChatHead() {
             const win = document.getElementById('appWindowContainer');
             win.style.display = (win.style.display === 'none') ? 'flex' : 'none';
+            if(pendingPopupTarget) {
+                openChatRoom(pendingPopupTarget);
+                document.getElementById('chatHead').style.display = 'none';
+            }
         }
 
-        // SISTEM AUDIO, GETAR, DAN NOTIFIKASI POPUP BUBBLE SERENTAK
+        // SISTEM NOTIFIKASI, GETAR, & POPUP BUBBLE SERENTAK
         function playCustomNotification(targetNum, senderName, messageText) {
             let tones = JSON.parse(localStorage.getItem('iq_tones') || '{}');
             let preference = tones[targetNum] || 'standard';
 
             if(preference === 'silent') return;
 
-            // Mainkan Audio sesuai preferensi perangkat/media masing-masing
             if(preference === 'custom') {
                 let customAudios = JSON.parse(localStorage.getItem('iq_custom_audios') || '{}');
                 if(customAudios[targetNum]) {
@@ -430,12 +448,10 @@
                 } catch(e) {}
             }
 
-            // Getar serentak bersamaan dengan munculnya notifikasi popup
             if (navigator.vibrate) {
                 navigator.vibrate(preference === 'double' ? [150, 80, 150, 80, 150] : [200, 100, 200]);
             }
 
-            // Munculkan Popup Bubble & Update Chat Head Bubble Messenger
             showIncomingPopup(targetNum, senderName, messageText);
         }
 
@@ -455,11 +471,8 @@
 
             document.getElementById('popupSenderName').innerText = details.name || ("+" + num);
             document.getElementById('popupMessageText').innerText = typeof text === 'object' ? '[Kirim Berkas/Media]' : text;
-            
-            let popup = document.getElementById('incomingPopup');
-            popup.style.display = 'flex';
+            document.getElementById('incomingPopup').style.display = 'flex';
 
-            // Update Chat Head Bubble Messenger
             let head = document.getElementById('chatHead');
             if(details.photo) {
                 head.style.backgroundImage = `url('${details.photo}')`;
@@ -471,12 +484,13 @@
             head.style.display = 'flex';
 
             setTimeout(() => {
-                popup.style.display = 'none';
+                document.getElementById('incomingPopup').style.display = 'none';
             }, 6000);
         }
 
         function openChatFromPopup() {
             document.getElementById('incomingPopup').style.display = 'none';
+            document.getElementById('chatHead').style.display = 'none'; // Bubble otomatis hilang saat pesan dibuka
             if(pendingPopupTarget) {
                 openChatRoom(pendingPopupTarget);
                 document.getElementById('appWindowContainer').style.display = 'flex';
@@ -517,7 +531,6 @@
             }
         }
 
-        // GLOBAL LISTENER UNTUK SEMUA KONTAK (MEMICU GETAR & POPUP KAPAN PUN PESAN MASUK)
         function setupGlobalListeners() {
             contacts.forEach(num => {
                 const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
@@ -581,24 +594,78 @@
             area.scrollTop = area.scrollHeight;
         }
 
+        // VIDEO CALL TRUE FULLSCREEN & REALTIME PUSTAKA FIREBASE
         function startVideoCall() {
+            if(!activeTarget) return;
+            const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
+            activeCallRef = db.ref('iqchat_calls/' + callKey);
+
+            // Kirim sinyal panggilan ke tujuan
+            activeCallRef.set({ caller: currentUser, status: 'calling', timestamp: Date.now() });
+
             document.getElementById('videoCallModal').style.display = 'flex';
-            document.getElementById('videoCallTitle').innerText = `Video Call dengan +${activeTarget}`;
+            document.getElementById('videoCallTitle').innerText = `Memanggil +${activeTarget}...`;
+            document.getElementById('videoCallStatus').innerText = "Menunggu jawaban...";
+            document.getElementById('btnAnswerCall').style.display = 'none';
+
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then(stream => {
                     localStream = stream;
                     document.getElementById('localVideo').srcObject = stream;
-                    document.getElementById('videoCallStatus').innerText = "Terhubung (Kamera Fullscreen Aktif)";
                 })
-                .catch(err => {
-                    document.getElementById('videoCallStatus').innerText = "Akses kamera/mikrofon diblokir!";
+                .catch(err => { alert("Akses kamera/mikrofon diblokir!"); });
+
+            // Dengarkan respon penerima
+            activeCallRef.on('value', (snapshot) => {
+                let callData = snapshot.val();
+                if(callData && callData.status === 'accepted') {
+                    document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen Aktif)";
+                } else if(!callData || callData.status === 'ended') {
+                    endVideoCall();
+                }
+            });
+        }
+
+        function listenToIncomingCalls() {
+            contacts.forEach(num => {
+                const callKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
+                db.ref('iqchat_calls/' + callKey).on('value', (snapshot) => {
+                    let callData = snapshot.val();
+                    if(callData && callData.caller !== currentUser && callData.status === 'calling') {
+                        // Ada panggilan masuk!
+                        activeCallRef = db.ref('iqchat_calls/' + callKey);
+                        document.getElementById('videoCallModal').style.display = 'flex';
+                        document.getElementById('videoCallTitle').innerText = `Panggilan Masuk dari +${callData.caller}`;
+                        document.getElementById('videoCallStatus').innerText = "Ketuk tombol hijau untuk mengangkat";
+                        document.getElementById('btnAnswerCall').style.display = 'block';
+
+                        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                            .then(stream => {
+                                localStream = stream;
+                                document.getElementById('localVideo').srcObject = stream;
+                            }).catch(e => {});
+                    }
                 });
+            });
+        }
+
+        function answerIncomingCall() {
+            if(activeCallRef) {
+                activeCallRef.update({ status: 'accepted' });
+                document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen Aktif)";
+                document.getElementById('btnAnswerCall').style.display = 'none';
+            }
         }
 
         function startVoiceCall() { alert(`Memulai Panggilan Suara dengan +${activeTarget}`); }
 
         function endVideoCall() {
-            if(localStream) { localStream.getTracks().forEach(track => track.stop()); }
+            if(activeCallRef) {
+                activeCallRef.update({ status: 'ended' });
+            }
+            if(localStream) { 
+                localStream.getTracks().forEach(track => track.stop()); 
+            }
             document.getElementById('videoCallModal').style.display = 'none';
         }
 
