@@ -9,6 +9,10 @@
     <meta name="theme-color" content="#075E54">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Leaflet CSS untuk Peta Sharelok -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <!-- FIREBASE SDK (CDN) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -44,7 +48,6 @@
         .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; border-bottom: 1px solid #f0f2f5; position: relative; user-select: none; }
         .contact-item:hover { background: #f5f6f6; }
         
-        /* AVATAR DENGAN TITIK HIJAU STATUS ONLINE */
         .avatar { width: 48px; height: 48px; border-radius: 50%; background: #075E54; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; flex-shrink: 0; overflow: hidden; background-size: cover; background-position: center; position: relative; }
         .online-dot { position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background: #25D366; border-radius: 50%; border: 2px solid white; display: block; z-index: 3; }
 
@@ -52,7 +55,6 @@
         .contact-name { font-weight: bold; font-size: 15px; color: var(--text-main); margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; }
         .contact-preview { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        /* CONTAINER KANAN (WAKTU & BADGE ANGKA UNREAD) */
         .contact-meta-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
         .contact-time { font-size: 11px; color: #667781; }
         .unread-badge { background: #25D366; color: #000; font-size: 11px; font-weight: bold; padding: 2px 7px; border-radius: 12px; min-width: 20px; text-align: center; }
@@ -65,20 +67,29 @@
         .outgoing { background: var(--wa-light-green); align-self: flex-end; border-top-right-radius: 0; color: #111; }
         .bubble-meta { font-size: 10px; color: #667781; text-align: right; margin-top: 3px; display: flex; justify-content: flex-end; align-items: center; gap: 3px; }
 
-        .chat-input-area { background: #f0f2f5; padding: 10px 14px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #e9edef; flex-shrink: 0; width: 100%; }
+        .chat-input-area { background: #f0f2f5; padding: 10px 14px; display: flex; align-items: center; gap: 8px; border-top: 1px solid #e9edef; flex-shrink: 0; width: 100%; }
         .chat-input-box { flex: 1; padding: 10px 16px; border: none; border-radius: 24px; outline: none; font-size: 14px; background: #fff; color: #111; }
         .btn-icon { background: none; border: none; color: #54656f; font-size: 18px; cursor: pointer; padding: 6px; }
 
-        /* CHAT HEAD BUBBLE */
+        /* MENU ATTACHMENT MODAL */
+        #attachMenu { position: absolute; bottom: 70px; left: 16px; background: #202c33; border-radius: 12px; padding: 10px; display: none; flex-direction: column; gap: 8px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .attach-item { color: white; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .attach-item:hover { background: #374248; }
+
+        /* MODAL MAP SHARELOK */
+        #mapModal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 99999; display: none; flex-direction: column; padding: 20px; }
+        #mapContainer { flex: 1; border-radius: 12px; width: 100%; }
+
+        /* MODAL VIDEO BULAT */
+        #videoRoundModal { position: fixed; inset: 0; background: #000; z-index: 99999; display: none; flex-direction: column; align-items: center; justify-content: center; }
+
         .chat-head-bubble { position: fixed; bottom: 80px; right: 25px; width: 60px; height: 60px; background: #0084ff; border-radius: 50%; display: none; align-items: center; justify-content: center; color: white; box-shadow: 0 6px 25px rgba(0,0,0,0.5); cursor: pointer; z-index: 99999; background-size: cover; background-position: center; border: 3px solid white; touch-action: none; }
         .chat-head-unread { position: absolute; top: 2px; right: 2px; background: #25D366; color: #000; font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 50%; border: 2px solid white; display: none; z-index: 5; }
 
         #dropZoneX { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 50px; height: 50px; background: rgba(0,0,0,0.7); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 20px; z-index: 99998; border: 2px dashed #fff; }
-
         #incomingPopup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 440px; background: #202c33; color: white; padding: 14px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.6); z-index: 100000; display: none; align-items: center; gap: 12px; cursor: pointer; border-left: 5px solid var(--wa-green); }
 
         #videoCallModal { position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000000; z-index: 999999; display: none; flex-direction: column; justify-content: space-between; }
-
         .overlay-screen { position: absolute; inset: 0; background: #111b21; color: white; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
         .form-input { width: 100%; max-width: 320px; padding: 12px 16px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #fff; font-size: 15px; margin-top: 12px; text-align: center; outline: none; }
         .btn-green { width: 100%; max-width: 320px; padding: 12px; background: var(--wa-green); color: #000; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; margin-top: 16px; cursor: pointer; }
@@ -106,21 +117,35 @@
     </div>
     <div id="dropZoneX"><i class="fa-solid fa-xmark"></i></div>
 
+    <!-- MODAL SHARELOK MAP -->
+    <div id="mapModal">
+        <div style="display:flex; justify-content:space-between; color:white; margin-bottom:10px;">
+            <b>Geser Pin ke Lokasi Anda</b>
+            <button onclick="closeMapModal()" style="background:red; color:white; border:none; padding:5px 10px; border-radius:6px; cursor:pointer;">Batal</button>
+        </div>
+        <div id="mapContainer"></div>
+        <button onclick="sendPickedLocation()" style="background:var(--wa-green); border:none; padding:12px; border-radius:8px; font-weight:bold; margin-top:10px; cursor:pointer;">Kirim Lokasi Ini</button>
+    </div>
+
+    <!-- MODAL VIDEO BULAT -->
+    <div id="videoRoundModal">
+        <video id="roundVideoPreview" autoplay muted playsinline style="width: 240px; height: 240px; border-radius: 50%; object-fit: cover; border: 4px solid var(--wa-green);"></video>
+        <p id="roundVideoStatus" style="color:white; margin-top:20px;">Merekam video bulat... (Maks 60 detik)</p>
+        <button onclick="stopRoundVideoRecord()" style="background:red; color:white; border:none; padding:10px 20px; border-radius:20px; margin-top:20px; font-weight:bold; cursor:pointer;">Selesai & Kirim</button>
+    </div>
+
     <!-- VIDEO CALL MODAL -->
     <div id="videoCallModal">
         <div style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 10; background: rgba(0,0,0,0.6); padding: 12px;">
             <h3 id="videoCallTitle" style="font-size: 18px; color: #fff;">Video Call</h3>
             <p id="videoCallStatus" style="font-size: 12px; color: #00ffcc; margin-top: 2px;">Menghubungkan...</p>
         </div>
-        
         <div style="width: 100vw; height: 100vh; position: absolute; inset: 0; background: #111;">
             <video id="remoteVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
         </div>
-
         <div onclick="switchVideoView()" style="position: absolute; top: 80px; right: 20px; width: 110px; height: 160px; background: #222; border-radius: 12px; overflow: hidden; border: 2px solid #fff; z-index: 15; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
             <video id="localVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
         </div>
-
         <div style="position: absolute; bottom: 40px; left: 0; right: 0; display: flex; justify-content: center; gap: 30px; z-index: 20;">
             <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none;"><i class="fa-solid fa-phone"></i></button>
             <button onclick="endVideoCall()" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer;"><i class="fa-solid fa-phone-slash"></i></button>
@@ -203,17 +228,29 @@
 
             <div class="chat-messages" id="chatMessagesArea"></div>
 
+            <!-- MENU ATTACHMENT -->
+            <div id="attachMenu">
+                <div class="attach-item" onclick="triggerFileInput('image/*')"><i class="fa-solid fa-image" style="color:#a855f7;"></i> Foto & Galeri</div>
+                <div class="attach-item" onclick="openShareLokModal()"><i class="fa-solid fa-location-dot" style="color:#22c55e;"></i> Lokasi (ShareLok)</div>
+                <div class="attach-item" onclick="startRoundVideoRecord()"><i class="fa-solid fa-video" style="color:#3b82f6;"></i> Video Bulat (1 Menit)</div>
+            </div>
+
             <div class="chat-input-area">
                 <input type="file" id="fileInput" style="display:none" onchange="handleFileSelected(this)">
-                <button class="btn-icon" onclick="document.getElementById('fileInput').click()"><i class="fa-solid fa-paperclip"></i></button>
+                <button class="btn-icon" onclick="toggleAttachMenu()"><i class="fa-solid fa-paperclip"></i></button>
+                
                 <input type="text" id="messageInput" class="chat-input-box" placeholder="Ketik pesan..." onfocus="scrollToBottomChat()" onkeypress="handleKeyPress(event)">
-                <button onclick="sendChatMessage()" style="background:var(--wa-green); border:none; width:42px; height:42px; border-radius:50%; color:#111; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px;"><i class="fa-solid fa-paper-plane"></i></button>
+                
+                <!-- TOMBOL VOICE NOTE / KIRIM -->
+                <button id="btnVoiceRecord" class="btn-icon" onmousedown="startVoiceRecord()" onmouseup="stopVoiceRecord()" ontouchstart="startVoiceRecord()" ontouchend="stopVoiceRecord()" title="Tahan untuk Rekam Suara"><i class="fa-solid fa-microphone" style="color:#008069;"></i></button>
+                <button onclick="sendChatMessage()" style="background:var(--wa-green); border:none; width:40px; height:40px; border-radius:50%; color:#111; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:15px;"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
 
     </div>
 
-    <!-- AUDIO KUSTOM -->
+    <!-- AUDIO & HIDDEN UPLOAD INPUT -->
+    <input type="file" id="profileImageInput" accept="image/*" style="display:none;" onchange="saveProfileImage(this)">
     <audio id="customRingtoneAudio" style="display:none;"></audio>
     <audio id="callRingtoneAudio" loop style="display:none;"></audio>
 
@@ -221,27 +258,26 @@
         const firebaseConfig = {
             databaseURL: "https://iqbike-1-default-rtdb.asia-southeast1.firebasedatabase.app/"
         };
-        
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.database();
 
         let currentUser = localStorage.getItem('iq_user_phone') || "";
         let activeTarget = localStorage.getItem('iq_active_target') || "";
-        let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["628997032209", "6285934602965"]');
+        let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["628997032209", "6285934602965", "GeminiAI"]');
         let localStream = null;
         let remoteStream = null;
         let pendingPopupTarget = null;
         let activeCallRef = null;
         let peerConnection = null;
-        let isSwapped = false;
+        let mapInstance = null, markerInstance = null, pickedLat = -6.9175, pickedLng = 107.6191;
+        let mediaRecorder = null, audioChunks = [];
+        let roundVideoRecorder = null, roundVideoChunks = [];
 
         const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(() => {
-                console.log('Service Worker Registered');
+                if (Notification.permission !== "granted") { Notification.requestPermission(); }
             });
         }
 
@@ -262,14 +298,10 @@
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        document.getElementById('btnInstall').style.display = 'none';
-                    }
+                    if (choiceResult.outcome === 'accepted') { document.getElementById('btnInstall').style.display = 'none'; }
                     deferredPrompt = null;
                 });
-            } else {
-                alert("Aplikasi sudah terinstal atau gunakan menu 'Tambahkan ke Layar Utama' di titik tiga Chrome.");
-            }
+            } else { alert("Aplikasi sudah terinstal atau gunakan menu 'Tambahkan ke Layar Utama' Chrome."); }
         }
 
         function requestOtpCode() {
@@ -303,23 +335,16 @@
             listenToIncomingCalls();
         }
 
-        // FUNGSI HELPER AVATAR DENGAN TITIK HIJAU STATUS ONLINE
-        function getOnlineAvatarHTML(nameOrNumber, photoUrl, size = 48) {
+        // FUNGSI AVATAR DENGAN FOTO PERANGKAT
+        function getOnlineAvatarHTML(nameOrNumber, photoData, size = 48) {
             let styleAttr = `width: ${size}px; height: ${size}px; font-size: ${size * 0.35}px;`;
             let avatarText = "";
-            
-            if (photoUrl) {
-                styleAttr += ` background-image: url('${photoUrl}');`;
+            if (photoData) {
+                styleAttr += ` background-image: url('${photoData}');`;
             } else {
                 avatarText = nameOrNumber;
             }
-
-            return `
-                <div class="avatar" style="${styleAttr}">
-                    ${avatarText}
-                    <div class="online-dot"></div>
-                </div>
-            `;
+            return `<div class="avatar" style="${styleAttr}">${avatarText}<div class="online-dot"></div></div>`;
         }
 
         function updateMyHeaderProfile() {
@@ -327,7 +352,6 @@
             let myProf = profiles[currentUser] || {};
             let headerName = myProf.name || ("+" + currentUser);
             document.getElementById('headerMyName').innerText = headerName;
-
             let identifier = myProf.name ? myProf.name.slice(0,2).toUpperCase() : currentUser.slice(-2);
             document.getElementById('myHeaderAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, myProf.photo, 32);
         }
@@ -337,10 +361,27 @@
             let current = profiles[currentUser] || {};
             let newName = prompt("Ubah Nama Profil Anda:", current.name || ("+" + currentUser));
             if(newName !== null) {
-                let newPhoto = prompt("Ubah URL Foto Profil / Avatar:", current.photo || "");
-                profiles[currentUser] = { name: newName, photo: newPhoto };
+                profiles[currentUser] = { name: newName, photo: current.photo || "" };
                 localStorage.setItem('iq_profiles', JSON.stringify(profiles));
                 updateMyHeaderProfile();
+                // Buka pemilih file galeri untuk foto profil
+                document.getElementById('profileImageInput').click();
+            }
+        }
+
+        function saveProfileImage(input) {
+            if(input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
+                    let current = profiles[currentUser] || { name: "+" + currentUser };
+                    current.photo = e.target.result;
+                    profiles[currentUser] = current;
+                    localStorage.setItem('iq_profiles', JSON.stringify(profiles));
+                    updateMyHeaderProfile();
+                    alert("Foto profil berhasil diperbarui dari perangkat!");
+                };
+                reader.readAsDataURL(input.files[0]);
             }
         }
 
@@ -350,8 +391,7 @@
             let defaultName = current.name || ("+" + activeTarget);
             let newName = prompt("Simpan Nama Kontak:", defaultName);
             if(newName !== null) {
-                let newPhoto = prompt("URL Foto Profil Kontak (Opsional):", current.photo || "");
-                contactDetails[activeTarget] = { name: newName, photo: newPhoto };
+                contactDetails[activeTarget] = { name: newName, photo: current.photo || "" };
                 localStorage.setItem('iq_contact_details', JSON.stringify(contactDetails));
                 openChatRoom(activeTarget);
                 renderContactList();
@@ -364,31 +404,33 @@
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
             let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
 
+            // Tambahkan Gemini AI di daftar kontak jika belum ada
+            if(!contacts.includes("GeminiAI")) contacts.push("GeminiAI");
+
             contacts.filter(n => n.includes(filter)).forEach(num => {
-                const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
+                const isAI = num === "GeminiAI";
+                const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 let allMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
-                let lastMsg = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1].content : "Ketuk untuk mulai percakapan";
+                let lastMsg = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1].content : (isAI ? "Tanya apa saja ke Gemini AI..." : "Ketuk untuk mulai percakapan");
                 if(typeof lastMsg === 'object') lastMsg = "[Media/File]";
                 let lastTime = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1].time : '';
 
                 let details = contactDetails[num] || {};
-                let displayName = details.name || ("+" + num);
-                
-                let identifier = details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2);
+                let displayName = isAI ? "Gemini AI (Asisten)" : (details.name || ("+" + num));
+                let identifier = isAI ? "🤖" : (details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2));
                 let avatarHtml = getOnlineAvatarHTML(identifier, details.photo, 48);
-
                 let unreadCount = unreadCounts[roomKey] || 0;
 
                 const div = document.createElement('div');
                 div.className = 'contact-item';
                 div.onclick = () => openChatRoom(num);
                 
+                // LONG PRESS HAPUS CHAT LOKAL (TIDAK MENGHAPUS GLOBAL/PARTNER)
                 let pressTimer;
                 div.onmousedown = div.ontouchstart = () => {
                     pressTimer = setTimeout(() => {
-                        if(confirm(`Hapus riwayat pesan / kontak +${num}?`)) {
+                        if(confirm(`Hapus riwayat pesan lokal dengan ${displayName}? (Data partner di perangkat lain aman)`)) {
                             localStorage.removeItem('iq_msgs_history_' + roomKey);
-                            db.ref('iqchat_rooms_live/' + roomKey).remove();
                             renderContactList();
                         }
                     }, 800);
@@ -425,196 +467,114 @@
             activeTarget = num;
             localStorage.setItem('iq_active_target', activeTarget);
             
-            const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
+            const isAI = num === "GeminiAI";
+            const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
             let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
             unreadCounts[roomKey] = 0;
             localStorage.setItem('iq_unread_counts', JSON.stringify(unreadCounts));
 
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
             let details = contactDetails[num] || {};
-            document.getElementById('activeName').innerText = details.name || ("+" + num);
+            document.getElementById('activeName').innerText = isAI ? "Gemini AI" : (details.name || ("+" + num));
             
-            let identifier = details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2);
+            let identifier = isAI ? "🤖" : (details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2));
             document.getElementById('activeAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 38);
-
-            let tones = JSON.parse(localStorage.getItem('iq_tones') || '{}');
-            document.getElementById('contactToneSelect').value = tones[activeTarget] || 'standard';
 
             document.getElementById('viewContactList').classList.remove('active');
             document.getElementById('viewChatRoom').classList.add('active');
-            
             document.getElementById('chatHead').style.display = 'none';
             loadAndListenMessages();
             renderContactList();
         }
 
-        function updateContactTone(toneVal) {
-            if(toneVal === 'custom') {
-                document.getElementById('customAudioFile').click();
-                return;
-            }
-            let tones = JSON.parse(localStorage.getItem('iq_tones') || '{}');
-            tones[activeTarget] = toneVal;
-            localStorage.setItem('iq_tones', JSON.stringify(tones));
+        function toggleAttachMenu() {
+            const menu = document.getElementById('attachMenu');
+            menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
         }
 
-        function uploadCustomAudio(input) {
-            if(input.files && input.files[0]) {
-                const file = input.files[0];
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    let customAudios = JSON.parse(localStorage.getItem('iq_custom_audios') || '{}');
-                    customAudios[activeTarget] = e.target.result;
-                    localStorage.setItem('iq_custom_audios', JSON.stringify(customAudios));
-
-                    let tones = JSON.parse(localStorage.getItem('iq_tones') || '{}');
-                    tones[activeTarget] = 'custom';
-                    localStorage.setItem('iq_tones', JSON.stringify(tones));
-                    alert("Audio nada dering kustom berhasil disimpan!");
-                };
-                reader.readAsDataURL(file);
-            }
+        function triggerFileInput(acceptType) {
+            document.getElementById('attachMenu').style.display = 'none';
+            const fi = document.getElementById('fileInput');
+            fi.accept = acceptType;
+            fi.click();
         }
 
-        function backToContactList() {
-            activeTarget = "";
-            document.getElementById('viewChatRoom').classList.remove('active');
-            document.getElementById('viewContactList').classList.add('active');
-            renderContactList();
-        }
-
-        function setupDraggableChatHead() {
-            const head = document.getElementById('chatHead');
-            const dropX = document.getElementById('dropZoneX');
-            let isDragging = false;
-            let startX, startY, initialX, initialY;
-
-            head.onmousedown = head.ontouchstart = (e) => {
-                isDragging = true;
-                let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                startX = clientX;
-                startY = clientY;
-                let rect = head.getBoundingClientRect();
-                initialX = rect.left;
-                initialY = rect.top;
-                dropX.style.display = 'flex';
-            };
-
-            window.onmousemove = window.ontouchmove = (e) => {
-                if (!isDragging) return;
-                let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                let dx = clientX - startX;
-                let dy = clientY - startY;
-
-                head.style.left = (initialX + dx) + 'px';
-                head.style.top = (initialY + dy) + 'px';
-                head.style.right = 'auto';
-                head.style.bottom = 'auto';
-
-                let dropRect = dropX.getBoundingClientRect();
-                let headRect = head.getBoundingClientRect();
-                if(headRect.left < dropRect.right && headRect.right > dropRect.left && headRect.top < dropRect.bottom && headRect.bottom > dropRect.top) {
-                    dropX.style.background = 'red';
-                } else {
-                    dropX.style.background = 'rgba(0,0,0,0.7)';
-                }
-            };
-
-            window.onmouseup = window.ontouchend = () => {
-                if (!isDragging) return;
-                isDragging = false;
-                dropX.style.display = 'none';
-
-                let dropRect = dropX.getBoundingClientRect();
-                let headRect = head.getBoundingClientRect();
-                if(headRect.left < dropRect.right && headRect.right > dropRect.left && headRect.top < dropRect.bottom && headRect.bottom > dropRect.top) {
-                    head.style.display = 'none';
-                } else {
-                    if(Math.abs(headRect.left - initialX) < 5 && Math.abs(headRect.top - initialY) < 5) {
-                        if(pendingPopupTarget) {
-                            openChatRoom(pendingPopupTarget);
-                            head.style.display = 'none';
-                        }
-                    }
-                }
-            };
-        }
-
-        function showChatHeadBubble(num) {
-            pendingPopupTarget = num;
-            let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
-            let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
-            let details = contactDetails[num] || {};
-            
-            const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
-            let unread = unreadCounts[roomKey] || 1;
-
-            let identifier = details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2);
-            document.getElementById('chatHeadAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 60);
-
-            let unreadEl = document.getElementById('chatHeadUnread');
-            unreadEl.innerText = unread;
-            unreadEl.style.display = 'block';
-
-            document.getElementById('chatHead').style.display = 'flex';
-        }
-
-        function playCustomNotification(targetNum, senderName, messageText) {
-            let tones = JSON.parse(localStorage.getItem('iq_tones') || '{}');
-            let preference = tones[targetNum] || 'standard';
-            if(preference === 'silent') return;
-
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.15);
-                gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.2);
-            } catch(e) {}
-
-            if (navigator.vibrate) { navigator.vibrate([200, 100, 200]); }
-
-            showIncomingPopup(targetNum, senderName, messageText);
-            showChatHeadBubble(targetNum);
-        }
-
-        function showIncomingPopup(num, name, text) {
-            pendingPopupTarget = num;
-            let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
-            let details = contactDetails[num] || {};
-
-            let identifier = details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2);
-            document.getElementById('popupAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 42);
-
-            document.getElementById('popupSenderName').innerText = details.name || ("+" + num);
-            document.getElementById('popupMessageText').innerText = typeof text === 'object' ? '[Kirim Berkas/Media]' : text;
-            document.getElementById('incomingPopup').style.display = 'flex';
-
+        // SHARELOK DENGAN LEAFLET MAP
+        function openShareLokModal() {
+            document.getElementById('attachMenu').style.display = 'none';
+            document.getElementById('mapModal').style.display = 'flex';
             setTimeout(() => {
-                document.getElementById('incomingPopup').style.display = 'none';
-            }, 6000);
+                if (!mapInstance) {
+                    mapInstance = L.map('mapContainer').setView([pickedLat, pickedLng], 15);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
+                    markerInstance = L.marker([pickedLat, pickedLng], {draggable: true}).addTo(mapInstance);
+                    markerInstance.on('dragend', (e) => {
+                        let pos = markerInstance.getLatLng();
+                        pickedLat = pos.lat;
+                        pickedLng = pos.lng;
+                    });
+                } else {
+                    mapInstance.invalidateSize();
+                }
+            }, 300);
         }
 
-        function openChatFromPopup() {
-            document.getElementById('incomingPopup').style.display = 'none';
-            document.getElementById('chatHead').style.display = 'none';
-            if(pendingPopupTarget) {
-                openChatRoom(pendingPopupTarget);
+        function closeMapModal() { document.getElementById('mapModal').style.display = 'none'; }
+
+        function sendPickedLocation() {
+            closeMapModal();
+            const locData = { lat: pickedLat, lng: pickedLng, title: "Lokasi Terkini Saya" };
+            sendChatMessage(locData, 'location');
+        }
+
+        // VOICE NOTE RECORDING
+        function startVoiceRecord() {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onload = e => sendChatMessage({ data: e.target.result, size: 'Voice Note' }, 'voicename');
+                    reader.readAsDataURL(audioBlob);
+                };
+                mediaRecorder.start();
+                document.getElementById('btnVoiceRecord').style.color = 'red';
+            }).catch(e => alert("Gagal akses mic"));
+        }
+
+        function stopVoiceRecord() {
+            if(mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                document.getElementById('btnVoiceRecord').style.color = '#008069';
             }
         }
 
-        function scrollToBottomChat() {
-            const area = document.getElementById('chatMessagesArea');
-            setTimeout(() => { area.scrollTop = area.scrollHeight; }, 250);
+        // VIDEO BULAT < 1 MENIT
+        function startRoundVideoRecord() {
+            document.getElementById('attachMenu').style.display = 'none';
+            document.getElementById('videoRoundModal').style.display = 'flex';
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+                localStream = stream;
+                document.getElementById('roundVideoPreview').srcObject = stream;
+                roundVideoRecorder = new MediaRecorder(stream);
+                roundVideoChunks = [];
+                roundVideoRecorder.ondataavailable = e => roundVideoChunks.push(e.data);
+                roundVideoRecorder.onstop = () => {
+                    const vidBlob = new Blob(roundVideoChunks, { type: 'video/webm' });
+                    const reader = new FileReader();
+                    reader.onload = e => sendChatMessage({ data: e.target.result, size: 'Video Bulat' }, 'roundvideo');
+                    reader.readAsDataURL(vidBlob);
+                };
+                roundVideoRecorder.start();
+            }).catch(e => alert("Gagal akses kamera video bulat"));
+        }
+
+        function stopRoundVideoRecord() {
+            if(roundVideoRecorder) { roundVideoRecorder.stop(); }
+            if(localStream) { localStream.getTracks().forEach(t => t.stop()); }
+            document.getElementById('videoRoundModal').style.display = 'none';
         }
 
         function sendChatMessage(customContent = null, type = 'text') {
@@ -622,7 +582,8 @@
             const content = customContent || input.value.trim();
             if(!content || !activeTarget) return;
 
-            const roomKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
+            const isAI = activeTarget === "GeminiAI";
+            const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             const msgObj = {
                 sender: currentUser,
                 content: content,
@@ -636,9 +597,23 @@
             localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
             renderChatUI(localMsgs);
 
-            db.ref('iqchat_rooms_live/' + roomKey).push(msgObj, (error) => {
-                if(error) { console.log("Offline mode active"); }
-            });
+            if(isAI) {
+                // SIMULASI JAWABAN GEMINI AI
+                setTimeout(() => {
+                    let aiReply = {
+                        sender: "GeminiAI",
+                        content: `Halo! Saya Gemini AI asisten iqChat Anda. Mengenai pesan "${typeof content === 'string' ? content : 'media'}", saya siap membantu komunikasi darurat & efisien Anda!`,
+                        type: 'text',
+                        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                        timestamp: Date.now()
+                    };
+                    localMsgs.push(aiReply);
+                    localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
+                    renderChatUI(localMsgs);
+                }, 1000);
+            } else {
+                db.ref('iqchat_rooms_live/' + roomKey).push(msgObj, (error) => {});
+            }
 
             if(!customContent) input.value = "";
         }
@@ -649,25 +624,27 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const fileData = { name: file.name, data: e.target.result, size: (file.size / 1024).toFixed(1) + ' KB' };
-                    if(file.type.startsWith('image/')) {
-                        sendChatMessage(fileData, 'image');
-                    } else {
-                        sendChatMessage(fileData, 'file');
-                    }
+                    if(file.type.startsWith('image/')) { sendChatMessage(fileData, 'image'); }
+                    else { sendChatMessage(fileData, 'file'); }
                 };
                 reader.readAsDataURL(file);
             }
         }
 
+        function deleteMessageItem(timestamp, roomKey) {
+            if(confirm("Tarik / Hapus pesan ini?")) {
+                let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
+                localMsgs = localMsgs.filter(m => m.timestamp !== timestamp);
+                localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
+                loadAndListenMessages();
+            }
+        }
+
         function setupGlobalListeners() {
             contacts.forEach(num => {
+                if(num === "GeminiAI") return;
                 const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 
-                let cached = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
-                if(cached.length > 0 && activeTarget === num) {
-                    renderChatUI(cached);
-                }
-
                 db.ref('iqchat_rooms_live/' + roomKey).on('value', (snapshot) => {
                     const data = snapshot.val();
                     if(data) {
@@ -690,9 +667,7 @@
                         }
                         localStorage.setItem(countKey, messages.length);
 
-                        if(activeTarget === num) {
-                            renderChatUI(messages);
-                        }
+                        if(activeTarget === num) { renderChatUI(messages); }
                         renderContactList();
                     }
                 });
@@ -701,7 +676,8 @@
 
         function loadAndListenMessages() {
             if(!activeTarget) return;
-            const roomKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
+            const isAI = activeTarget === "GeminiAI";
+            const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
             renderChatUI(localMsgs);
         }
@@ -709,6 +685,8 @@
         function renderChatUI(messages) {
             const area = document.getElementById('chatMessagesArea');
             area.innerHTML = "";
+            const isAI = activeTarget === "GeminiAI";
+            const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             
             messages.forEach(msg => {
                 const isMe = msg.sender === currentUser;
@@ -717,139 +695,71 @@
                 
                 let bodyHtml = "";
                 if(msg.type === 'image') {
-                    bodyHtml = `<img src="${msg.content.data}" style="max-width:100%; border-radius:6px; margin-bottom:4px;"><div style="font-size:11px;">📷 ${msg.content.name} (${msg.content.size})</div>`;
-                } else if(msg.type === 'file') {
-                    bodyHtml = `<div style="display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.05); padding:8px; border-radius:6px;"><i class="fa-solid fa-file-pdf" style="font-size:24px; color:#c5221f;"></i><div style="overflow:hidden;"><div style="font-weight:bold; font-size:12px; white-space:nowrap; text-overflow:ellipsis;">${msg.content.name}</div><div style="font-size:10px; color:#666;">${msg.content.size}</div></div></div>`;
+                    bodyHtml = `<img src="${msg.content.data}" style="max-width:100%; border-radius:6px; margin-bottom:4px;"><div style="font-size:11px;">📷 ${msg.content.name}</div>`;
+                } else if(msg.type === 'location') {
+                    const gmapsUrl = `https://www.google.com/maps?q=${msg.content.lat},${msg.content.lng}`;
+                    bodyHtml = `<div style="background:#e6f4ea; padding:8px; border-radius:6px; text-align:center;"><i class="fa-solid fa-map-location-dot" style="font-size:24px; color:#137333; margin-bottom:4px;"></i><div><b>ShareLok Terkini</b></div><a href="${gmapsUrl}" target="_blank" style="color:#1a73e8; font-size:12px; display:block; margin-top:4px;">Buka di Google Maps / iqBike</a></div>`;
+                } else if(msg.type === 'voicename') {
+                    bodyHtml = `<audio controls src="${msg.content.data}" style="max-width:200px; height:32px;"></audio>`;
+                } else if(msg.type === 'roundvideo') {
+                    bodyHtml = `<video controls src="${msg.content.data}" style="width:160px; height:160px; border-radius:50%; object-fit:cover;"></video>`;
                 } else {
                     bodyHtml = `<div>${msg.content}</div>`;
                 }
 
-                bubble.innerHTML = `${bodyHtml}<div class="bubble-meta">${msg.time} ${isMe ? '<i class="fa-solid fa-check-double" style="color:#53bdeb;"></i>' : ''}</div>`;
+                bubble.innerHTML = `${bodyHtml}<div class="bubble-meta">${msg.time} ${isMe ? '<i class="fa-solid fa-check-double" style="color:#53bdeb;" onclick="deleteMessageItem(${msg.timestamp}, \'${roomKey}\')" title="Hapus/Tarik Pesan"></i>' : ''}</div>`;
                 area.appendChild(bubble);
             });
             area.scrollTop = area.scrollHeight;
         }
 
-        function playCallRingtone() {
+        function playCustomNotification(targetNum, senderName, messageText) {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                window._callOsc = audioCtx.createOscillator();
-                window._callGain = audioCtx.createGain();
-                window._callOsc.type = 'triangle';
-                window._callOsc.frequency.setValueAtTime(440, audioCtx.currentTime);
-                window._callGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                window._callOsc.connect(window._callGain);
-                window._callGain.connect(audioCtx.destination);
-                window._callOsc.start();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
             } catch(e) {}
-            if(navigator.vibrate) { navigator.vibrate([500, 500, 500, 500]); }
-        }
 
-        function stopCallRingtone() {
-            if(window._callOsc) { try { window._callOsc.stop(); } catch(e) {} }
-            if(navigator.vibrate) { navigator.vibrate(0); }
-        }
+            if (navigator.vibrate) { navigator.vibrate([200, 100, 200]); }
 
-        function startVideoCall() {
-            if(!activeTarget) return;
-            const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
-            activeCallRef = db.ref('iqchat_calls/' + callKey);
-
-            activeCallRef.set({ caller: currentUser, status: 'calling', timestamp: Date.now() });
-
-            document.getElementById('videoCallModal').style.display = 'flex';
-            document.getElementById('videoCallTitle').innerText = `Memanggil +${activeTarget}...`;
-            document.getElementById('videoCallStatus').innerText = "Menunggu jawaban...";
-            document.getElementById('btnAnswerCall').style.display = 'none';
-
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                .then(stream => {
-                    localStream = stream;
-                    document.getElementById('localVideo').srcObject = stream;
-                    setupPeerConnection();
-                    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-                }).catch(e => alert("Gagal akses kamera/mic"));
-
-            activeCallRef.on('value', (snapshot) => {
-                let callData = snapshot.val();
-                if(callData && callData.status === 'accepted') {
-                    document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen)";
-                    stopCallRingtone();
-                } else if(!callData || callData.status === 'ended') {
-                    endVideoCall();
-                }
-            });
-        }
-
-        function setupPeerConnection() {
-            peerConnection = new RTCPeerConnection(rtcConfig);
-            peerConnection.ontrack = (event) => {
-                remoteStream = event.streams[0];
-                document.getElementById('remoteVideo').srcObject = remoteStream;
-            };
-            peerConnection.onicecandidate = (event) => {
-                if(event.candidate) {
-                    const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
-                    db.ref('iqchat_calls/' + callKey + '/candidates').push(JSON.stringify(event.candidate));
-                }
-            };
-        }
-
-        function switchVideoView() {
-            isSwapped = !isSwapped;
-            let localVid = document.getElementById('localVideo');
-            let remoteVid = document.getElementById('remoteVideo');
-            let temp = localVid.srcObject;
-            localVid.srcObject = remoteVid.srcObject;
-            remoteVid.srcObject = temp;
-        }
-
-        function listenToIncomingCalls() {
-            contacts.forEach(num => {
-                const callKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
-                db.ref('iqchat_calls/' + callKey).on('value', (snapshot) => {
-                    let callData = snapshot.val();
-                    if(callData && callData.caller !== currentUser && callData.status === 'calling') {
-                        activeCallRef = db.ref('iqchat_calls/' + callKey);
-                        document.getElementById('videoCallModal').style.display = 'flex';
-                        document.getElementById('videoCallTitle').innerText = `Panggilan dari +${callData.caller}`;
-                        document.getElementById('videoCallStatus').innerText = "Panggilan masuk...";
-                        document.getElementById('btnAnswerCall').style.display = 'block';
-
-                        playCallRingtone();
-
-                        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                            .then(stream => {
-                                localStream = stream;
-                                document.getElementById('localVideo').srcObject = stream;
-                            }).catch(e => {});
-                    }
+            // Trigger PWA Background Notification
+            if (Notification.permission === "granted") {
+                navigator.serviceWorker.ready.then(reg => {
+                    reg.showNotification("Pesan Baru - iqChat", {
+                        body: typeof messageText === 'object' ? 'Pesan Media/Lokasi Masuk' : messageText,
+                        icon: 'manifest.json'
+                    });
                 });
-            });
-        }
-
-        function answerIncomingCall() {
-            if(activeCallRef) {
-                activeCallRef.update({ status: 'accepted' });
-                document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen)";
-                document.getElementById('btnAnswerCall').style.display = 'none';
-                stopCallRingtone();
-
-                setupPeerConnection();
-                if(localStream) {
-                    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-                }
             }
+
+            showIncomingPopup(targetNum, senderName, messageText);
         }
 
-        function startVoiceCall() { alert(`Memulai Panggilan Suara dengan +${activeTarget}`); }
+        function showIncomingPopup(num, name, text) {
+            pendingPopupTarget = num;
+            document.getElementById('popupSenderName').innerText = "+" + num;
+            document.getElementById('popupMessageText').innerText = typeof text === 'object' ? '[Media/Berkas]' : text;
+            document.getElementById('incomingPopup').style.display = 'flex';
+            setTimeout(() => { document.getElementById('incomingPopup').style.display = 'none'; }, 6000);
+        }
 
-        function endVideoCall() {
-            stopCallRingtone();
-            if(activeCallRef) { activeCallRef.update({ status: 'ended' }); }
-            if(localStream) { localStream.getTracks().forEach(track => track.stop()); }
-            if(peerConnection) { peerConnection.close(); }
-            document.getElementById('videoCallModal').style.display = 'none';
+        function openChatFromPopup() {
+            document.getElementById('incomingPopup').style.display = 'none';
+            if(pendingPopupTarget) { openChatRoom(pendingPopupTarget); }
+        }
+
+        function scrollToBottomChat() {
+            const area = document.getElementById('chatMessagesArea');
+            setTimeout(() => { area.scrollTop = area.scrollHeight; }, 250);
         }
 
         function handleKeyPress(e) { if(e.key === 'Enter') sendChatMessage(); }
@@ -857,11 +767,9 @@
         window.onload = function() {
             if(!currentUser) { 
                 document.getElementById('loginModal').style.display = 'flex'; 
-                document.getElementById('chatHead').style.display = 'none';
             } else { 
                 document.getElementById('loginModal').style.display = 'none'; 
                 initAppSession(); 
-                listenToIncomingCalls();
             }
         }
     </script>
