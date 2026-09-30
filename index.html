@@ -198,7 +198,7 @@
                     deferredPrompt = null;
                 });
             } else {
-                alert("Aplikasi sudah terinstal atau browser belum mendukung instalasi langsung.");
+                alert("Aplikasi sudah terinstal atau browser sudah berjalan di mode PWA.");
             }
         }
 
@@ -210,7 +210,7 @@
         });
 
         window.addEventListener('offline', () => {
-            document.getElementById('connectionStatusBadge').innerText = "Offline (Mode Antrean Lokal)";
+            document.getElementById('connectionStatusBadge').innerText = "Offline (Antrean Lokal)";
             document.getElementById('connectionStatusBadge').style.color = "#fca5a5";
         });
 
@@ -310,7 +310,7 @@
             renderContactList();
         }
 
-        // KIRIM PESAN DENGAN DUKUNGAN OFFLINE QUEUE
+        // KIRIM PESAN DENGAN PENANGANAN ERROR DATABASE LANGSUNG
         function sendChatMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
@@ -326,22 +326,18 @@
                 timestamp: Date.now()
             };
 
-            // Cek apakah perangkat sedang online
-            if (navigator.onLine) {
-                db.ref('iqchat_rooms/' + chatRoomId).push(messageData, (error) => {
-                    if (error) {
-                        saveToOfflineQueue(chatRoomId, messageData);
-                        alert("Gagal kirim online, pesan disimpan ke antrean offline lokal.");
-                    } else {
-                        input.value = "";
-                    }
-                });
-            } else {
-                saveToOfflineQueue(chatRoomId, messageData);
-                input.value = "";
-                alert("Mode Offline: Pesan disimpan di antrean lokal dan akan terkirim otomatis saat online.");
-                renderLocalMessages(chatRoomId);
-            }
+            // Coba kirim langsung ke Firebase Database
+            db.ref('iqchat_rooms/' + chatRoomId).push(messageData)
+              .then(() => {
+                  input.value = "";
+              })
+              .catch((error) => {
+                  // Fallback ke penyimpanan lokal jika koneksi/izin database bermasalah
+                  saveToOfflineQueue(chatRoomId, messageData);
+                  input.value = "";
+                  renderLocalMessages(chatRoomId);
+                  alert("Pesan disimpan secara lokal (mode offline darurat): " + error.message);
+              });
         }
 
         function saveToOfflineQueue(roomId, msg) {
@@ -369,7 +365,7 @@
         }
 
         function attachFileMock() {
-            const fileName = prompt("Kirim Simulasi Lampiran File/Foto (Masukkan nama file):", "Dokumen_Produksi.pdf");
+            const fileName = prompt("Kirim Simulasi Lampiran File/Foto:", "Dokumen_Produksi.pdf");
             if(fileName) {
                 document.getElementById('messageInput').value = "[Lampiran File: " + fileName + "]";
                 sendChatMessage();
