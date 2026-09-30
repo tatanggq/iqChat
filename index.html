@@ -48,11 +48,13 @@
         .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; border-bottom: 1px solid #f0f2f5; position: relative; user-select: none; }
         .contact-item:hover { background: #f5f6f6; }
         
-        /* PERBAIKAN MUTLAK: AVATAR BERSIH TANPA BOCOR/PUTING */
+        /* AVATAR DENGAN TITIK HIJAU ONLINE SAJA DI KANAN ATAS */
         .avatar-wrapper { position: relative; width: 48px; height: 48px; flex-shrink: 0; display: inline-block; }
         .avatar { width: 48px; height: 48px; border-radius: 50%; background: #075E54; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; overflow: hidden; background-size: cover; background-position: center; border: none; }
-        .online-dot { position: absolute; bottom: 1px; right: 1px; width: 12px; height: 12px; background: #25D366; border-radius: 50%; border: 2px solid white; z-index: 5; }
-        .unread-badge { position: absolute; top: -2px; right: -2px; background: #25D366; color: #000; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 50%; min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; text-align: center; border: 2px solid white; z-index: 6; }
+        .online-dot { position: absolute; top: 0px; right: 0px; width: 12px; height: 12px; background: #25D366; border-radius: 50%; border: 2px solid white; z-index: 5; }
+        
+        /* UNREAD BADGE DI SEBELAH KANAN BAWAH (SEPERTI WHATSAPP ASLI) */
+        .unread-badge-list { background: #25D366; color: #fff; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 50%; min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; text-align: center; }
 
         .contact-info { flex: 1; min-width: 0; }
         .contact-name { font-weight: bold; font-size: 15px; color: var(--text-main); margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; }
@@ -394,8 +396,8 @@
             updateMyPresence();
         }
 
-        /* FUNGSI AVATAR EKSKLUSIF: JIKA ADA UNREAD BADGE, TITIK HIJAU ONLINE DIHILANGKAN UTUH TANPA TONJOLAN */
-        function getOnlineAvatarHTML(nameOrNumber, photoData, size = 48, isOnline = true, unreadCount = 0) {
+        /* AVATAR LIST KONTAK: HANYA MENAMPILKAN TITIK HIJAU ONLINE DI KANAN ATAS */
+        function getOnlineAvatarHTML(nameOrNumber, photoData, size = 48, isOnline = true) {
             let styleAttr = `width: ${size}px; height: ${size}px; font-size: ${size * 0.35}px;`;
             let avatarText = "";
             if (photoData) {
@@ -404,12 +406,7 @@
                 avatarText = nameOrNumber;
             }
 
-            let indicatorHtml = '';
-            if (unreadCount > 0) {
-                indicatorHtml = `<div class="unread-badge">${unreadCount}</div>`;
-            } else if (isOnline) {
-                indicatorHtml = `<div class="online-dot"></div>`;
-            }
+            let indicatorHtml = isOnline ? `<div class="online-dot"></div>` : '';
 
             return `
                 <div class="avatar-wrapper" style="width:${size}px; height:${size}px;">
@@ -425,7 +422,7 @@
             let headerName = myProf.name || ("+" + currentUser);
             document.getElementById('headerMyName').innerText = headerName;
             let identifier = myProf.name ? myProf.name.slice(0,2).toUpperCase() : currentUser.slice(-2);
-            document.getElementById('myHeaderAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, myProf.photo, 32, true, 0);
+            document.getElementById('myHeaderAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, myProf.photo, 32, true);
         }
 
         function openProfileSettings() {
@@ -491,7 +488,7 @@
                 let displayName = isAI ? "Gemini AI" : (details.name || ("+" + num));
                 let identifier = isAI ? "🤖" : (details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2));
                 let unreadCount = unreadCounts[roomKey] || 0;
-                let avatarHtml = getOnlineAvatarHTML(identifier, details.photo, 48, true, unreadCount);
+                let avatarHtml = getOnlineAvatarHTML(identifier, details.photo, 48, true);
 
                 const div = document.createElement('div');
                 div.className = 'contact-item';
@@ -508,6 +505,12 @@
                 };
                 div.onmouseup = div.onmouseleave = div.ontouchend = () => clearTimeout(pressTimer);
 
+                // UNREAD COUNT DI SAMPING WAKTU (SEPERTI WHATSAPP ASLI)
+                let metaRightHtml = `
+                    <span class="contact-time ${unreadCount > 0 ? 'unread' : 'read'}">${lastTime}</span>
+                    ${unreadCount > 0 ? `<div class="unread-badge-list">${unreadCount}</div>` : ''}
+                `;
+
                 div.innerHTML = `
                     ${avatarHtml}
                     <div class="contact-info">
@@ -515,7 +518,7 @@
                         <div class="contact-preview">${lastMsg}</div>
                     </div>
                     <div class="contact-meta-right">
-                        <span class="contact-time ${unreadCount > 0 ? 'unread' : 'read'}">${lastTime}</span>
+                        ${metaRightHtml}
                     </div>
                 `;
                 container.appendChild(div);
@@ -562,7 +565,7 @@
             document.getElementById('activeName').innerText = isAI ? "Gemini AI" : (details.name || ("+" + num));
             
             let identifier = isAI ? "🤖" : (details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2));
-            document.getElementById('activeAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 38, true, 0);
+            document.getElementById('activeAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 38, true);
 
             document.getElementById('viewContactList').classList.remove('active');
             document.getElementById('viewChatRoom').classList.add('active');
@@ -738,7 +741,6 @@
             }, 300);
         }
 
-        // INTEGRASI NAVIGASI DENGAN GOOGLE MAPS & INDRIVE ASLI
         function triggerNavOptions(lat, lng) {
             tempSelectedLat = lat;
             tempSelectedLng = lng;
@@ -751,24 +753,18 @@
             if(!tempSelectedLat || !tempSelectedLng) return;
 
             if(type === 'gmaps') {
-                // Membuka Google Maps Native / Web Universal
                 window.open(`https://www.google.com/maps/search/?api=1&query=${tempSelectedLat},${tempSelectedLng}`, '_blank');
             } else if(type === 'indrive') {
-                // Skema Intent Universal inDrive untuk memanggil aplikasi native langsung
                 const indriveIntent = `intent://taxi?destination=${tempSelectedLat},${tempSelectedLng}#Intent;scheme=indrive;package=sinet.startup.inDrive;end;`;
                 window.location.href = indriveIntent;
-                setTimeout(() => {
-                    // Fallback jika aplikasi belum terpasang
-                    window.open(`https://indrive.com/`, '_blank');
-                }, 1500);
+                setTimeout(() => { window.open(`https://indrive.com/`, '_blank'); }, 1500);
             } else if(type === 'iqbike') {
                 alert(`Memesan Ojol iqBike ke koordinat: ${tempSelectedLat.toFixed(5)}, ${tempSelectedLng.toFixed(5)}`);
             }
         }
 
-        // WEBRTC VIDEO & VOICE CALL FUNCTIONS
+        // WEBRTC VIDEO CALL
         function startVoiceCall() {
-            alert("Memulai panggilan suara...");
             startVideoCall();
         }
 
@@ -787,35 +783,36 @@
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then(stream => {
                     localStream = stream;
-                    document.getElementById('localVideo').srcObject = stream;
+                    const localVid = document.getElementById('localVideo');
+                    localVid.srcObject = stream;
+                    localVid.play().catch(e => {});
+
                     setupPeerConnection();
                     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
                     
                     peerConnection.createOffer().then(offer => peerConnection.setLocalDescription(offer)).then(() => {
                         activeCallRef.update({ offer: JSON.stringify(peerConnection.localDescription) });
                     });
-                }).catch(e => alert("Gagal akses kamera/mic"));
+                }).catch(e => alert("Gagal akses kamera/mic: " + e.message));
 
             activeCallRef.on('value', async (snapshot) => {
                 let callData = snapshot.val();
                 if(!callData) return;
                 
                 if(callData.status === 'accepted') {
-                    document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen)";
-                    if(callData.answer && !peerConnection.currentRemoteDescription && peerConnection.signalingState === "have-local-offer") {
+                    document.getElementById('videoCallStatus').innerText = "Terhubung";
+                    if(callData.answer && peerConnection && !peerConnection.currentRemoteDescription) {
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.answer)));
                     }
                 } else if(callData.status === 'ended') {
                     endVideoCall();
                 }
+            });
 
-                if(callData.candidates) {
-                    db.ref('iqchat_calls/' + callKey + '/candidates').on('child_added', snapshot => {
-                        let cand = snapshot.val();
-                        if(cand && peerConnection && peerConnection.remoteDescription) {
-                            peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(cand))).catch(e => {});
-                        }
-                    });
+            db.ref('iqchat_calls/' + callKey + '/candidates').on('child_added', snapshot => {
+                let cand = snapshot.val();
+                if(cand && peerConnection && peerConnection.remoteDescription) {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(cand))).catch(e => {});
                 }
             });
         }
@@ -864,7 +861,9 @@
                         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                             .then(stream => {
                                 localStream = stream;
-                                document.getElementById('localVideo').srcObject = stream;
+                                const localVid = document.getElementById('localVideo');
+                                localVid.srcObject = stream;
+                                localVid.play().catch(e => {});
                             }).catch(e => {});
                     }
                 });
@@ -889,7 +888,7 @@
                         await peerConnection.setLocalDescription(answer);
                         
                         activeCallRef.update({ answer: JSON.stringify(peerConnection.localDescription), status: 'accepted' });
-                        document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen)";
+                        document.getElementById('videoCallStatus').innerText = "Terhubung";
                     }
                 });
 
@@ -1091,7 +1090,7 @@
                 
                 let details = contactDetails[msg.sender] || {};
                 let senderInitial = details.name ? details.name.slice(0,2).toUpperCase() : (msg.sender === currentUser ? currentUser.slice(-2) : msg.sender.slice(-2));
-                let avatarMini = getOnlineAvatarHTML(senderInitial, details.photo, 28, true, 0);
+                let avatarMini = getOnlineAvatarHTML(senderInitial, details.photo, 28, true);
 
                 let bodyHtml = "";
                 if(msg.type === 'image') {
@@ -1170,7 +1169,7 @@
             let unread = unreadCounts[roomKey] || 1;
 
             let identifier = details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2);
-            document.getElementById('chatHeadAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 60, true, 0);
+            document.getElementById('chatHeadAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 60, true);
 
             let unreadEl = document.getElementById('chatHeadUnread');
             unreadEl.innerText = unread;
@@ -1228,7 +1227,7 @@
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
             let details = contactDetails[num] || {};
             let identifier = details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2);
-            document.getElementById('popupAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 42, true, 0);
+            document.getElementById('popupAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 42, true);
 
             document.getElementById('popupSenderName').innerText = "+" + num;
             document.getElementById('popupMessageText').innerText = typeof text === 'object' ? '[Media/Berkas]' : text;
