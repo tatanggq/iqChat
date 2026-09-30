@@ -45,11 +45,11 @@
         .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; border-bottom: 1px solid #f0f2f5; position: relative; user-select: none; }
         .contact-item:hover { background: #f5f6f6; }
         
-        .avatar { width: 48px; height: 48px; border-radius: 50%; background: #075E54; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; flex-shrink: 0; overflow: hidden; background-size: cover; background-position: center; }
+        .avatar { width: 48px; height: 48px; border-radius: 50%; background: #075E54; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; flex-shrink: 0; overflow: hidden; background-size: cover; background-position: center; position: relative; }
         .contact-info { flex: 1; min-width: 0; }
         .contact-name { font-weight: bold; font-size: 15px; color: var(--text-main); margin-bottom: 3px; display: flex; justify-content: space-between; }
         .contact-preview { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .unread-badge { background: var(--wa-green); color: #000; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 50%; }
+        .unread-badge { background: #ff3b30; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 50%; }
 
         .chat-room-panel { background: var(--wa-bg); background-image: radial-gradient(#0000000d 1px, transparent 1px); background-size: 24px 24px; }
         .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
@@ -63,13 +63,17 @@
         .chat-input-box { flex: 1; padding: 10px 16px; border: none; border-radius: 24px; outline: none; font-size: 14px; background: #fff; color: #111; }
         .btn-icon { background: none; border: none; color: #54656f; font-size: 18px; cursor: pointer; padding: 6px; }
 
-        /* CHAT HEAD BUBBLE */
-        .chat-head-bubble { position: fixed; bottom: 35px; right: 25px; width: 60px; height: 60px; background: #0084ff; border-radius: 50%; display: none; align-items: center; justify-content: center; color: white; box-shadow: 0 6px 25px rgba(0,0,0,0.5); cursor: pointer; z-index: 99999; background-size: cover; background-position: center; border: 3px solid white; }
+        /* FB MESSENGER CHAT HEAD BUBBLE (DRAGGABLE & UNREAD DOT) */
+        .chat-head-bubble { position: fixed; bottom: 80px; right: 25px; width: 60px; height: 60px; background: #0084ff; border-radius: 50%; display: none; align-items: center; justify-content: center; color: white; box-shadow: 0 6px 25px rgba(0,0,0,0.5); cursor: pointer; z-index: 99999; background-size: cover; background-position: center; border: 3px solid white; touch-action: none; }
+        .chat-head-unread { position: absolute; top: 0; right: 0; width: 16px; height: 16px; background: #ff3b30; border-radius: 50%; border: 2px solid white; display: none; }
+
+        /* DROP ZONE "X" ALA FB MESSENGER */
+        #dropZoneX { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 50px; height: 50px; background: rgba(0,0,0,0.7); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 20px; z-index: 99998; border: 2px dashed #fff; transition: 0.2s; }
 
         /* POPUP NOTIFIKASI MELAYANG */
         #incomingPopup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 440px; background: #202c33; color: white; padding: 14px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.6); z-index: 100000; display: none; align-items: center; gap: 12px; cursor: pointer; border-left: 5px solid var(--wa-green); }
 
-        /* TRUE FULLSCREEN VIDEO CALL MODAL */
+        /* TRUE FULLSCREEN VIDEO CALL MODAL (TWO WAYS + SWITCH) */
         #videoCallModal { position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000000; z-index: 999999; display: none; flex-direction: column; justify-content: space-between; }
 
         .overlay-screen { position: absolute; inset: 0; background: #111b21; color: white; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
@@ -92,19 +96,30 @@
         <i class="fa-solid fa-chevron-right" style="color: #8696a0; font-size: 14px;"></i>
     </div>
 
-    <!-- CHAT HEAD BUBBLE -->
-    <div id="chatHead" class="chat-head-bubble" onclick="toggleChatHead()" title="Buka Bubble Chat"></div>
+    <!-- CHAT HEAD BUBBLE (DRAGGABLE) -->
+    <div id="chatHead" class="chat-head-bubble" title="Geser ke X untuk menutup">
+        <div id="chatHeadUnread" class="chat-head-unread"></div>
+    </div>
+    <div id="dropZoneX"><i class="fa-solid fa-xmark"></i></div>
 
-    <!-- TRUE FULLSCREEN VIDEO CALL MODAL -->
+    <!-- TRUE FULLSCREEN VIDEO CALL MODAL (TWO WAYS + REMOTE VIDEO) -->
     <div id="videoCallModal">
         <div style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 10; background: rgba(0,0,0,0.6); padding: 12px;">
             <h3 id="videoCallTitle" style="font-size: 18px; color: #fff;">Video Call</h3>
             <p id="videoCallStatus" style="font-size: 12px; color: #00ffcc; margin-top: 2px;">Menghubungkan...</p>
         </div>
+        
+        <!-- Video Utama (Remote Lawan Bicara / Fullscreen) -->
         <div style="width: 100vw; height: 100vh; position: absolute; inset: 0; background: #111;">
+            <video id="remoteVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+        </div>
+
+        <!-- Video Kecil (Kamera Sendiri - Bisa diklik untuk tukar posisi) -->
+        <div onclick="switchVideoView()" style="position: absolute; top: 80px; right: 20px; width: 110px; height: 160px; background: #222; border-radius: 12px; overflow: hidden; border: 2px solid #fff; z-index: 15; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
             <video id="localVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
         </div>
-        <div style="position: absolute; bottom: 40px; left: 0; right: 0; display: flex; justify-content: center; gap: 30px; z-index: 10;" id="videoCallActionButtons">
+
+        <div style="position: absolute; bottom: 40px; left: 0; right: 0; display: flex; justify-content: center; gap: 30px; z-index: 20;">
             <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none;"><i class="fa-solid fa-phone"></i></button>
             <button onclick="endVideoCall()" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer;"><i class="fa-solid fa-phone-slash"></i></button>
         </div>
@@ -190,7 +205,7 @@
         </div>
     </div>
 
-    <!-- AUDIO ELEMEN KUSTOM -->
+    <!-- AUDIO KUSTOM -->
     <audio id="customRingtoneAudio" style="display:none;"></audio>
 
     <script>
@@ -207,8 +222,13 @@
         let activeTarget = localStorage.getItem('iq_active_target') || "";
         let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["628997032209", "6285934602965"]');
         let localStream = null;
+        let remoteStream = null;
         let pendingPopupTarget = null;
         let activeCallRef = null;
+        let peerConnection = null;
+        let isSwapped = false;
+
+        const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -253,7 +273,7 @@
             
             renderContactList();
             setupGlobalListeners();
-            listenToIncomingCalls();
+            setupDraggableChatHead();
         }
 
         function openProfileSettings() {
@@ -281,11 +301,9 @@
             }
         }
 
-        // RENDER LIST KONTAK DENGAN FITUR TEKAN LAMA (LONG PRESS) UNTUK HAPUS
         function renderContactList(filter = "") {
             const container = document.getElementById('contactListContainer');
             container.innerHTML = "";
-            
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
 
             contacts.filter(n => n.includes(filter)).forEach(num => {
@@ -303,7 +321,6 @@
                 div.className = 'contact-item';
                 div.onclick = () => openChatRoom(num);
                 
-                // Fitur Tekan Lama (Long Press / Context Menu) untuk Hapus Percakapan / Kontak
                 let pressTimer;
                 div.onmousedown = div.ontouchstart = () => {
                     pressTimer = setTimeout(() => {
@@ -312,7 +329,7 @@
                             db.ref('iqchat_rooms_live/' + roomKey).remove();
                             renderContactList();
                         }
-                    }, 800); // 0.8 detik tekan lama
+                    }, 800);
                 };
                 div.onmouseup = div.onmouseleave = div.ontouchend = () => clearTimeout(pressTimer);
 
@@ -362,7 +379,7 @@
             document.getElementById('viewContactList').classList.remove('active');
             document.getElementById('viewChatRoom').classList.add('active');
             
-            // Sembunyikan bubble chat head saat masuk ke ruang pesan
+            // Sembunyikan bubble saat masuk ruang chat, tapi aktifkan kembali nanti saat close/kembali
             document.getElementById('chatHead').style.display = 'none';
             loadAndListenMessages();
         }
@@ -399,60 +416,118 @@
             document.getElementById('viewChatRoom').classList.remove('active');
             document.getElementById('viewContactList').classList.add('active');
             renderContactList();
-        }
 
-        function toggleChatHead() {
-            const win = document.getElementById('appWindowContainer');
-            win.style.display = (win.style.display === 'none') ? 'flex' : 'none';
-            if(pendingPopupTarget) {
-                openChatRoom(pendingPopupTarget);
-                document.getElementById('chatHead').style.display = 'none';
+            // Munculkan kembali Chat Head jika ada target aktif
+            if(activeTarget) {
+                showChatHeadBubble(activeTarget);
             }
         }
 
-        // SISTEM NOTIFIKASI, GETAR, & POPUP BUBBLE SERENTAK
+        // SETUP DRAGGABLE CHAT HEAD (BISA DIGESER & CLOSE KE AREA X)
+        function setupDraggableChatHead() {
+            const head = document.getElementById('chatHead');
+            const dropX = document.getElementById('dropZoneX');
+            let isDragging = false;
+            let startX, startY, initialX, initialY;
+
+            head.onmousedown = head.ontouchstart = (e) => {
+                isDragging = true;
+                let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                startX = clientX;
+                startY = clientY;
+                let rect = head.getBoundingClientRect();
+                initialX = rect.left;
+                initialY = rect.top;
+                dropX.style.display = 'flex';
+            };
+
+            window.onmousemove = window.ontouchmove = (e) => {
+                if (!isDragging) return;
+                let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                let dx = clientX - startX;
+                let dy = clientY - startY;
+
+                head.style.left = (initialX + dx) + 'px';
+                head.style.top = (initialY + dy) + 'px';
+                head.style.right = 'auto';
+                head.style.bottom = 'auto';
+
+                // Cek apakah mendekati area dropZoneX di bawah tengah
+                let dropRect = dropX.getBoundingClientRect();
+                let headRect = head.getBoundingClientRect();
+                if(headRect.left < dropRect.right && headRect.right > dropRect.left && headRect.top < dropRect.bottom && headRect.bottom > dropRect.top) {
+                    dropX.style.background = 'red';
+                } else {
+                    dropX.style.background = 'rgba(0,0,0,0.7)';
+                }
+            };
+
+            window.onmouseup = window.ontouchend = () => {
+                if (!isDragging) return;
+                isDragging = false;
+                dropX.style.display = 'none';
+
+                let dropRect = dropX.getBoundingClientRect();
+                let headRect = head.getBoundingClientRect();
+                if(headRect.left < dropRect.right && headRect.right > dropRect.left && headRect.top < dropRect.bottom && headRect.bottom > dropRect.top) {
+                    head.style.display = 'none'; // Close bubble
+                } else {
+                    // Klik biasa jika tidak digeser jauh
+                    if(Math.abs(headRect.left - initialX) < 5 && Math.abs(headRect.top - initialY) < 5) {
+                        if(pendingPopupTarget) {
+                            openChatRoom(pendingPopupTarget);
+                            document.getElementById('appWindowContainer').style.display = 'flex';
+                            head.style.display = 'none';
+                        }
+                    }
+                }
+            };
+        }
+
+        function showChatHeadBubble(num) {
+            pendingPopupTarget = num;
+            let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
+            let details = contactDetails[num] || {};
+            let head = document.getElementById('chatHead');
+
+            if(details.photo) {
+                head.style.backgroundImage = `url('${details.photo}')`;
+                head.innerHTML = '';
+            } else {
+                head.style.backgroundImage = 'none';
+                head.innerHTML = `<i class="fa-solid fa-comments"></i>`;
+            }
+            head.style.display = 'flex';
+            document.getElementById('chatHeadUnread').style.display = 'block';
+        }
+
         function playCustomNotification(targetNum, senderName, messageText) {
             let tones = JSON.parse(localStorage.getItem('iq_tones') || '{}');
             let preference = tones[targetNum] || 'standard';
-
             if(preference === 'silent') return;
 
-            if(preference === 'custom') {
-                let customAudios = JSON.parse(localStorage.getItem('iq_custom_audios') || '{}');
-                if(customAudios[targetNum]) {
-                    let audioEl = document.getElementById('customRingtoneAudio');
-                    audioEl.src = customAudios[targetNum];
-                    audioEl.play().catch(e => {});
-                }
-            } else {
-                try {
-                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.type = 'sine';
-                    
-                    if(preference === 'double') {
-                        osc.frequency.setValueAtTime(900, audioCtx.currentTime);
-                        osc.frequency.setValueAtTime(1200, audioCtx.currentTime + 0.1);
-                    } else {
-                        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-                        osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.15);
-                    }
+            // Audio & Getar
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+            } catch(e) {}
 
-                    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.2);
-                } catch(e) {}
-            }
-
-            if (navigator.vibrate) {
-                navigator.vibrate(preference === 'double' ? [150, 80, 150, 80, 150] : [200, 100, 200]);
-            }
+            if (navigator.vibrate) { navigator.vibrate([200, 100, 200]); }
 
             showIncomingPopup(targetNum, senderName, messageText);
+            showChatHeadBubble(targetNum);
         }
 
         function showIncomingPopup(num, name, text) {
@@ -473,16 +548,6 @@
             document.getElementById('popupMessageText').innerText = typeof text === 'object' ? '[Kirim Berkas/Media]' : text;
             document.getElementById('incomingPopup').style.display = 'flex';
 
-            let head = document.getElementById('chatHead');
-            if(details.photo) {
-                head.style.backgroundImage = `url('${details.photo}')`;
-                head.innerHTML = '';
-            } else {
-                head.style.backgroundImage = 'none';
-                head.innerHTML = `<i class="fa-solid fa-comments"></i>`;
-            }
-            head.style.display = 'flex';
-
             setTimeout(() => {
                 document.getElementById('incomingPopup').style.display = 'none';
             }, 6000);
@@ -490,7 +555,7 @@
 
         function openChatFromPopup() {
             document.getElementById('incomingPopup').style.display = 'none';
-            document.getElementById('chatHead').style.display = 'none'; // Bubble otomatis hilang saat pesan dibuka
+            document.getElementById('chatHead').style.display = 'none';
             if(pendingPopupTarget) {
                 openChatRoom(pendingPopupTarget);
                 document.getElementById('appWindowContainer').style.display = 'flex';
@@ -594,13 +659,12 @@
             area.scrollTop = area.scrollHeight;
         }
 
-        // VIDEO CALL TRUE FULLSCREEN & REALTIME PUSTAKA FIREBASE
+        // VIDEO CALL WEBRTC 2 ARAH & SWITCH CAMERA VIEW
         function startVideoCall() {
             if(!activeTarget) return;
             const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             activeCallRef = db.ref('iqchat_calls/' + callKey);
 
-            // Kirim sinyal panggilan ke tujuan
             activeCallRef.set({ caller: currentUser, status: 'calling', timestamp: Date.now() });
 
             document.getElementById('videoCallModal').style.display = 'flex';
@@ -612,18 +676,42 @@
                 .then(stream => {
                     localStream = stream;
                     document.getElementById('localVideo').srcObject = stream;
-                })
-                .catch(err => { alert("Akses kamera/mikrofon diblokir!"); });
+                    setupPeerConnection();
+                    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                }).catch(e => alert("Gagal akses kamera/mic"));
 
-            // Dengarkan respon penerima
             activeCallRef.on('value', (snapshot) => {
                 let callData = snapshot.val();
                 if(callData && callData.status === 'accepted') {
-                    document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen Aktif)";
+                    document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen)";
                 } else if(!callData || callData.status === 'ended') {
                     endVideoCall();
                 }
             });
+        }
+
+        function setupPeerConnection() {
+            peerConnection = new RTCPeerConnection(rtcConfig);
+            peerConnection.ontrack = (event) => {
+                remoteStream = event.streams[0];
+                document.getElementById('remoteVideo').srcObject = remoteStream;
+            };
+            peerConnection.onicecandidate = (event) => {
+                if(event.candidate) {
+                    const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
+                    db.ref('iqchat_calls/' + callKey + '/candidates').push(JSON.stringify(event.candidate));
+                }
+            };
+        }
+
+        function switchVideoView() {
+            isSwapped = !isSwapped;
+            let localVid = document.getElementById('localVideo');
+            let remoteVid = document.getElementById('remoteVideo');
+            // Tukar sumber stream tampilannya
+            let temp = localVid.srcObject;
+            localVid.srcObject = remoteVid.srcObject;
+            remoteVid.srcObject = temp;
         }
 
         function listenToIncomingCalls() {
@@ -632,10 +720,9 @@
                 db.ref('iqchat_calls/' + callKey).on('value', (snapshot) => {
                     let callData = snapshot.val();
                     if(callData && callData.caller !== currentUser && callData.status === 'calling') {
-                        // Ada panggilan masuk!
                         activeCallRef = db.ref('iqchat_calls/' + callKey);
                         document.getElementById('videoCallModal').style.display = 'flex';
-                        document.getElementById('videoCallTitle').innerText = `Panggilan Masuk dari +${callData.caller}`;
+                        document.getElementById('videoCallTitle').innerText = `Panggilan dari +${callData.caller}`;
                         document.getElementById('videoCallStatus').innerText = "Ketuk tombol hijau untuk mengangkat";
                         document.getElementById('btnAnswerCall').style.display = 'block';
 
@@ -652,20 +739,22 @@
         function answerIncomingCall() {
             if(activeCallRef) {
                 activeCallRef.update({ status: 'accepted' });
-                document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen Aktif)";
+                document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen)";
                 document.getElementById('btnAnswerCall').style.display = 'none';
+
+                setupPeerConnection();
+                if(localStream) {
+                    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                }
             }
         }
 
         function startVoiceCall() { alert(`Memulai Panggilan Suara dengan +${activeTarget}`); }
 
         function endVideoCall() {
-            if(activeCallRef) {
-                activeCallRef.update({ status: 'ended' });
-            }
-            if(localStream) { 
-                localStream.getTracks().forEach(track => track.stop()); 
-            }
+            if(activeCallRef) { activeCallRef.update({ status: 'ended' }); }
+            if(localStream) { localStream.getTracks().forEach(track => track.stop()); }
+            if(peerConnection) { peerConnection.close(); }
             document.getElementById('videoCallModal').style.display = 'none';
         }
 
@@ -678,6 +767,7 @@
             } else { 
                 document.getElementById('loginModal').style.display = 'none'; 
                 initAppSession(); 
+                listenToIncomingCalls();
             }
         }
     </script>
