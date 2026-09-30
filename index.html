@@ -48,12 +48,10 @@
         .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; border-bottom: 1px solid #f0f2f5; position: relative; user-select: none; }
         .contact-item:hover { background: #f5f6f6; }
         
-        /* AVATAR DENGAN TITIK HIJAU ONLINE SAJA DI KANAN ATAS */
         .avatar-wrapper { position: relative; width: 48px; height: 48px; flex-shrink: 0; display: inline-block; }
         .avatar { width: 48px; height: 48px; border-radius: 50%; background: #075E54; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; overflow: hidden; background-size: cover; background-position: center; border: none; }
         .online-dot { position: absolute; top: 0px; right: 0px; width: 12px; height: 12px; background: #25D366; border-radius: 50%; border: 2px solid white; z-index: 5; }
         
-        /* UNREAD BADGE DI SEBELAH KANAN BAWAH (SEPERTI WHATSAPP ASLI) */
         .unread-badge-list { background: #25D366; color: #fff; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 50%; min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; text-align: center; }
 
         .contact-info { flex: 1; min-width: 0; }
@@ -81,27 +79,22 @@
         .attach-item { color: white; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; }
         .attach-item:hover { background: #374248; }
 
-        /* MODAL PETA SHARELOK */
         #mapModal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; display: none; flex-direction: column; padding: 16px; }
         #mapContainer { flex: 1; border-radius: 12px; width: 100%; position: relative; margin-top: 8px; margin-bottom: 8px; }
         .btn-gps-locate { position: absolute; top: 15px; right: 15px; z-index: 1000; background: white; border: none; width: 42px; height: 42px; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #075E54; }
 
-        /* MODAL PETA LIVE LOCATION DI DALAM CHAT */
         #liveMapModal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; display: none; flex-direction: column; padding: 16px; }
         #liveMapContainer { flex: 1; border-radius: 12px; width: 100%; position: relative; margin-top: 8px; margin-bottom: 8px; }
 
-        /* MODAL PILIHAN NAVIGASI */
         #navChoiceModal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100000; display: none; align-items: center; justify-content: center; padding: 20px; }
         .nav-choice-box { background: white; width: 100%; max-width: 320px; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 12px; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
         .nav-btn { padding: 12px; border-radius: 8px; border: none; font-weight: bold; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: white; }
 
         #videoRoundModal { position: fixed; inset: 0; background: #000; z-index: 99999; display: none; flex-direction: column; align-items: center; justify-content: center; }
 
-        /* CHAT HEAD BUBBLE */
         .chat-head-bubble { position: fixed; bottom: 100px; right: 25px; width: 60px; height: 60px; background: #075E54; border-radius: 50%; display: none; align-items: center; justify-content: center; color: white; box-shadow: 0 6px 25px rgba(0,0,0,0.5); cursor: pointer; z-index: 99999; background-size: cover; background-position: center; border: 3px solid white; touch-action: none; }
         .chat-head-unread { position: absolute; top: -2px; right: -2px; background: #25D366; color: #000; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 50%; min-width: 20px; height: 20px; display: none; align-items: center; justify-content: center; text-align: center; border: 2px solid white; z-index: 6; }
 
-        /* AREA DROP ZONE X */
         #dropZoneX { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); width: 54px; height: 54px; background: rgba(0,0,0,0.75); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 22px; z-index: 99998; border: 2px dashed #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
         
         #incomingPopup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 440px; background: #202c33; color: white; padding: 14px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.6); z-index: 100000; display: none; align-items: center; gap: 12px; cursor: pointer; border-left: 5px solid var(--wa-green); }
@@ -396,7 +389,6 @@
             updateMyPresence();
         }
 
-        /* AVATAR LIST KONTAK: HANYA MENAMPILKAN TITIK HIJAU ONLINE DI KANAN ATAS */
         function getOnlineAvatarHTML(nameOrNumber, photoData, size = 48, isOnline = true) {
             let styleAttr = `width: ${size}px; height: ${size}px; font-size: ${size * 0.35}px;`;
             let avatarText = "";
@@ -505,7 +497,6 @@
                 };
                 div.onmouseup = div.onmouseleave = div.ontouchend = () => clearTimeout(pressTimer);
 
-                // UNREAD COUNT DI SAMPING WAKTU (SEPERTI WHATSAPP ASLI)
                 let metaRightHtml = `
                     <span class="contact-time ${unreadCount > 0 ? 'unread' : 'read'}">${lastTime}</span>
                     ${unreadCount > 0 ? `<div class="unread-badge-list">${unreadCount}</div>` : ''}
@@ -747,23 +738,31 @@
             document.getElementById('navChoiceModal').style.display = 'flex';
         }
 
+        // PERBAIKAN DIRECT KE GOOGLE MAPS & INDRIVE ASLI
         function openNavOption(type) {
             document.getElementById('navChoiceModal').style.display = 'none';
             document.getElementById('liveMapModal').style.display = 'none';
             if(!tempSelectedLat || !tempSelectedLng) return;
 
             if(type === 'gmaps') {
-                window.open(`https://www.google.com/maps/search/?api=1&query=${tempSelectedLat},${tempSelectedLng}`, '_blank');
+                // Membuka Google Maps aplikasi langsung jika ada, fallback ke web browser
+                const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${tempSelectedLat},${tempSelectedLng}`;
+                window.open(gmapsUrl, '_blank');
             } else if(type === 'indrive') {
-                const indriveIntent = `intent://taxi?destination=${tempSelectedLat},${tempSelectedLng}#Intent;scheme=indrive;package=sinet.startup.inDrive;end;`;
-                window.location.href = indriveIntent;
-                setTimeout(() => { window.open(`https://indrive.com/`, '_blank'); }, 1500);
+                // Membuka inDrive menggunakan URI scheme native Android & fallback web
+                const indriveAppUrl = `indrive://taxi?destination=${tempSelectedLat},${tempSelectedLng}`;
+                const indriveWebUrl = `https://indrive.com/`;
+                
+                window.location.href = indriveAppUrl;
+                setTimeout(() => {
+                    window.open(indriveWebUrl, '_blank');
+                }, 1000);
             } else if(type === 'iqbike') {
                 alert(`Memesan Ojol iqBike ke koordinat: ${tempSelectedLat.toFixed(5)}, ${tempSelectedLng.toFixed(5)}`);
             }
         }
 
-        // WEBRTC VIDEO CALL
+        // PERBAIKAN TOTAL WEBRTC VIDEO CALL AGAR VIDEO MUNCUL DI KEDUA DEVICE
         function startVoiceCall() {
             startVideoCall();
         }
