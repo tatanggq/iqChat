@@ -34,7 +34,7 @@
         .view-panel.active { display: flex; z-index: 5; }
 
         .app-header { background: var(--wa-dark-green); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 10; flex-shrink: 0; }
-        .header-title { font-weight: bold; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+        .header-title { font-weight: bold; font-size: 17px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
         .header-actions { display: flex; align-items: center; gap: 8px; }
 
         .search-bar-container { padding: 8px 12px; background: #f0f2f5; border-bottom: 1px solid #e9edef; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
@@ -45,10 +45,14 @@
         .contact-item:hover { background: #f5f6f6; }
         
         .avatar { width: 48px; height: 48px; border-radius: 50%; background: #075E54; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px; flex-shrink: 0; overflow: hidden; background-size: cover; background-position: center; position: relative; }
+        
+        /* INDIKATOR ONLINE (TITIK HIJAU DI BUBBLE / AVATAR) */
+        .online-dot { position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background: #25D366; border-radius: 50%; border: 2px solid white; display: block; }
+
         .contact-info { flex: 1; min-width: 0; }
         .contact-name { font-weight: bold; font-size: 15px; color: var(--text-main); margin-bottom: 3px; display: flex; justify-content: space-between; }
         .contact-preview { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .unread-badge { background: #25D366; color: #000; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 50%; }
+        .unread-badge { background: #25D366; color: #000; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 50%; min-width: 20px; text-align: center; }
 
         .chat-room-panel { background: var(--wa-bg); background-image: radial-gradient(#0000000d 1px, transparent 1px); background-size: 24px 24px; display: flex; flex-direction: column; height: 100%; }
         .chat-messages { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; -webkit-overflow-scrolling: touch; }
@@ -143,7 +147,10 @@
         <!-- VIEW CONTACT LIST -->
         <div id="viewContactList" class="view-panel active">
             <div class="app-header">
-                <div class="header-title" style="cursor:pointer;" onclick="openProfileSettings()"><i class="fa-solid fa-user-gear"></i> <span id="headerMyName">iqChat</span></div>
+                <div class="header-title" onclick="openProfileSettings()">
+                    <div class="avatar" id="myHeaderAvatar" style="width: 32px; height: 32px; font-size: 12px;">U</div>
+                    <span id="headerMyName">iqChat</span>
+                </div>
                 <div class="header-actions">
                     <button id="btnInstall" class="btn-pwa-install" onclick="triggerPwaInstall()"><i class="fa-solid fa-download"></i> Install</button>
                     <button class="btn-logout" onclick="logoutSession()"><i class="fa-solid fa-right-from-bracket"></i> Keluar</button>
@@ -167,7 +174,7 @@
         <div id="viewChatRoom" class="view-panel chat-room-panel">
             <div class="app-header">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <button onclick="backToContactList()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer; padding:4px 8px;"><i class="fa-solid fa-arrow-left"></i></button>
+                    <button onclick="backToContactList()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer; padding:4px 8px; z-index:20;"><i class="fa-solid fa-arrow-left"></i></button>
                     <div class="avatar" id="activeAvatar" style="width: 38px; height: 38px; font-size: 14px;">T</div>
                     <div>
                         <div id="activeName" style="font-weight: bold; font-size: 14px;">+62...</div>
@@ -228,15 +235,20 @@
 
         const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then(() => {
+                console.log('Service Worker Registered');
+            });
+        }
+
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            // Tampilkan tombol install jika belum terinstal
             document.getElementById('btnInstall').style.display = 'inline-flex';
         });
 
-        // Sembunyikan tombol install jika sudah berjalan sebagai PWA Standalone
         window.addEventListener('DOMContentLoaded', () => {
             if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
                 document.getElementById('btnInstall').style.display = 'none';
@@ -281,24 +293,38 @@
 
         function initAppSession() {
             document.getElementById('myPhoneBadge').innerText = "+" + currentUser;
-            let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
-            document.getElementById('headerMyName').innerText = profiles[currentUser]?.name || ("+" + currentUser);
-            
+            updateMyHeaderProfile();
             renderContactList();
             setupGlobalListeners();
             setupDraggableChatHead();
             listenToIncomingCalls();
         }
 
+        function updateMyHeaderProfile() {
+            let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
+            let myProf = profiles[currentUser] || {};
+            let headerName = myProf.name || ("+" + currentUser);
+            document.getElementById('headerMyName').innerText = headerName;
+
+            let headerAvatar = document.getElementById('myHeaderAvatar');
+            if(myProf.photo) {
+                headerAvatar.style.backgroundImage = `url('${myProf.photo}')`;
+                headerAvatar.innerHTML = '<div class="online-dot"></div>';
+            } else {
+                headerAvatar.style.backgroundImage = '';
+                headerAvatar.innerHTML = `${currentUser.slice(-2)}<div class="online-dot"></div>`;
+            }
+        }
+
         function openProfileSettings() {
             let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
-            let currentName = profiles[currentUser]?.name || currentUser;
-            let newName = prompt("Atur Nama Profil Anda:", currentName);
-            if(newName) {
-                if(!profiles[currentUser]) profiles[currentUser] = {};
-                profiles[currentUser].name = newName;
+            let current = profiles[currentUser] || {};
+            let newName = prompt("Ubah Nama Profil Anda:", current.name || ("+" + currentUser));
+            if(newName !== null) {
+                let newPhoto = prompt("Ubah URL Foto Profil / Avatar:", current.photo || "");
+                profiles[currentUser] = { name: newName, photo: newPhoto };
                 localStorage.setItem('iq_profiles', JSON.stringify(profiles));
-                document.getElementById('headerMyName').innerText = newName;
+                updateMyHeaderProfile();
             }
         }
 
@@ -308,7 +334,7 @@
             let defaultName = current.name || ("+" + activeTarget);
             let newName = prompt("Simpan Nama Kontak:", defaultName);
             if(newName !== null) {
-                let newPhoto = prompt("URL Foto Profil / Avatar (Opsional):", current.photo || "");
+                let newPhoto = prompt("URL Foto Profil Kontak (Opsional):", current.photo || "");
                 contactDetails[activeTarget] = { name: newName, photo: newPhoto };
                 localStorage.setItem('iq_contact_details', JSON.stringify(contactDetails));
                 openChatRoom(activeTarget);
@@ -320,6 +346,7 @@
             const container = document.getElementById('contactListContainer');
             container.innerHTML = "";
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
+            let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
 
             contacts.filter(n => n.includes(filter)).forEach(num => {
                 const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
@@ -329,8 +356,12 @@
 
                 let details = contactDetails[num] || {};
                 let displayName = details.name || ("+" + num);
+                
+                // Avatar: Foto Profil -> Inisial Nama -> 2 digit nomor belakang
                 let avatarStyle = details.photo ? `background-image: url('${details.photo}');` : '';
-                let avatarText = details.photo ? '' : num.slice(-2);
+                let avatarText = details.photo ? '' : (details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2));
+
+                let unreadCount = unreadCounts[roomKey] || 0;
 
                 const div = document.createElement('div');
                 div.className = 'contact-item';
@@ -349,12 +380,15 @@
                 div.onmouseup = div.onmouseleave = div.ontouchend = () => clearTimeout(pressTimer);
 
                 div.innerHTML = `
-                    <div class="avatar" style="${avatarStyle}">${avatarText}</div>
+                    <div class="avatar" style="${avatarStyle}">
+                        ${avatarText}
+                        <div class="online-dot"></div>
+                    </div>
                     <div class="contact-info">
                         <div class="contact-name"><span>${displayName}</span> <span style="font-size:10px; color:#8696a0;">${allMsgs.length > 0 ? allMsgs[allMsgs.length-1].time : ''}</span></div>
                         <div class="contact-preview">${lastMsg}</div>
                     </div>
-                    ${allMsgs.length > 0 ? '<div class="unread-badge">●</div>' : ''}
+                    ${unreadCount > 0 ? `<div class="unread-badge">${unreadCount}</div>` : ''}
                 `;
                 container.appendChild(div);
             });
@@ -375,30 +409,35 @@
             activeTarget = num;
             localStorage.setItem('iq_active_target', activeTarget);
             
+            // RESET UNREAD COUNT SAAT DIBUKA
+            const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
+            let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
+            unreadCounts[roomKey] = 0;
+            localStorage.setItem('iq_unread_counts', JSON.stringify(unreadCounts));
+
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
             let details = contactDetails[num] || {};
-            // Jika belum diberi nama, tampilkan nomor WhatsApp murni secara dinamis
             document.getElementById('activeName').innerText = details.name || ("+" + num);
             
             let avatarEl = document.getElementById('activeAvatar');
             if(details.photo) {
                 avatarEl.style.backgroundImage = `url('${details.photo}')`;
-                avatarEl.innerText = '';
+                avatarEl.innerHTML = '<div class="online-dot"></div>';
             } else {
                 avatarEl.style.backgroundImage = '';
-                avatarEl.innerText = num.slice(-2);
+                avatarEl.innerHTML = `${details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2)}<div class="online-dot"></div>`;
             }
 
             let tones = JSON.parse(localStorage.getItem('iq_tones') || '{}');
             document.getElementById('contactToneSelect').value = tones[activeTarget] || 'standard';
 
-            // Pindah panel aktif dengan benar (Tutup Contact List, Buka Chat Room)
             document.getElementById('viewContactList').classList.remove('active');
             document.getElementById('viewChatRoom').classList.add('active');
             
             document.getElementById('chatHead').style.display = 'none';
             document.getElementById('chatHeadUnread').style.display = 'none';
             loadAndListenMessages();
+            renderContactList();
         }
 
         function updateContactTone(toneVal) {
@@ -430,14 +469,10 @@
         }
 
         function backToContactList() {
-            // Tutup Chat Room, Buka Contact List
+            activeTarget = "";
             document.getElementById('viewChatRoom').classList.remove('active');
             document.getElementById('viewContactList').classList.add('active');
             renderContactList();
-
-            if(activeTarget) {
-                showChatHeadBubble(activeTarget);
-            }
         }
 
         function setupDraggableChatHead() {
@@ -508,10 +543,10 @@
 
             if(details.photo) {
                 head.style.backgroundImage = `url('${details.photo}')`;
-                head.innerHTML = '<div id="chatHeadUnread" class="chat-head-unread" style="display:block;"></div>';
+                head.innerHTML = '<div class="online-dot"></div><div id="chatHeadUnread" class="chat-head-unread" style="display:block;"></div>';
             } else {
                 head.style.backgroundImage = 'none';
-                head.innerHTML = `<i class="fa-solid fa-comments"></i><div id="chatHeadUnread" class="chat-head-unread" style="display:block;"></div>`;
+                head.innerHTML = `<i class="fa-solid fa-comments"></i><div class="online-dot"></div><div id="chatHeadUnread" class="chat-head-unread" style="display:block;"></div>`;
             }
             head.style.display = 'flex';
         }
@@ -550,10 +585,10 @@
             let avEl = document.getElementById('popupAvatar');
             if(details.photo) {
                 avEl.style.backgroundImage = `url('${details.photo}')`;
-                avEl.innerText = '';
+                avEl.innerHTML = '<div class="online-dot"></div>';
             } else {
                 avEl.style.backgroundImage = '';
-                avEl.innerText = num.slice(-2);
+                avEl.innerHTML = `${num.slice(-2)}<div class="online-dot"></div>`;
             }
 
             document.getElementById('popupSenderName').innerText = details.name || ("+" + num);
@@ -641,6 +676,11 @@
                         if (messages.length > prevCount) {
                             const latest = messages[messages.length - 1];
                             if (latest.sender !== currentUser) {
+                                if (activeTarget !== num) {
+                                    let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
+                                    unreadCounts[roomKey] = (unreadCounts[roomKey] || 0) + 1;
+                                    localStorage.setItem('iq_unread_counts', JSON.stringify(unreadCounts));
+                                }
                                 playCustomNotification(num, num, latest.content);
                             }
                         }
@@ -770,7 +810,7 @@
                         document.getElementById('videoCallModal').style.display = 'flex';
                         document.getElementById('videoCallTitle').innerText = `Panggilan dari +${callData.caller}`;
                         document.getElementById('videoCallStatus').innerText = "Panggilan masuk...";
-                        document.getElementById('btnAnswerCard').style.display = 'block';
+                        document.getElementById('btnAnswerCall').style.display = 'block';
 
                         playCallRingtone();
 
