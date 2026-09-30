@@ -82,9 +82,9 @@
         .attach-item { color: white; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; }
         .attach-item:hover { background: #374248; }
 
-        /* MODAL MAP SHARELOK & TOMBOL GPS */
-        #mapModal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 99999; display: none; flex-direction: column; padding: 20px; }
-        #mapContainer { flex: 1; border-radius: 12px; width: 100%; position: relative; }
+        /* MODAL MAP SHARELOK & LIVE LOCATION WHATSAPP STYLE */
+        #mapModal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; display: none; flex-direction: column; padding: 16px; }
+        #mapContainer { flex: 1; border-radius: 12px; width: 100%; position: relative; margin-top: 8px; margin-bottom: 8px; }
         .btn-gps-locate { position: absolute; top: 15px; right: 15px; z-index: 1000; background: white; border: none; width: 42px; height: 42px; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #075E54; }
 
         /* MODAL VIDEO BULAT */
@@ -124,16 +124,19 @@
     </div>
     <div id="dropZoneX"><i class="fa-solid fa-xmark"></i></div>
 
-    <!-- MODAL SHARELOK MAP DENGAN TOMBOL GPS -->
+    <!-- MODAL SHARELOK & LIVE LOCATION WHATSAPP STYLE -->
     <div id="mapModal">
-        <div style="display:flex; justify-content:space-between; color:white; margin-bottom:10px;">
-            <b>Geser Pin atau Klik GPS ke Lokasi Anda</b>
-            <button onclick="closeMapModal()" style="background:red; color:white; border:none; padding:5px 10px; border-radius:6px; cursor:pointer;">Batal</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; color:white; padding: 0 4px;">
+            <b id="mapModalTitle">Kirim Lokasi Terkini</b>
+            <button onclick="closeMapModal()" style="background:red; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Batal</button>
         </div>
         <div id="mapContainer">
-            <button class="btn-gps-locate" onclick="panToCurrentGPS()" title="Geser ke Lokasi Saya"><i class="fa-solid fa-crosshairs"></i></button>
+            <button class="btn-gps-locate" onclick="panToCurrentGPS()" title="Pusatkan ke Lokasi Saya"><i class="fa-solid fa-crosshairs"></i></button>
         </div>
-        <button onclick="sendPickedLocation()" style="background:var(--wa-green); border:none; padding:12px; border-radius:8px; font-weight:bold; margin-top:10px; cursor:pointer;">Kirim Lokasi Ini</button>
+        <div style="background: white; padding: 12px; border-radius: 8px; display: flex; flex-direction: column; gap: 8px;">
+            <button onclick="sendPickedLocation(false)" style="background:var(--wa-green); border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; color:#000;">Kirim Lokasi Ini (Pin)</button>
+            <button onclick="sendLiveLocation()" style="background:#075E54; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-location-arrow"></i> Bagikan Lokasi Terkini (Live Location 8 Jam)</button>
+        </div>
     </div>
 
     <!-- MODAL VIDEO BULAT -->
@@ -240,7 +243,7 @@
             <!-- MENU ATTACHMENT -->
             <div id="attachMenu">
                 <div class="attach-item" onclick="triggerFileInput('image/*')"><i class="fa-solid fa-image" style="color:#a855f7;"></i> Foto & Galeri</div>
-                <div class="attach-item" onclick="openShareLokModal()"><i class="fa-solid fa-location-dot" style="color:#22c55e;"></i> Lokasi (ShareLok)</div>
+                <div class="attach-item" onclick="openShareLokModal()"><i class="fa-solid fa-location-dot" style="color:#22c55e;"></i> Lokasi (ShareLok & Live)</div>
                 <div class="attach-item" onclick="startRoundVideoRecord()"><i class="fa-solid fa-video" style="color:#3b82f6;"></i> Video Bulat (1 Menit)</div>
             </div>
 
@@ -277,7 +280,9 @@
         let pendingPopupTarget = null;
         let activeCallRef = null;
         let peerConnection = null;
-        let mapInstance = null, markerInstance = null, pickedLat = -6.9175, pickedLng = 107.6191;
+        let mapInstance = null, markerInstance = null, blueDotCircle = null;
+        let currentLat = -6.9175, currentLng = 107.6191;
+        let liveLocationInterval = null;
         let mediaRecorder = null, audioChunks = [];
         let roundVideoRecorder = null, roundVideoChunks = [];
 
@@ -358,7 +363,6 @@
             updateMyPresence();
         }
 
-        // FUNGSI AVATAR DENGAN TITIK HIJAU BULAT SEMPURNA
         function getOnlineAvatarHTML(nameOrNumber, photoData, size = 48, isOnline = true) {
             let styleAttr = `width: ${size}px; height: ${size}px; font-size: ${size * 0.35}px;`;
             let avatarText = "";
@@ -438,7 +442,7 @@
                 const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 let allMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
                 let lastMsg = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1].content : (isAI ? "Tanya apa saja ke Gemini AI..." : "Ketuk untuk mulai percakapan");
-                if(typeof lastMsg === 'object') lastMsg = "[Media/File]";
+                if(typeof lastMsg === 'object') lastMsg = lastMsg.type === 'livelocation' ? "📍 [Berbagi Lokasi Terkini]" : "[Media/File]";
                 let lastTime = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1].time : '';
 
                 let details = contactDetails[num] || {};
@@ -526,7 +530,6 @@
             renderContactList();
         }
 
-        // FUNGSI KEMBALI KE LIST KONTAK AMAN TANPA EXIT APLIKASI
         function backToContactList() {
             activeTarget = "";
             localStorage.removeItem('iq_active_target');
@@ -547,21 +550,51 @@
             fi.click();
         }
 
+        // FUNGSI SHARELOK DENGAN LOKASI REAL-TIME DEVICE & TITIK BIRU
         function openShareLokModal() {
             document.getElementById('attachMenu').style.display = 'none';
             document.getElementById('mapModal').style.display = 'flex';
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    currentLat = position.coords.latitude;
+                    currentLng = position.coords.longitude;
+                    initOrUpdateMap(currentLat, currentLng);
+                }, () => {
+                    initOrUpdateMap(currentLat, currentLng);
+                }, { enableHighAccuracy: true });
+            } else {
+                initOrUpdateMap(currentLat, currentLng);
+            }
+        }
+
+        function initOrUpdateMap(lat, lng) {
             setTimeout(() => {
                 if (!mapInstance) {
-                    mapInstance = L.map('mapContainer').setView([pickedLat, pickedLng], 15);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
-                    markerInstance = L.marker([pickedLat, pickedLng], {draggable: true}).addTo(mapInstance);
+                    mapInstance = L.map('mapContainer').setView([lat, lng], 16);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapInstance);
+                    
+                    // Marker Pin bisa digeser
+                    markerInstance = L.marker([lat, lng], {draggable: true}).addTo(mapInstance);
                     markerInstance.on('dragend', () => {
                         let pos = markerInstance.getLatLng();
-                        pickedLat = pos.lat;
-                        pickedLng = pos.lng;
+                        currentLat = pos.lat;
+                        currentLng = pos.lng;
                     });
+
+                    // Titik Biru Real-time Akurat (Blue Dot)
+                    blueDotCircle = L.circleMarker([lat, lng], {
+                        radius: 8,
+                        color: '#ffffff',
+                        weight: 2,
+                        fillColor: '#2196F3',
+                        fillOpacity: 1
+                    }).addTo(mapInstance);
                 } else {
                     mapInstance.invalidateSize();
+                    mapInstance.setView([lat, lng], 16);
+                    markerInstance.setLatLng([lat, lng]);
+                    if(blueDotCircle) blueDotCircle.setLatLng([lat, lng]);
                 }
             }, 300);
         }
@@ -569,13 +602,12 @@
         function panToCurrentGPS() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
-                    pickedLat = position.coords.latitude;
-                    pickedLng = position.coords.longitude;
-                    mapInstance.setView([pickedLat, pickedLng], 17);
-                    markerInstance.setLatLng([pickedLat, pickedLng]);
+                    currentLat = position.coords.latitude;
+                    currentLng = position.coords.longitude;
+                    mapInstance.setView([currentLat, currentLng], 17);
+                    markerInstance.setLatLng([currentLat, currentLng]);
+                    if(blueDotCircle) blueDotCircle.setLatLng([currentLat, currentLng]);
                 }, () => alert("Gagal mendapatkan lokasi GPS perangkat."));
-            } else {
-                alert("Geolocation tidak didukung oleh browser ini.");
             }
         }
 
@@ -583,7 +615,47 @@
 
         function sendPickedLocation() {
             closeMapModal();
-            sendChatMessage({ lat: pickedLat, lng: pickedLng, title: "Lokasi Terkini Saya" }, 'location');
+            sendChatMessage({ lat: currentLat, lng: currentLng, title: "Lokasi Terkini Saya" }, 'location');
+        }
+
+        // FITUR LIVE LOCATION WHATSAPP ASLI
+        function sendLiveLocation() {
+            closeMapModal();
+            const liveId = 'live_' + Date.now();
+            const liveObj = {
+                id: liveId,
+                lat: currentLat,
+                lng: currentLng,
+                title: "Berbagi Lokasi Terkini",
+                active: true,
+                duration: "Tersisa 8 jam",
+                startTime: Date.now()
+            };
+            sendChatMessage(liveObj, 'livelocation');
+
+            // Update real-time GPS ke Firebase setiap 10 detik
+            if (navigator.geolocation) {
+                liveLocationInterval = setInterval(() => {
+                    navigator.geolocation.getCurrentPosition(pos => {
+                        currentLat = pos.coords.latitude;
+                        currentLng = pos.coords.longitude;
+                        const isAI = activeTarget === "GeminiAI";
+                        const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
+                        
+                        // Update posisi live di database
+                        db.ref('iqchat_liveloc/' + roomKey + '/' + currentUser).set({
+                            lat: currentLat,
+                            lng: currentLng,
+                            updatedAt: Date.now()
+                        });
+                    });
+                }, 10000);
+            }
+        }
+
+        function stopLiveLocation(liveId) {
+            if(liveLocationInterval) clearInterval(liveLocationInterval);
+            alert("Berbagi lokasi terkini dihentikan.");
         }
 
         function startVoiceRecord() {
@@ -782,7 +854,17 @@
                     bodyHtml = `<img src="${msg.content.data}" style="max-width:100%; border-radius:6px; margin-bottom:4px;"><div style="font-size:11px;">📷 ${msg.content.name}</div>`;
                 } else if(msg.type === 'location') {
                     const gmapsUrl = `https://www.google.com/maps?q=${msg.content.lat},${msg.content.lng}`;
-                    bodyHtml = `<div style="background:#e6f4ea; padding:8px; border-radius:6px; text-align:center;"><i class="fa-solid fa-map-location-dot" style="font-size:24px; color:#137333; margin-bottom:4px;"></i><div><b>ShareLok Terkini</b></div><a href="${gmapsUrl}" target="_blank" style="color:#1a73e8; font-size:12px; display:block; margin-top:4px;">Buka di Google Maps / iqBike / InDrive</a></div>`;
+                    bodyHtml = `<div style="background:#e6f4ea; padding:8px; border-radius:6px; text-align:center;"><i class="fa-solid fa-map-location-dot" style="font-size:24px; color:#137333; margin-bottom:4px;"></i><div><b>ShareLok Terkini</b></div><a href="${gmapsUrl}" target="_blank" style="color:#1a73e8; font-size:12px; display:block; margin-top:4px;">Buka di Google Maps</a></div>`;
+                } else if(msg.type === 'livelocation') {
+                    const gmapsUrl = `https://www.google.com/maps?q=${msg.content.lat},${msg.content.lng}`;
+                    bodyHtml = `
+                        <div style="background:#e6f4ea; padding:10px; border-radius:6px; text-align:center;">
+                            <i class="fa-solid fa-location-arrow" style="font-size:22px; color:#075E54; margin-bottom:4px;"></i>
+                            <div><b>Berbagi Lokasi Terkini</b></div>
+                            <div style="font-size:11px; color:#555; margin:2px 0;">${msg.content.duration}</div>
+                            <a href="${gmapsUrl}" target="_blank" style="color:#1a73e8; font-size:12px; display:block; margin-top:4px;">Lihat di Peta Real-time</a>
+                            ${isMe ? `<button onclick="stopLiveLocation('${msg.content.id}')" style="background:#dc2626; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; margin-top:6px; cursor:pointer;">Berhenti Berbagi</button>` : ''}
+                        </div>`;
                 } else if(msg.type === 'voicename') {
                     bodyHtml = `<audio controls src="${msg.content.data}" style="max-width:200px; height:32px;"></audio>`;
                 } else if(msg.type === 'roundvideo') {
