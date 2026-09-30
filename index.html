@@ -49,7 +49,7 @@
         .contact-info { flex: 1; min-width: 0; }
         .contact-name { font-weight: bold; font-size: 15px; color: var(--text-main); margin-bottom: 3px; display: flex; justify-content: space-between; }
         .contact-preview { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .unread-dot { width: 12px; height: 12px; background: #25D366; border-radius: 50%; display: inline-block; box-shadow: 0 0 5px #25D366; }
+        .unread-badge { background: #25D366; color: #000; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 50%; }
 
         .chat-room-panel { background: var(--wa-bg); background-image: radial-gradient(#0000000d 1px, transparent 1px); background-size: 24px 24px; }
         .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
@@ -63,16 +63,17 @@
         .chat-input-box { flex: 1; padding: 10px 16px; border: none; border-radius: 24px; outline: none; font-size: 14px; background: #fff; color: #111; }
         .btn-icon { background: none; border: none; color: #54656f; font-size: 18px; cursor: pointer; padding: 6px; }
 
-        /* FB MESSENGER CHAT HEAD BUBBLE (DENGAN TITIK HIJAU) */
+        /* CHAT HEAD BUBBLE DENGAN TITIK HIJAU (UNREAD DOT) */
         .chat-head-bubble { position: fixed; bottom: 80px; right: 25px; width: 60px; height: 60px; background: #0084ff; border-radius: 50%; display: none; align-items: center; justify-content: center; color: white; box-shadow: 0 6px 25px rgba(0,0,0,0.5); cursor: pointer; z-index: 99999; background-size: cover; background-position: center; border: 3px solid white; touch-action: none; }
-        .chat-head-unread-dot { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; background: #25D366; border-radius: 50%; border: 2px solid white; display: none; box-shadow: 0 0 5px #25D366; }
+        .chat-head-unread { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; background: #25D366; border-radius: 50%; border: 2px solid white; display: none; }
 
+        /* DROP ZONE "X" */
         #dropZoneX { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 50px; height: 50px; background: rgba(0,0,0,0.7); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 20px; z-index: 99998; border: 2px dashed #fff; }
 
-        /* POPUP NOTIFIKASI MELAYANG */
+        /* POPUP NOTIFIKASI */
         #incomingPopup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 440px; background: #202c33; color: white; padding: 14px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.6); z-index: 100000; display: none; align-items: center; gap: 12px; cursor: pointer; border-left: 5px solid var(--wa-green); }
 
-        /* TRUE FULLSCREEN VIDEO CALL MODAL */
+        /* VIDEO CALL MODAL */
         #videoCallModal { position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000000; z-index: 999999; display: none; flex-direction: column; justify-content: space-between; }
 
         .overlay-screen { position: absolute; inset: 0; background: #111b21; color: white; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
@@ -85,7 +86,7 @@
 </head>
 <body>
 
-    <!-- POPUP TRIGGER PESAN MASUK -->
+    <!-- POPUP PESAN MASUK -->
     <div id="incomingPopup" onclick="openChatFromPopup()">
         <div class="avatar" id="popupAvatar" style="width: 42px; height: 42px;">U</div>
         <div style="flex: 1; min-width: 0;">
@@ -95,25 +96,23 @@
         <i class="fa-solid fa-chevron-right" style="color: #8696a0; font-size: 14px;"></i>
     </div>
 
-    <!-- CHAT HEAD BUBBLE (DENGAN TITIK HIJAU) -->
+    <!-- CHAT HEAD BUBBLE DENGAN TITIK HIJAU -->
     <div id="chatHead" class="chat-head-bubble" title="Geser ke X untuk menutup">
-        <div id="chatHeadUnreadDot" class="chat-head-unread-dot"></div>
+        <div id="chatHeadUnread" class="chat-head-unread"></div>
     </div>
     <div id="dropZoneX"><i class="fa-solid fa-xmark"></i></div>
 
-    <!-- TRUE FULLSCREEN VIDEO CALL MODAL -->
+    <!-- VIDEO CALL MODAL -->
     <div id="videoCallModal">
         <div style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 10; background: rgba(0,0,0,0.6); padding: 12px;">
             <h3 id="videoCallTitle" style="font-size: 18px; color: #fff;">Video Call</h3>
             <p id="videoCallStatus" style="font-size: 12px; color: #00ffcc; margin-top: 2px;">Menghubungkan...</p>
         </div>
         
-        <!-- Video Utama (Remote / Lawan Bicara) -->
         <div style="width: 100vw; height: 100vh; position: absolute; inset: 0; background: #111;">
             <video id="remoteVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
         </div>
 
-        <!-- Video Kecil (Kamera Sendiri - Klik untuk Switch) -->
         <div onclick="switchVideoView()" style="position: absolute; top: 80px; right: 20px; width: 110px; height: 160px; background: #222; border-radius: 12px; overflow: hidden; border: 2px solid #fff; z-index: 15; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
             <video id="localVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
         </div>
@@ -155,7 +154,7 @@
             
             <div style="background:#115e59; color:white; padding:6px 14px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
                 <span>Akun: <b id="myPhoneBadge">-</b></span>
-                <span id="connectionStatusBadge" style="color:#a7f3d0;">Cloud Sync Active</span>
+                <span id="connectionStatusBadge" style="color:#a7f3d0;">Cloud & Offline Ready</span>
             </div>
 
             <div class="search-bar-container">
@@ -206,6 +205,7 @@
 
     <!-- AUDIO KUSTOM -->
     <audio id="customRingtoneAudio" style="display:none;"></audio>
+    <audio id="callRingtoneAudio" loop style="display:none;"></audio>
 
     <script>
         const firebaseConfig = {
@@ -239,7 +239,14 @@
         function triggerPwaInstall() {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
-                deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('PWA installed successfully');
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                alert("Aplikasi sudah terinstal atau browser Anda tidak mendukung prompt PWA otomatis. Gunakan menu 'Tambahkan ke Layar Utama' di browser.");
             }
         }
 
@@ -273,6 +280,7 @@
             renderContactList();
             setupGlobalListeners();
             setupDraggableChatHead();
+            listenToIncomingCalls();
         }
 
         function openProfileSettings() {
@@ -300,33 +308,26 @@
             }
         }
 
-        // RENDER KONTRAK DENGAN TITIK HIJAU UNREAD
+        // RENDER KONTRAK + OFFLINE STORAGE SYNC
         function renderContactList(filter = "") {
             const container = document.getElementById('contactListContainer');
             container.innerHTML = "";
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
-            let unreadMap = JSON.parse(localStorage.getItem('iq_unread_' + currentUser) || '{}');
 
             contacts.filter(n => n.includes(filter)).forEach(num => {
                 const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 let allMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
-                let lastMsg = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1].content : "Ketuk untuk mulai percakapan";
+                let lastMsg = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1].content : "Ketuk untuk mulai percakapan (Offline Ready)";
                 if(typeof lastMsg === 'object') lastMsg = "[Media/File]";
 
                 let details = contactDetails[num] || {};
                 let displayName = details.name || ("+" + num);
                 let avatarStyle = details.photo ? `background-image: url('${details.photo}');` : '';
                 let avatarText = details.photo ? '' : num.slice(-2);
-                let hasUnread = unreadMap[num] === true;
 
                 const div = document.createElement('div');
                 div.className = 'contact-item';
-                div.onclick = () => {
-                    // Hapus tanda unread hijau saat diklik
-                    unreadMap[num] = false;
-                    localStorage.setItem('iq_unread_' + currentUser, JSON.stringify(unreadMap));
-                    openChatRoom(num);
-                };
+                div.onclick = () => openChatRoom(num);
                 
                 let pressTimer;
                 div.onmousedown = div.ontouchstart = () => {
@@ -346,7 +347,7 @@
                         <div class="contact-name"><span>${displayName}</span> <span style="font-size:10px; color:#8696a0;">${allMsgs.length > 0 ? allMsgs[allMsgs.length-1].time : ''}</span></div>
                         <div class="contact-preview">${lastMsg}</div>
                     </div>
-                    ${hasUnread ? '<span class="unread-dot"></span>' : ''}
+                    ${allMsgs.length > 0 ? '<div class="unread-badge">●</div>' : ''}
                 `;
                 container.appendChild(div);
             });
@@ -367,11 +368,6 @@
             activeTarget = num;
             localStorage.setItem('iq_active_target', activeTarget);
             
-            // Tandai sudah dibaca (hilangkan titik hijau)
-            let unreadMap = JSON.parse(localStorage.getItem('iq_unread_' + currentUser) || '{}');
-            unreadMap[num] = false;
-            localStorage.setItem('iq_unread_' + currentUser, JSON.stringify(unreadMap));
-
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
             let details = contactDetails[num] || {};
             document.getElementById('activeName').innerText = details.name || ("+" + num);
@@ -392,8 +388,8 @@
             document.getElementById('viewChatRoom').classList.add('active');
             
             document.getElementById('chatHead').style.display = 'none';
+            document.getElementById('chatHeadUnread').style.display = 'none';
             loadAndListenMessages();
-            renderContactList();
         }
 
         function updateContactTone(toneVal) {
@@ -434,7 +430,7 @@
             }
         }
 
-        // DRAGGABLE CHAT HEAD
+        // SETUP DRAGGABLE CHAT HEAD (DENGAN TITIK HIJAU & DRAG TO X)
         function setupDraggableChatHead() {
             const head = document.getElementById('chatHead');
             const dropX = document.getElementById('dropZoneX');
@@ -489,13 +485,14 @@
                             openChatRoom(pendingPopupTarget);
                             document.getElementById('appWindowContainer').style.display = 'flex';
                             head.style.display = 'none';
+                            document.getElementById('chatHeadUnread').style.display = 'none';
                         }
                     }
                 }
             };
         }
 
-        function showChatHeadBubble(num, hasUnread = false) {
+        function showChatHeadBubble(num) {
             pendingPopupTarget = num;
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
             let details = contactDetails[num] || {};
@@ -503,15 +500,15 @@
 
             if(details.photo) {
                 head.style.backgroundImage = `url('${details.photo}')`;
-                head.innerHTML = '';
+                head.innerHTML = '<div id="chatHeadUnread" class="chat-head-unread" style="display:block;"></div>';
             } else {
                 head.style.backgroundImage = 'none';
-                head.innerHTML = `<i class="fa-solid fa-comments"></i>`;
+                head.innerHTML = `<i class="fa-solid fa-comments"></i><div id="chatHeadUnread" class="chat-head-unread" style="display:block;"></div>`;
             }
             head.style.display = 'flex';
-            document.getElementById('chatHeadUnreadDot').style.display = hasUnread ? 'block' : 'none';
         }
 
+        // REAL-TIME INSTANT SYNC & OFFLINE FALLBACK
         function playCustomNotification(targetNum, senderName, messageText) {
             let tones = JSON.parse(localStorage.getItem('iq_tones') || '{}');
             let preference = tones[targetNum] || 'standard';
@@ -534,14 +531,8 @@
 
             if (navigator.vibrate) { navigator.vibrate([200, 100, 200]); }
 
-            // Set unread status menjadi true untuk memunculkan titik hijau
-            let unreadMap = JSON.parse(localStorage.getItem('iq_unread_' + currentUser) || '{}');
-            unreadMap[targetNum] = true;
-            localStorage.setItem('iq_unread_' + currentUser, JSON.stringify(unreadMap));
-
-            renderContactList();
             showIncomingPopup(targetNum, senderName, messageText);
-            showChatHeadBubble(targetNum, true);
+            showChatHeadBubble(targetNum);
         }
 
         function showIncomingPopup(num, name, text) {
@@ -590,7 +581,19 @@
                 timestamp: Date.now()
             };
 
-            db.ref('iqchat_rooms_live/' + roomKey).push(msgObj);
+            // Simpan lokal instan (Offline first)
+            let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
+            localMsgs.push(msgObj);
+            localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
+            renderChatUI(localMsgs);
+
+            // Kirim ke Firebase Cloud
+            db.ref('iqchat_rooms_live/' + roomKey).push(msgObj, (error) => {
+                if(error) {
+                    console.log("Offline mode: Pesan tersimpan di cache lokal.");
+                }
+            });
+
             if(!customContent) input.value = "";
         }
 
@@ -613,6 +616,13 @@
         function setupGlobalListeners() {
             contacts.forEach(num => {
                 const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
+                
+                // Ambil dari cache lokal terlebih dahulu agar langsung tampil tanpa delay
+                let cached = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
+                if(cached.length > 0 && activeTarget === num) {
+                    renderChatUI(cached);
+                }
+
                 db.ref('iqchat_rooms_live/' + roomKey).on('value', (snapshot) => {
                     const data = snapshot.val();
                     if(data) {
@@ -629,6 +639,11 @@
                             }
                         }
                         localStorage.setItem(countKey, messages.length);
+
+                        if(activeTarget === num) {
+                            renderChatUI(messages);
+                        }
+                        renderContactList();
                     }
                 });
             });
@@ -637,16 +652,8 @@
         function loadAndListenMessages() {
             if(!activeTarget) return;
             const roomKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
-
-            db.ref('iqchat_rooms_live/' + roomKey).on('value', (snapshot) => {
-                const data = snapshot.val();
-                let messages = [];
-                if(data) {
-                    messages = Object.values(data);
-                    localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(messages));
-                }
-                renderChatUI(messages);
-            });
+            let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
+            renderChatUI(localMsgs);
         }
 
         function renderChatUI(messages) {
@@ -673,11 +680,35 @@
             area.scrollTop = area.scrollHeight;
         }
 
-        // VIDEO CALL WEBRTC 2 ARAH (DENGAN SINKRONISASI OFFER / ANSWER FIREBASE)
+        // VIDEO CALL DENGAN RINGTONE AUDIO & GETAR MASUK
+        function playCallRingtone() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                window._callOsc = audioCtx.createOscillator();
+                window._callGain = audioCtx.createGain();
+                window._callOsc.type = 'triangle';
+                window._callOsc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                window._callGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                window._callOsc.connect(window._callGain);
+                window._callGain.connect(audioCtx.destination);
+                window._callOsc.start();
+            } catch(e) {}
+            if(navigator.vibrate) { navigator.vibrate([500, 500, 500, 500]); }
+        }
+
+        function stopCallRingtone() {
+            if(window._callOsc) {
+                try { window._callOsc.stop(); } catch(e) {}
+            }
+            if(navigator.vibrate) { navigator.vibrate(0); }
+        }
+
         function startVideoCall() {
             if(!activeTarget) return;
             const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             activeCallRef = db.ref('iqchat_calls/' + callKey);
+
+            activeCallRef.set({ caller: currentUser, status: 'calling', timestamp: Date.now() });
 
             document.getElementById('videoCallModal').style.display = 'flex';
             document.getElementById('videoCallTitle').innerText = `Memanggil +${activeTarget}...`;
@@ -688,55 +719,31 @@
                 .then(stream => {
                     localStream = stream;
                     document.getElementById('localVideo').srcObject = stream;
-                    
                     setupPeerConnection();
                     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-                    peerConnection.createOffer().then(offer => {
-                        return peerConnection.setLocalDescription(offer);
-                    }).then(() => {
-                        activeCallRef.set({
-                            caller: currentUser,
-                            status: 'calling',
-                            offer: JSON.stringify(peerConnection.localDescription),
-                            timestamp: Date.now()
-                        });
-                    });
                 }).catch(e => alert("Gagal akses kamera/mic"));
 
-            activeCallRef.on('value', async (snapshot) => {
+            activeCallRef.on('value', (snapshot) => {
                 let callData = snapshot.val();
-                if(callData) {
-                    if(callData.status === 'accepted' && callData.answer && !peerConnection.currentRemoteDescription) {
-                        document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen)";
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.answer)));
-                    } else if(callData.status === 'ended') {
-                        endVideoCall();
-                    }
-                }
-            });
-
-            // Dengarkan ICE Candidates
-            activeCallRef.child('candidates_' + activeTarget).on('child_added', (snapshot) => {
-                let candidate = snapshot.val();
-                if(candidate && peerConnection) {
-                    peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(candidate)));
+                if(callData && callData.status === 'accepted') {
+                    document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen)";
+                    stopCallRingtone();
+                } else if(!callData || callData.status === 'ended') {
+                    endVideoCall();
                 }
             });
         }
 
         function setupPeerConnection() {
-            if(peerConnection) return;
             peerConnection = new RTCPeerConnection(rtcConfig);
-            
             peerConnection.ontrack = (event) => {
                 remoteStream = event.streams[0];
                 document.getElementById('remoteVideo').srcObject = remoteStream;
             };
-
             peerConnection.onicecandidate = (event) => {
-                if(event.candidate && activeCallRef) {
-                    activeCallRef.child('candidates_' + currentUser).push(JSON.stringify(event.candidate));
+                if(event.candidate) {
+                    const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
+                    db.ref('iqchat_calls/' + callKey + '/candidates').push(JSON.stringify(event.candidate));
                 }
             };
         }
@@ -753,14 +760,16 @@
         function listenToIncomingCalls() {
             contacts.forEach(num => {
                 const callKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
-                db.ref('iqchat_calls/' + callKey).on('value', async (snapshot) => {
+                db.ref('iqchat_calls/' + callKey).on('value', (snapshot) => {
                     let callData = snapshot.val();
                     if(callData && callData.caller !== currentUser && callData.status === 'calling') {
                         activeCallRef = db.ref('iqchat_calls/' + callKey);
                         document.getElementById('videoCallModal').style.display = 'flex';
                         document.getElementById('videoCallTitle').innerText = `Panggilan dari +${callData.caller}`;
-                        document.getElementById('videoCallStatus').innerText = "Ketuk tombol hijau untuk mengangkat";
+                        document.getElementById('videoCallStatus').innerText = "Panggilan masuk...";
                         document.getElementById('btnAnswerCall').style.display = 'block';
+
+                        playCallRingtone();
 
                         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                             .then(stream => {
@@ -772,48 +781,27 @@
             });
         }
 
-        async function answerIncomingCall() {
+        function answerIncomingCall() {
             if(activeCallRef) {
-                document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
+                activeCallRef.update({ status: 'accepted' });
+                document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen)";
                 document.getElementById('btnAnswerCall').style.display = 'none';
+                stopCallRingtone();
 
                 setupPeerConnection();
                 if(localStream) {
                     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
                 }
-
-                let snapshot = await activeCallRef.once('value');
-                let callData = snapshot.val();
-                if(callData && callData.offer) {
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.offer)));
-                    let answer = await peerConnection.createAnswer();
-                    await peerConnection.setLocalDescription(answer);
-
-                    activeCallRef.update({
-                        status: 'accepted',
-                        answer: JSON.stringify(peerConnection.localDescription)
-                    });
-                }
-
-                // Dengarkan ICE Candidates dari pemanggil
-                let callerPhone = callData.caller;
-                activeCallRef.child('candidates_' + callerPhone).on('child_added', (snapshot) => {
-                    let candidate = snapshot.val();
-                    if(candidate && peerConnection) {
-                        peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(candidate)));
-                    }
-                });
-
-                document.getElementById('videoCallStatus').innerText = "Terhubung (Full Screen)";
             }
         }
 
         function startVoiceCall() { alert(`Memulai Panggilan Suara dengan +${activeTarget}`); }
 
         function endVideoCall() {
+            stopCallRingtone();
             if(activeCallRef) { activeCallRef.update({ status: 'ended' }); }
             if(localStream) { localStream.getTracks().forEach(track => track.stop()); }
-            if(peerConnection) { peerConnection.close(); peerConnection = null; }
+            if(peerConnection) { peerConnection.close(); }
             document.getElementById('videoCallModal').style.display = 'none';
         }
 
