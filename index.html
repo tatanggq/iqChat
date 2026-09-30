@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iqChatr</title>
+    <title>iqChat - Secure Realtime Messenger</title>
     
     <!-- PWA MANIFEST & META -->
     <link rel="manifest" href="manifest.json">
@@ -40,7 +40,7 @@
         /* HEADER STYLING */
         .app-header { background: var(--wa-dark-green); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 10; }
         .header-title { font-weight: bold; font-size: 18px; display: flex; align-items: center; gap: 8px; }
-        .header-actions { display: flex; align-items: center; gap: 12px; }
+        .header-actions { display: flex; align-items: center; gap: 8px; }
 
         /* CONTACT LIST STYLING */
         .search-bar-container { padding: 8px 12px; background: #f0f2f5; border-bottom: 1px solid #e9edef; }
@@ -62,34 +62,30 @@
         
         .bubble { max-width: 78%; padding: 8px 12px; border-radius: 7.5px; font-size: 13.5px; position: relative; word-break: break-word; box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); line-height: 1.4; }
         .incoming { background: #ffffff; align-self: flex-start; border-top-left-radius: 0; color: #111; }
-        .incoming::before { content: ""; position: absolute; top: 0; left: -8px; width: 0; height: 0; border: 8px solid transparent; border-top-color: #ffffff; border-left: 0; border-right: 0; }
-
         .outgoing { background: var(--wa-light-green); align-self: flex-end; border-top-right-radius: 0; color: #111; }
-        .outgoing::after { content: ""; position: absolute; top: 0; right: -8px; width: 0; height: 0; border: 8px solid transparent; border-top-color: var(--wa-light-green); border-right: 0; border-left: 0; }
-
         .bubble-meta { font-size: 10px; color: #667781; text-align: right; margin-top: 3px; display: flex; justify-content: flex-end; align-items: center; gap: 3px; }
 
         /* INPUT AREA */
         .chat-input-area { background: #f0f2f5; padding: 10px 14px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #e9edef; }
         .chat-input-box { flex: 1; padding: 10px 16px; border: none; border-radius: 24px; outline: none; font-size: 14px; background: #fff; color: #111; }
-        .btn-icon { background: none; border: none; color: #54656f; font-size: 20px; cursor: pointer; padding: 4px; }
+        .btn-icon { background: none; border: none; color: #54656f; font-size: 18px; cursor: pointer; padding: 6px; }
 
         /* OVERLAY / MODALS */
         .overlay-screen { position: absolute; inset: 0; background: #111b21; color: white; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
         .form-input { width: 100%; max-width: 320px; padding: 12px 16px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #fff; font-size: 15px; margin-top: 12px; text-align: center; outline: none; }
-        .btn-green { width: 100%; max-width: 320px; padding: 12px; background: var(--wa-green); color: #000; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; margin-top: 16px; cursor: pointer; transition: background 0.2s; }
-        .btn-green:hover { background: #20ba5a; }
-
-        .btn-pwa-install { background: #0288d1; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: none; align-items: center; gap: 6px; }
+        .btn-green { width: 100%; max-width: 320px; padding: 12px; background: var(--wa-green); color: #000; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; margin-top: 16px; cursor: pointer; }
+        
+        .btn-pwa-install { background: #0288d1; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+        .btn-logout { background: #dc2626; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
     </style>
 </head>
 <body>
 
-    <!-- 1. LOGIN SCREEN (SIMULASI OTP WHATSAPP AKTIF) -->
+    <!-- 1. LOGIN SCREEN -->
     <div id="loginModal" class="overlay-screen">
         <i class="fa-brands fa-whatsapp" style="font-size: 68px; color: var(--wa-green); margin-bottom: 16px;"></i>
         <h2 style="font-size: 22px; font-weight: 600;">iqChat Web Messenger</h2>
-        <p style="font-size: 13px; color: #8696a0; margin-top: 6px; max-width: 300px;">Masukkan nomor WhatsApp aktif Anda untuk memulai sesi aman multi-device.</p>
+        <p style="font-size: 13px; color: #8696a0; margin-top: 6px; max-width: 300px;">Masukkan nomor WhatsApp aktif Anda.</p>
         <input type="tel" id="inputPhone" class="form-input" placeholder="Contoh: 628123456789">
         <button class="btn-green" onclick="requestOtpCode()">Kirim Kode Verifikasi OTP</button>
     </div>
@@ -98,40 +94,47 @@
     <div id="otpModal" class="overlay-screen" style="display:none;">
         <i class="fa-solid fa-shield-halved" style="font-size: 58px; color: var(--wa-green); margin-bottom: 16px;"></i>
         <h2 style="font-size: 22px;">Konfirmasi OTP WhatsApp</h2>
-        <p style="font-size: 13px; color: #8696a0; margin-top: 6px;">Kode verifikasi simulasi dikirim ke WA Anda: <b style="color:var(--wa-green);">8888</b></p>
-        <input type="text" id="inputOtp" class="form-input" placeholder="Masukkan 4 digit OTP" maxlength="4" style="letter-spacing: 4px; font-weight: bold;">
+        <p style="font-size: 13px; color: #8696a0; margin-top: 6px;">Kode verifikasi simulasi: <b style="color:var(--wa-green);">8888</b></p>
+        <input type="text" id="inputOtp" class="form-input" placeholder="4 digit OTP" maxlength="4" style="letter-spacing: 4px; font-weight: bold;">
         <button class="btn-green" onclick="verifyOtpCode()">Verifikasi & Masuk</button>
     </div>
 
     <!-- MAIN APP CONTAINER -->
     <div class="app-window">
 
-        <!-- VIEW A: DAFTAR KONTAK & CHAT -->
+        <!-- VIEW A: DAFTAR KONTAK -->
         <div id="viewContactList" class="view-panel active">
             <div class="app-header">
                 <div class="header-title"><i class="fa-solid fa-comments"></i> iqChat</div>
                 <div class="header-actions">
                     <button id="btnInstall" class="btn-pwa-install" onclick="triggerPwaInstall()">
-                        <i class="fa-solid fa-download"></i> Install App
+                        <i class="fa-solid fa-download"></i> Install
                     </button>
-                    <span id="myPhoneBadge" style="font-size: 11px; background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 12px; font-weight: 500;">-</span>
+                    <button class="btn-logout" onclick="logoutSession()">
+                        <i class="fa-solid fa-right-from-bracket"></i> Keluar
+                    </button>
                 </div>
             </div>
             
+            <div style="background:#115e59; color:white; padding:6px 14px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
+                <span>Akun: <b id="myPhoneBadge">-</b></span>
+                <span id="connectionStatusBadge" style="color:#a7f3d0;">Online</span>
+            </div>
+
             <div class="search-bar-container">
-                <input type="text" class="search-box" placeholder="Cari atau mulai chat baru..." id="searchContactInput" oninput="filterContacts(this.value)">
+                <input type="text" class="search-box" placeholder="Cari kontak..." id="searchContactInput" oninput="filterContacts(this.value)">
             </div>
 
             <div style="padding: 10px 14px; background: #fff; border-bottom: 1px solid #f0f2f5;">
                 <button onclick="addNewContactPrompt()" style="width:100%; padding:10px; background:var(--wa-dark-green); color:white; border:none; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                    <i class="fa-solid fa-user-plus"></i> Tambah Kontak & Mulai Chat Baru
+                    <i class="fa-solid fa-user-plus"></i> + Mulai Chat Nomor Baru
                 </button>
             </div>
 
             <div class="contact-list" id="contactListContainer"></div>
         </div>
 
-        <!-- VIEW B: RUANG CHAT UTAMA -->
+        <!-- VIEW B: RUANG CHAT -->
         <div id="viewChatRoom" class="view-panel chat-room-panel">
             <div class="app-header">
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -139,10 +142,10 @@
                     <div class="avatar" id="activeAvatar" style="width: 38px; height: 38px; font-size: 14px;">T</div>
                     <div>
                         <div id="activeName" style="font-weight: bold; font-size: 14px;">Kontak</div>
-                        <div id="cloudStatusLabel" style="font-size: 10.5px; color: #dcf8c6;">Online (Cloud Synced)</div>
+                        <div id="cloudStatusLabel" style="font-size: 10.5px; color: #dcf8c6;">Terhubung ke Cloud</div>
                     </div>
                 </div>
-                <div class="header-actions" style="gap: 16px;">
+                <div class="header-actions">
                     <button class="btn-icon" onclick="startVoiceCall()" style="color:white;"><i class="fa-solid fa-phone"></i></button>
                     <button class="btn-icon" onclick="startVideoCall()" style="color:white;"><i class="fa-solid fa-video"></i></button>
                 </div>
@@ -153,7 +156,7 @@
 
             <!-- INPUT BAR -->
             <div class="chat-input-area">
-                <button class="btn-icon" onclick="alert('Fitur lampiran file/media aktif.')"><i class="fa-solid fa-paperclip"></i></button>
+                <button class="btn-icon" onclick="attachFileMock()"><i class="fa-solid fa-paperclip"></i></button>
                 <input type="text" id="messageInput" class="chat-input-box" placeholder="Ketik pesan..." onkeypress="handleKeyPress(event)">
                 <button onclick="sendChatMessage()" style="background:var(--wa-green); border:none; width:42px; height:42px; border-radius:50%; color:#111; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
@@ -182,12 +185,7 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.style.display = 'flex';
-        });
-
-        window.addEventListener('appinstalled', () => {
-            installBtn.style.display = 'none';
-            deferredPrompt = null;
+            installBtn.style.display = 'inline-flex';
         });
 
         function triggerPwaInstall() {
@@ -199,17 +197,30 @@
                     }
                     deferredPrompt = null;
                 });
+            } else {
+                alert("Aplikasi sudah terinstal atau browser belum mendukung instalasi langsung.");
             }
         }
 
-        // SIMULASI PERMINTAAN & VERIFIKASI OTP
+        // MONITOR STATUS KONEKSI INTERNET & OFFLINE QUEUE SYNC
+        window.addEventListener('online', () => {
+            document.getElementById('connectionStatusBadge').innerText = "Online";
+            document.getElementById('connectionStatusBadge').style.color = "#a7f3d0";
+            syncOfflineQueue();
+        });
+
+        window.addEventListener('offline', () => {
+            document.getElementById('connectionStatusBadge').innerText = "Offline (Mode Antrean Lokal)";
+            document.getElementById('connectionStatusBadge').style.color = "#fca5a5";
+        });
+
         function requestOtpCode() {
             const phone = document.getElementById('inputPhone').value.trim();
             if(!phone || phone.length < 10) {
-                alert("Masukkan nomor WhatsApp yang valid (awali dengan 62 atau 08)!");
+                alert("Masukkan nomor WhatsApp yang valid!");
                 return;
             }
-            localStorage.setItem('temp_phone', phone);
+            localStorage.setItem('temp_phone', phone.replace(/\D/g,''));
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('otpModal').style.display = 'flex';
         }
@@ -222,7 +233,14 @@
                 document.getElementById('otpModal').style.display = 'none';
                 initAppSession();
             } else {
-                alert("Kode OTP salah! Gunakan kode simulasi: 8888");
+                alert("Kode OTP salah! Gunakan: 8888");
+            }
+        }
+
+        function logoutSession() {
+            if(confirm("Keluar dari akun ini?")) {
+                localStorage.removeItem('iq_user_phone');
+                location.reload();
             }
         }
 
@@ -231,15 +249,13 @@
             renderContactList();
         }
 
-        // RENDER DAFTAR KONTAK
         function renderContactList(filterText = "") {
             const container = document.getElementById('contactListContainer');
             container.innerHTML = "";
-            
             const filtered = contacts.filter(num => num.includes(filterText));
             
             if(filtered.length === 0) {
-                container.innerHTML = `<div style="padding:20px; text-align:center; color:#667781; font-size:13px;">Tidak ada kontak ditemukan.</div>`;
+                container.innerHTML = `<div style="padding:20px; text-align:center; color:#667781; font-size:13px;">Tidak ada kontak.</div>`;
                 return;
             }
 
@@ -251,16 +267,14 @@
                     <div class="avatar">${num.substring(num.length - 2)}</div>
                     <div class="contact-info">
                         <div class="contact-name">+${num}</div>
-                        <div class="contact-preview">Ketuk untuk membuka percakapan real-time</div>
+                        <div class="contact-preview">Ketuk untuk membuka chat</div>
                     </div>
                 `;
                 container.appendChild(div);
             });
         }
 
-        function filterContacts(val) {
-            renderContactList(val.trim());
-        }
+        function filterContacts(val) { renderContactList(val.trim()); }
 
         function addNewContactPrompt() {
             let newNum = prompt("Masukkan Nomor WhatsApp Tujuan (Contoh: 628xxxxxxxxxx):");
@@ -296,38 +310,72 @@
             renderContactList();
         }
 
-        // KIRIM PESAN REAL-TIME KE FIREBASE CLOUD
+        // KIRIM PESAN DENGAN DUKUNGAN OFFLINE QUEUE
         function sendChatMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             if(!text || !activeTarget) return;
 
-            // Buat Room ID unik konsisten berdasarkan kombinasi kedua nomor
             const sortedNumbers = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort();
             const chatRoomId = sortedNumbers.join('_');
 
             const messageData = {
                 sender: currentUser,
                 text: text,
-                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                timestamp: Date.now()
             };
 
-            db.ref('iqchat_rooms/' + chatRoomId).push(messageData, (error) => {
-                if (error) {
-                    alert("Gagal mengirim pesan: " + error.message);
-                } else {
-                    input.value = "";
+            // Cek apakah perangkat sedang online
+            if (navigator.onLine) {
+                db.ref('iqchat_rooms/' + chatRoomId).push(messageData, (error) => {
+                    if (error) {
+                        saveToOfflineQueue(chatRoomId, messageData);
+                        alert("Gagal kirim online, pesan disimpan ke antrean offline lokal.");
+                    } else {
+                        input.value = "";
+                    }
+                });
+            } else {
+                saveToOfflineQueue(chatRoomId, messageData);
+                input.value = "";
+                alert("Mode Offline: Pesan disimpan di antrean lokal dan akan terkirim otomatis saat online.");
+                renderLocalMessages(chatRoomId);
+            }
+        }
+
+        function saveToOfflineQueue(roomId, msg) {
+            let queue = JSON.parse(localStorage.getItem('iq_offline_queue') || '{}');
+            if(!queue[roomId]) queue[roomId] = [];
+            queue[roomId].push(msg);
+            localStorage.setItem('iq_offline_queue', JSON.stringify(queue));
+        }
+
+        function syncOfflineQueue() {
+            let queue = JSON.parse(localStorage.getItem('iq_offline_queue') || '{}');
+            Object.keys(queue).forEach(roomId => {
+                if(queue[roomId] && queue[roomId].length > 0) {
+                    queue[roomId].forEach(msg => {
+                        db.ref('iqchat_rooms/' + roomId).push(msg);
+                    });
+                    delete queue[roomId];
                 }
             });
+            localStorage.setItem('iq_offline_queue', JSON.stringify(queue));
         }
 
         function handleKeyPress(e) {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter') { sendChatMessage(); }
+        }
+
+        function attachFileMock() {
+            const fileName = prompt("Kirim Simulasi Lampiran File/Foto (Masukkan nama file):", "Dokumen_Produksi.pdf");
+            if(fileName) {
+                document.getElementById('messageInput').value = "[Lampiran File: " + fileName + "]";
                 sendChatMessage();
             }
         }
 
-        // SINKRONISASI REAL-TIME ANTAR DEVICE & NOMOR BERBEDA
         function listenToRealtimeMessages() {
             if(!activeTarget) return;
             const sortedNumbers = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort();
@@ -358,25 +406,38 @@
                     area.scrollTop = area.scrollHeight;
                 }
             }, (error) => {
-                statusLabel.innerText = "Koneksi Cloud Terputus!";
-                console.error("Firebase read error:", error);
+                statusLabel.innerText = "Mode Offline Lokal";
+                renderLocalMessages(chatRoomId);
             });
         }
 
-        function startVoiceCall() { alert(`Memulai Panggilan Suara terenkripsi dengan +${activeTarget}...`); }
-        function startVideoCall() { alert(`Memulai Video Call dengan +${activeTarget}...`); }
+        function renderLocalMessages(roomId) {
+            const area = document.getElementById('chatMessagesArea');
+            let queue = JSON.parse(localStorage.getItem('iq_offline_queue') || '{}');
+            let localMsgs = queue[roomId] || [];
+            
+            localMsgs.forEach(msg => {
+                const isMe = msg.sender === currentUser;
+                const bubble = document.createElement('div');
+                bubble.className = `bubble ${isMe ? 'outgoing' : 'incoming'}`;
+                bubble.innerHTML = `
+                    <div>${msg.text} <span style="font-size:9px; color:orange;">(Pending Offline)</span></div>
+                    <div class="bubble-meta">${msg.time}</div>
+                `;
+                area.appendChild(bubble);
+            });
+            area.scrollTop = area.scrollHeight;
+        }
 
-        // INISIALISASI SAAT HALAMAN DIBUKA
+        function startVoiceCall() { alert(`Simulasi Panggilan Suara dengan +${activeTarget}`); }
+        function startVideoCall() { alert(`Simulasi Video Call dengan +${activeTarget}`); }
+
         window.onload = function() {
             if (!currentUser) {
                 document.getElementById('loginModal').style.display = 'flex';
             } else {
                 document.getElementById('loginModal').style.display = 'none';
                 initAppSession();
-            }
-
-            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-                installBtn.style.display = 'none';
             }
         }
     </script>
