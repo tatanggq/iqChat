@@ -419,11 +419,31 @@
         let meshDataChannel = null;
         let isOnlineState = navigator.onLine;
 
+        // Configuration for STUN and TURN Servers to bypass symmetric NAT (3G/4G/5G Cellular & Wi-Fi cross-network)
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-            ] 
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun.services.mozilla.com' },
+                // Free Public TURN Relay Servers (OpenRelay & Metered)
+                {
+                    urls: 'turn:openrelay.metered.ca:80',
+                    username: 'openrelay',
+                    credential: 'openrelay'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443',
+                    username: 'openrelay',
+                    credential: 'openrelay'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                    username: 'openrelay',
+                    credential: 'openrelay'
+                }
+            ],
+            iceCandidatePoolSize: 10
         };
 
         window.addEventListener('online', updateNetworkConnectionStatus);
@@ -1410,6 +1430,31 @@
             if(peerConnection) return;
             peerConnection = new RTCPeerConnection(rtcConfig);
             
+            // Event listener for monitoring ICE connection state changes and executing ICE restarts on failure
+            peerConnection.oniceconnectionstatechange = () => {
+                const state = peerConnection.iceConnectionState;
+                console.log("ICE Connection StateChanged:", state);
+                
+                const statusEl = document.getElementById('videoCallStatus');
+                if (statusEl) {
+                    if (state === 'checking') {
+                        statusEl.innerText = "Menghubungkan via TURN Relay...";
+                    } else if (state === 'connected' || state === 'completed') {
+                        statusEl.innerText = callType === 'ht' ? "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)" : "Terhubung Realtime";
+                    } else if (state === 'failed') {
+                        statusEl.innerText = "Koneksi terganggu. Mencoba ICE Restart...";
+                        handleIceRestart();
+                    } else if (state === 'disconnected') {
+                        statusEl.innerText = "Sinyal terputus. Mencari jalur alternatif...";
+                        setTimeout(() => {
+                            if (peerConnection && (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed')) {
+                                handleIceRestart();
+                            }
+                        }, 3000);
+                    }
+                }
+            };
+
             try {
                 meshDataChannel = peerConnection.createDataChannel("iqchat_mesh_channel");
                 meshDataChannel.onopen = () => console.log("Mesh DataChannel Connected");
@@ -1445,6 +1490,24 @@
                     db.ref('iqchat_calls/' + callKey + '/candidates').push(JSON.stringify(event.candidate));
                 }
             };
+        }
+
+        async function handleIceRestart() {
+            if (!peerConnection || !activeCallRef || !isOnlineState) return;
+            try {
+                console.log("Memicu WebRTC ICE Restart...");
+                if (peerConnection.restartIce) {
+                    peerConnection.restartIce();
+                }
+                const offer = await peerConnection.createOffer({ iceRestart: true });
+                await peerConnection.setLocalDescription(offer);
+                activeCallRef.update({ 
+                    offer: JSON.stringify(peerConnection.localDescription),
+                    restartTimestamp: Date.now()
+                });
+            } catch (err) {
+                console.error("Gagal melakukan ICE restart:", err);
+            }
         }
 
         function switchVideoView() {
