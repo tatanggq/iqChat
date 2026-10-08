@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-    <title>iqChat</title>
+    <title>iqChat - Walkie Talkie & Cloud Mesh</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#075E54">
@@ -398,8 +398,8 @@
         let activeTarget = localStorage.getItem('iq_active_target') || "";
         let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["628997032209", "6285934602965", "GeminiAI"]');
         let localStream = null, remoteStream = null;
-        let activeCallRef = null, peerConnection = null, isSwapped = false, callType = 'video'; // 'video' | 'voice' | 'ht'
-        let currentFacingMode = 'user'; // 'user' | 'environment'
+        let activeCallRef = null, peerConnection = null, isSwapped = false, callType = 'video';
+        let currentFacingMode = 'user'; 
         let currentVideoDeviceId = null;
         let activeReplyMsg = null;
         let pendingPopupTarget = null;
@@ -415,6 +415,10 @@
         let audioCtx = null;
         let callStartTime = null;
 
+        // WebRTC DataChannel & Mesh Gateway Offline/Online Monitoring
+        let meshDataChannel = null;
+        let isOnlineState = navigator.onLine;
+
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -422,7 +426,22 @@
             ] 
         };
 
-        // HELPER UTILS UNTUK FORMAT WAKTU PANGGILAN SANGAT AKURAT (WHATSAPP STYLE)
+        window.addEventListener('online', updateNetworkConnectionStatus);
+        window.addEventListener('offline', updateNetworkConnectionStatus);
+
+        function updateNetworkConnectionStatus() {
+            isOnlineState = navigator.onLine;
+            const badge = document.getElementById('connectionStatusBadge');
+            if (isOnlineState) {
+                badge.style.color = '#a7f3d0';
+                badge.innerHTML = `<i class="fa-solid fa-tower-cell"></i> Online Realtime`;
+                flushOfflineMeshQueueToCloud();
+            } else {
+                badge.style.color = '#fef08a';
+                badge.innerHTML = `<i class="fa-solid fa-wifi-slash"></i> Offline Mesh Relay (P2P HT)`;
+            }
+        }
+
         function formatCallTimeDetailed(timestamp) {
             if(!timestamp) return "Baru saja";
             const now = new Date();
@@ -446,7 +465,6 @@
             return `${date.getDate()} ${months[date.getMonth()]} ${timeStr}`;
         }
 
-        // WEB AUDIO SYNTHESIZER FOR HT CHIRPS & SQUELCH NOISE
         function getAudioContext() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -515,7 +533,6 @@
             } catch (e) { console.error("Audio synth error:", e); }
         }
 
-        // SERVICE WORKER & BACKGROUND GPS REGISTER
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(reg => {
                 swRegistration = reg;
@@ -536,6 +553,7 @@
             }
             setInterval(updateMyPresence, 5000);
             initPersistentBackgroundGPS();
+            updateNetworkConnectionStatus();
         });
 
         function initPersistentBackgroundGPS() {
@@ -544,11 +562,17 @@
                     currentLat = pos.coords.latitude;
                     currentLng = pos.coords.longitude;
                     if(currentUser) {
-                        db.ref('iqchat_locations/' + currentUser).set({
+                        const locData = {
                             lat: currentLat,
                             lng: currentLng,
-                            timestamp: Date.now()
-                        });
+                            timestamp: Date.now(),
+                            isMeshRelay: !isOnlineState
+                        };
+                        if(isOnlineState) {
+                            db.ref('iqchat_locations/' + currentUser).set(locData);
+                        } else {
+                            relayPacketToMeshGateway({ type: 'location_update', sender: currentUser, payload: locData });
+                        }
                     }
                     if (liveMapInstance && liveAvatarMarker) {
                         liveAvatarMarker.setLatLng([currentLat, currentLng]);
@@ -560,7 +584,9 @@
 
         function updateMyPresence() {
             if(!currentUser) return;
-            db.ref('iqchat_presence/' + currentUser).set({ online: true, lastSeen: Date.now() });
+            if(isOnlineState) {
+                db.ref('iqchat_presence/' + currentUser).set({ online: true, lastSeen: Date.now() });
+            }
         }
 
         function triggerPwaInstall() {
@@ -725,7 +751,6 @@
                 
                 const isMissed = log.status === "Tidak dijawab" || log.status === "Dibatalkan";
                 
-                // Indikator panah masuk / keluar WhatsApp
                 let directionIcon = '';
                 if (log.type === 'outgoing') {
                     directionIcon = `<i class="fa-solid fa-arrow-up-right" style="color:${isMissed ? '#ef4444' : '#25D366'}; margin-right:4px;"></i>`;
@@ -796,7 +821,9 @@
                     timestamp: now
                 });
                 localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
-                db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
+                if(isOnlineState) {
+                    db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
+                }
             }
         }
 
@@ -808,7 +835,6 @@
 
             if(!contacts.includes("GeminiAI")) contacts.push("GeminiAI");
 
-            // Filter out empty contacts dynamically if they don't have message history and are not Gemini
             let validContacts = contacts.filter(num => {
                 if (num === "GeminiAI") return true;
                 const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
@@ -816,7 +842,6 @@
                 return msgs.length > 0;
             });
 
-            // Update local state if any were purged
             if (validContacts.length !== contacts.length) {
                 contacts = validContacts;
                 localStorage.setItem('iq_contacts', JSON.stringify(contacts));
@@ -863,7 +888,7 @@
                     pressTimer = setTimeout(() => {
                         if(confirm(`Hapus seluruh riwayat chat & hapus ${displayName} dari kontak?`)) {
                             localStorage.removeItem('iq_msgs_history_' + roomKey);
-                            db.ref('iqchat_rooms_live/' + roomKey).remove();
+                            if(isOnlineState) db.ref('iqchat_rooms_live/' + roomKey).remove();
                             contacts = contacts.filter(c => c !== num);
                             localStorage.setItem('iq_contacts', JSON.stringify(contacts));
                             renderContactList();
@@ -903,7 +928,36 @@
             }
         }
 
-        // CHAT WALKIE TALKIE TRANSMISSION (AUDIO CLIP)
+        function relayPacketToMeshGateway(packet) {
+            console.log("Relaying packet via WebRTC Mesh Relay DataChannel:", packet);
+            if (meshDataChannel && meshDataChannel.readyState === 'open') {
+                meshDataChannel.send(JSON.stringify(packet));
+            } else {
+                let queue = JSON.parse(localStorage.getItem('iq_mesh_queue') || '[]');
+                queue.push(packet);
+                localStorage.setItem('iq_mesh_queue', JSON.stringify(queue));
+            }
+        }
+
+        function flushOfflineMeshQueueToCloud() {
+            let queue = JSON.parse(localStorage.getItem('iq_mesh_queue') || '[]');
+            if (queue.length > 0 && isOnlineState) {
+                queue.forEach(pkt => {
+                    if (pkt.type === 'chat_message') {
+                        const roomKey = pkt.roomKey;
+                        let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
+                        db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
+                    } else if (pkt.type === 'location_update') {
+                        db.ref('iqchat_locations/' + pkt.sender).set(pkt.payload);
+                    }
+                });
+                localStorage.removeItem('iq_mesh_queue');
+                const badge = document.getElementById('connectionStatusBadge');
+                badge.style.color = '#38bdf8';
+                badge.innerHTML = `<i class="fa-solid fa-server"></i> Gateway Active (Sync Done)`;
+            }
+        }
+
         function startPttTransmit() {
             if(!activeTarget) return;
             playWalkieChirp('start');
@@ -943,7 +997,6 @@
             }
         }
 
-        // REALTIME PTT OVER WEBRTC STREAM FOR HT CALL MODE
         function startPttLiveAudio() {
             const btn = document.getElementById('btnPttLiveTx');
             btn.classList.add('active-tx');
@@ -1049,7 +1102,7 @@
             unreadCounts[roomKey] = 0;
             localStorage.setItem('iq_unread_counts', JSON.stringify(unreadCounts));
 
-            if(!isAI) {
+            if(!isAI && isOnlineState) {
                 db.ref('iqchat_rooms_live/' + roomKey).once('value', snapshot => {
                     let val = snapshot.val();
                     if(val) {
@@ -1242,7 +1295,6 @@
             }
         }
 
-        // CALL MODES DISPATCHER
         function startVoiceCall() {
             if(!activeTarget) return;
             callType = 'voice';
@@ -1266,7 +1318,9 @@
             activeCallRef = db.ref('iqchat_calls/' + callKey);
             callStartTime = null;
 
-            activeCallRef.set({ caller: currentUser, status: 'calling', callType: callType, timestamp: Date.now() });
+            if (isOnlineState) {
+                activeCallRef.set({ caller: currentUser, status: 'calling', callType: callType, timestamp: Date.now() });
+            }
 
             document.getElementById('videoCallModal').style.display = 'flex';
             
@@ -1315,43 +1369,67 @@
                     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
                     
                     peerConnection.createOffer().then(offer => peerConnection.setLocalDescription(offer)).then(() => {
-                        activeCallRef.update({ offer: JSON.stringify(peerConnection.localDescription) });
+                        if(isOnlineState) {
+                            activeCallRef.update({ offer: JSON.stringify(peerConnection.localDescription) });
+                        }
                     });
                 }).catch(e => alert("Gagal akses kamera/mic: " + e.message));
 
-            activeCallRef.on('value', async (snapshot) => {
-                let callData = snapshot.val();
-                if(!callData) return;
-                
-                if(callData.status === 'accepted') {
-                    if(!callStartTime) callStartTime = Date.now();
-                    if(callType === 'ht') {
-                        document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
-                    } else {
-                        document.getElementById('videoCallStatus').innerText = "Terhubung Realtime";
-                    }
+            if(isOnlineState) {
+                activeCallRef.on('value', async (snapshot) => {
+                    let callData = snapshot.val();
+                    if(!callData) return;
+                    
+                    if(callData.status === 'accepted') {
+                        if(!callStartTime) callStartTime = Date.now();
+                        if(callType === 'ht') {
+                            document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
+                        } else {
+                            document.getElementById('videoCallStatus').innerText = "Terhubung Realtime";
+                        }
 
-                    if(callData.answer && peerConnection && !peerConnection.currentRemoteDescription) {
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.answer)));
+                        if(callData.answer && peerConnection && !peerConnection.currentRemoteDescription) {
+                            await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.answer)));
+                        }
+                    } else if(callData.status === 'ended') {
+                        calculateAndLogEndCall('outgoing');
+                        closeCallModalUI();
                     }
-                } else if(callData.status === 'ended') {
-                    calculateAndLogEndCall('outgoing');
-                    closeCallModalUI();
-                }
-            });
+                });
 
-            db.ref('iqchat_calls/' + callKey + '/candidates').on('child_added', snapshot => {
-                let cand = snapshot.val();
-                if(cand && peerConnection && peerConnection.remoteDescription) {
-                    peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(cand))).catch(e => {});
-                }
-            });
+                db.ref('iqchat_calls/' + callKey + '/candidates').on('child_added', snapshot => {
+                    let cand = snapshot.val();
+                    if(cand && peerConnection && peerConnection.remoteDescription) {
+                        peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(cand))).catch(e => {});
+                    }
+                });
+            }
         }
 
         function setupPeerConnection() {
             if(peerConnection) return;
             peerConnection = new RTCPeerConnection(rtcConfig);
             
+            try {
+                meshDataChannel = peerConnection.createDataChannel("iqchat_mesh_channel");
+                meshDataChannel.onopen = () => console.log("Mesh DataChannel Connected");
+                meshDataChannel.onmessage = (e) => {
+                    let pkt = JSON.parse(e.data);
+                    console.log("Packet received via WebRTC Mesh:", pkt);
+                    if (isOnlineState) {
+                        relayPacketToMeshGateway(pkt);
+                    }
+                };
+            } catch(e) {}
+
+            peerConnection.ondatachannel = (event) => {
+                let rxChannel = event.channel;
+                rxChannel.onmessage = (e) => {
+                    let pkt = JSON.parse(e.data);
+                    if (isOnlineState) { relayPacketToMeshGateway(pkt); }
+                };
+            };
+
             peerConnection.ontrack = (event) => {
                 remoteStream = event.streams[0];
                 const remoteVideoEl = document.getElementById('remoteVideo');
@@ -1362,7 +1440,7 @@
             };
 
             peerConnection.onicecandidate = (event) => {
-                if(event.candidate) {
+                if(event.candidate && isOnlineState) {
                     const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
                     db.ref('iqchat_calls/' + callKey + '/candidates').push(JSON.stringify(event.candidate));
                 }
@@ -1492,7 +1570,7 @@
 
         function endVideoCall() {
             calculateAndLogEndCall('outgoing');
-            if(activeCallRef) { 
+            if(activeCallRef && isOnlineState) { 
                 activeCallRef.update({ status: 'ended' }); 
             }
             closeCallModalUI();
@@ -1601,7 +1679,11 @@
             renderChatUI(localMsgs);
 
             if(!isAI) {
-                db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
+                if(isOnlineState) {
+                    db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
+                } else {
+                    relayPacketToMeshGateway({ type: 'chat_message', roomKey: roomKey, message: msgObj });
+                }
             }
 
             if(!customContent) input.value = "";
@@ -1626,7 +1708,7 @@
                 const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
                 
                 localStorage.removeItem('iq_msgs_history_' + roomKey);
-                if(!isAI) {
+                if(!isAI && isOnlineState) {
                     db.ref('iqchat_rooms_live/' + roomKey).remove();
                     contacts = contacts.filter(c => c !== activeTarget);
                     localStorage.setItem('iq_contacts', JSON.stringify(contacts));
@@ -1647,12 +1729,12 @@
             
             if (localMsgs.length === 0 && !isAI) {
                 localStorage.removeItem('iq_msgs_history_' + roomKey);
-                db.ref('iqchat_rooms_live/' + roomKey).remove();
+                if(isOnlineState) db.ref('iqchat_rooms_live/' + roomKey).remove();
                 contacts = contacts.filter(c => c !== activeTarget);
                 localStorage.setItem('iq_contacts', JSON.stringify(contacts));
             } else {
                 localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
-                if(!isAI) {
+                if(!isAI && isOnlineState) {
                     db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
                 }
             }
