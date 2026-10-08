@@ -244,12 +244,25 @@
                 <span id="connectionStatusBadge" style="color:#a7f3d0;">Cloud & Offline Ready</span>
             </div>
 
-            <div class="search-bar-container">
-                <input type="text" class="search-box" placeholder="Cari kontak atau riwayat pesan..." oninput="filterContacts(this.value)">
-                <button onclick="addNewContactPrompt()" class="btn-icon" style="background:var(--wa-dark-green); color:white; width:36px; height:36px; border-radius:50%; font-size:14px;" title="Tambah Kontak"><i class="fa-solid fa-user-plus"></i></button>
+            <!-- TABS MENU WHATSAPP (CHAT & PANGGILAN) -->
+            <div style="display:flex; background:#075E54; color:white; font-weight:bold; font-size:14px;">
+                <div id="tabChatBtn" onclick="switchMainTab('chats')" style="flex:1; text-align:center; padding:10px; cursor:pointer; border-bottom:3px solid white;">CHATS</div>
+                <div id="tabCallBtn" onclick="switchMainTab('calls')" style="flex:1; text-align:center; padding:10px; cursor:pointer; border-bottom:3px solid transparent; color:#cfd8dc;">PANGGILAN</div>
             </div>
 
-            <div class="contact-list" id="contactListContainer"></div>
+            <!-- TAB CONTAINER CHATS -->
+            <div id="tabContentChats" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <div class="search-bar-container">
+                    <input type="text" class="search-box" placeholder="Cari kontak atau riwayat pesan..." oninput="filterContacts(this.value)">
+                    <button onclick="addNewContactPrompt()" class="btn-icon" style="background:var(--wa-dark-green); color:white; width:36px; height:36px; border-radius:50%; font-size:14px;" title="Tambah Kontak"><i class="fa-solid fa-user-plus"></i></button>
+                </div>
+                <div class="contact-list" id="contactListContainer"></div>
+            </div>
+
+            <!-- TAB CONTAINER CALLS (RIWAYAT PANGGILAN ALA WHATSAPP) -->
+            <div id="tabContentCalls" class="contact-list" style="display:none; flex:1;">
+                <div id="callLogsContainer"></div>
+            </div>
         </div>
 
         <!-- VIEW CHAT ROOM -->
@@ -272,6 +285,7 @@
                     </div>
                 </div>
                 <div class="header-actions">
+                    <button class="btn-icon" onclick="clearChatHistoryConfirm()" title="Bersihkan Riwayat Chat" style="color:white;"><i class="fa-solid fa-trash-can"></i></button>
                     <button class="btn-icon" onclick="editContactProfile()" title="Simpan / Edit Kontak" style="color:white;"><i class="fa-solid fa-pen-to-square"></i></button>
                     <button class="btn-icon" onclick="startVoiceCall()" style="color:white;" title="Panggilan Suara"><i class="fa-solid fa-phone"></i></button>
                     <button class="btn-icon" onclick="startVideoCall()" style="color:white;" title="Video Call"><i class="fa-solid fa-video"></i></button>
@@ -310,12 +324,13 @@
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.database();
 
-        let currentUser = localStorage.getItem('iq_user_phone') || "";
+        let currentUser = localStorage.getItem('iq_user_phone'] || "";
+        currentUser = localStorage.getItem('iq_user_phone') || "";
         let activeTarget = localStorage.getItem('iq_active_target') || "";
         let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["628997032209", "6285934602965", "GeminiAI"]');
         let localStream = null, remoteStream = null;
         let activeCallRef = null, peerConnection = null, isSwapped = false, isAudioCall = false;
-        let useFrontCamera = true; // Status kamera aktif (depan / belakang)
+        let useFrontCamera = true;
         let pendingPopupTarget = null;
         let mapInstance = null, markerInstance = null, blueDotCircle = null;
         let liveMapInstance = null, liveMarkers = {};
@@ -474,6 +489,86 @@
                 openChatRoom(activeTarget);
                 renderContactList();
             }
+        }
+
+        function switchMainTab(tab) {
+            const chatBtn = document.getElementById('tabChatBtn');
+            const callBtn = document.getElementById('tabCallBtn');
+            const chatContent = document.getElementById('tabContentChats');
+            const callContent = document.getElementById('tabContentCalls');
+
+            if(tab === 'chats') {
+                chatBtn.style.borderBottom = '3px solid white';
+                chatBtn.style.color = 'white';
+                callBtn.style.borderBottom = '3px solid transparent';
+                callBtn.style.color = '#cfd8dc';
+                chatContent.style.display = 'flex';
+                callContent.style.display = 'none';
+                renderContactList();
+            } else {
+                callBtn.style.borderBottom = '3px solid white';
+                callBtn.style.color = 'white';
+                chatBtn.style.borderBottom = '3px solid transparent';
+                chatBtn.style.color = '#cfd8dc';
+                callContent.style.display = 'flex';
+                chatContent.style.display = 'none';
+                renderCallLogs();
+            }
+        }
+
+        function renderCallLogs() {
+            const container = document.getElementById('callLogsContainer');
+            container.innerHTML = "";
+            let callLogs = JSON.parse(localStorage.getItem('iq_call_logs_' + currentUser) || '[]');
+            let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
+
+            if(callLogs.length === 0) {
+                container.innerHTML = `<div style="text-align:center; color:#667781; padding:40px;">Belum ada riwayat panggilan</div>`;
+                return;
+            }
+
+            callLogs.reverse().forEach(log => {
+                let details = contactDetails[log.target] || {};
+                let displayName = details.name || ("+" + log.target);
+                let iconType = log.video ? '<i class="fa-solid fa-video"></i>' : '<i class="fa-solid fa-phone"></i>';
+                let directionIcon = log.type === 'outgoing' ? '<i class="fa-solid fa-arrow-up-right" style="color:#25D366;"></i>' : '<i class="fa-solid fa-arrow-down-left" style="color:#25D366;"></i>';
+
+                const div = document.createElement('div');
+                div.className = 'contact-item';
+                div.innerHTML = `
+                    <div class="avatar-wrapper" style="width:48px; height:48px;">
+                        <div class="avatar" style="width:48px; height:48px; background:#075E54; display:flex; align-items:center; justify-content:center; color:white; font-size:16px;">${displayName.slice(0,2).toUpperCase()}</div>
+                    </div>
+                    <div class="contact-info">
+                        <div class="contact-name"><span>${displayName}</span></div>
+                        <div class="contact-preview" style="display:flex; align-items:center; gap:6px;">${directionIcon} <span>${log.status}</span></div>
+                    </div>
+                    <div class="contact-meta-right">
+                        <span class="contact-time">${log.time}</span>
+                        <button onclick="startSpecificCall('${log.target}', ${log.video})" style="background:none; border:none; color:var(--wa-dark-green); font-size:18px; cursor:pointer; padding:6px;">${iconType}</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function startSpecificCall(targetNum, isVideo) {
+            activeTarget = targetNum;
+            if(isVideo) startVideoCall();
+            else startVoiceCall();
+        }
+
+        function logCallHistory(target, video, type, status) {
+            let logs = JSON.parse(localStorage.getItem('iq_call_logs_' + currentUser) || '[]');
+            logs.push({
+                target: target,
+                video: video,
+                type: type, // 'outgoing' atau 'incoming'
+                status: status, // 'Terhubung', 'Tak dijawab', 'Ditolak'
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                timestamp: Date.now()
+            });
+            localStorage.setItem('iq_call_logs_' + currentUser, JSON.stringify(logs));
         }
 
         function renderContactList(filter = "") {
@@ -665,7 +760,7 @@
 
         function sendPickedLocation() {
             closeMapModal();
-            sendChatMessage({ lat: currentLat, lng: currentLng, title: "ShareLok Terkini" }, 'location');
+            sendChatMessage({ lat: currentLat, lng: currentLng, title: "Kirim Lokasi" }, 'location');
         }
 
         function sendLiveLocation() {
@@ -677,7 +772,7 @@
                 lng: currentLng,
                 title: "Berbagi Lokasi Terkini",
                 active: true,
-                duration: "Tersisa 8 jam",
+                duration: "Berbagi Langsung",
                 startTime: Date.now()
             };
             sendChatMessage(liveObj, 'livelocation');
@@ -762,21 +857,13 @@
             if(!tempSelectedLat || !tempSelectedLng) return;
 
             if(type === 'gmaps') {
-                const geoIntent = `geo:${tempSelectedLat},${tempSelectedLng}?q=${tempSelectedLat},${tempSelectedLng}(Lokasi Tujuan)`;
                 const webMaps = `https://www.google.com/maps/search/?api=1&query=${tempSelectedLat},${tempSelectedLng}`;
-                
-                window.location.href = geoIntent;
-                setTimeout(() => {
-                    window.open(webMaps, '_blank');
-                }, 400);
+                window.open(webMaps, '_blank');
             } else if(type === 'indrive') {
                 const indriveApp = `indrive://taxi?destination_lat=${tempSelectedLat}&destination_lon=${tempSelectedLng}`;
                 const indriveWeb = `https://indrive.com/`;
-                
                 window.location.href = indriveApp;
-                setTimeout(() => {
-                    window.open(indriveWeb, '_blank');
-                }, 600);
+                setTimeout(() => { window.open(indriveWeb, '_blank'); }, 600);
             } else if(type === 'iqbike') {
                 alert(`Memesan Ojol iqBike ke koordinat: ${tempSelectedLat.toFixed(5)}, ${tempSelectedLng.toFixed(5)}`);
             }
@@ -816,7 +903,7 @@
                 document.getElementById('localVideoWrapper').style.display = 'none';
             }
 
-            const constraints = { video: withVideo ? { facingMode: useFrontCamera ? 'user' : 'environment' } : false, audio: true };
+            const constraints = { video: withVideo ? { facingMode: useFrontCamera ? 'user' : { exact: 'environment' } } : false, audio: true };
 
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(stream => {
@@ -833,7 +920,22 @@
                     peerConnection.createOffer().then(offer => peerConnection.setLocalDescription(offer)).then(() => {
                         activeCallRef.update({ offer: JSON.stringify(peerConnection.localDescription) });
                     });
-                }).catch(e => alert("Gagal akses kamera/mic: " + e.message));
+                }).catch(e => {
+                    // Fallback jika exact environment gagal
+                    navigator.mediaDevices.getUserMedia({ video: withVideo ? true : false, audio: true }).then(stream => {
+                        localStream = stream;
+                        if(withVideo) {
+                            const localVid = document.getElementById('localVideo');
+                            localVid.srcObject = stream;
+                            localVid.play().catch(err => {});
+                        }
+                        setupPeerConnection();
+                        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                        peerConnection.createOffer().then(offer => peerConnection.setLocalDescription(offer)).then(() => {
+                            activeCallRef.update({ offer: JSON.stringify(peerConnection.localDescription) });
+                        });
+                    }).catch(err => alert("Gagal akses kamera/mic: " + err.message));
+                });
 
             activeCallRef.on('value', async (snapshot) => {
                 let callData = snapshot.val();
@@ -845,7 +947,7 @@
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.answer)));
                     }
                 } else if(callData.status === 'ended') {
-                    endVideoCall();
+                    closeCallModalUI();
                 }
             });
 
@@ -857,13 +959,21 @@
             });
         }
 
-        // FUNGSI GANTI KAMERA DEPAN & BELAKANG ALA WHATSAPP
+        // FUNGSI GANTI KAMERA DEPAN & BELAKANG AMAN (FIX ERROR SOURCE)
         function switchCameraFacing() {
             if(isAudioCall) return;
             useFrontCamera = !useFrontCamera;
             
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: useFrontCamera ? 'user' : 'environment' }, audio: true })
+            // Hentikan track lama terlebih dahulu agar device/kamera ter-release
+            if(localStream) {
+                localStream.getTracks().forEach(t => t.stop());
+            }
+
+            const constraints = { video: { facingMode: useFrontCamera ? 'user' : 'environment' }, audio: true };
+
+            navigator.mediaDevices.getUserMedia(constraints)
                 .then(newStream => {
+                    localStream = newStream;
                     const videoTrack = newStream.getVideoTracks()[0];
                     
                     if(peerConnection) {
@@ -873,21 +983,28 @@
                         }
                     }
 
-                    if(localStream) {
-                        localStream.getVideoTracks().forEach(t => t.stop());
-                    }
-                    localStream = newStream;
-
                     const localVid = document.getElementById('localVideo');
                     localVid.srcObject = localStream;
                     localVid.play().catch(e => {});
                 }).catch(e => {
-                    alert("Gagal mengganti kamera: " + e.message);
-                    useFrontCamera = !useFrontCamera; // kembalikan status jika gagal
+                    // Fallback umum jika facingMode spesifik ditolak perangkat
+                    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(fallbackStream => {
+                        localStream = fallbackStream;
+                        const videoTrack = fallbackStream.getVideoTracks()[0];
+                        if(peerConnection) {
+                            const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                            if(sender) sender.replaceTrack(videoTrack);
+                        }
+                        const localVid = document.getElementById('localVideo');
+                        localVid.srcObject = localStream;
+                        localVid.play().catch(err => {});
+                    }).catch(err => {
+                        alert("Gagal mengganti kamera: " + err.message);
+                        useFrontCamera = !useFrontCamera;
+                    });
                 });
         }
 
-        // PERBAIKAN TOTAL WEBRTC: Menjamin ontrack langsung membinding stream video lawan dengan sempurna
         function setupPeerConnection() {
             if(peerConnection) return;
             peerConnection = new RTCPeerConnection(rtcConfig);
@@ -927,6 +1044,7 @@
                     let callData = snapshot.val();
                     if(callData && callData.caller !== currentUser && callData.status === 'calling') {
                         activeCallRef = db.ref('iqchat_calls/' + callKey);
+                        activeTarget = callData.caller;
                         isAudioCall = !callData.video;
 
                         document.getElementById('videoCallModal').style.display = 'flex';
@@ -954,6 +1072,8 @@
                                     localVid.play().catch(e => {});
                                 }
                             }).catch(e => {});
+                    } else if(callData && callData.status === 'ended') {
+                        closeCallModalUI();
                     }
                 });
             });
@@ -978,6 +1098,7 @@
                         
                         activeCallRef.update({ answer: JSON.stringify(peerConnection.localDescription), status: 'accepted' });
                         document.getElementById('videoCallStatus').innerText = "Terhubung";
+                        logCallHistory(activeTarget, !isAudioCall, 'incoming', 'Terhubung');
                     }
                 });
 
@@ -992,10 +1113,25 @@
         }
 
         function endVideoCall() {
-            if(activeCallRef) { activeCallRef.update({ status: 'ended' }); }
-            if(localStream) { localStream.getTracks().forEach(track => track.stop()); }
-            if(peerConnection) { peerConnection.close(); peerConnection = null; }
+            if(activeCallRef) { 
+                activeCallRef.update({ status: 'ended' }); 
+            }
+            logCallHistory(activeTarget, !isAudioCall, 'outgoing', 'Selesai');
+            closeCallModalUI();
+        }
+
+        function closeCallModalUI() {
+            if(localStream) { 
+                localStream.getTracks().forEach(track => track.stop()); 
+                localStream = null;
+            }
+            if(peerConnection) { 
+                peerConnection.close(); 
+                peerConnection = null; 
+            }
             document.getElementById('videoCallModal').style.display = 'none';
+            document.getElementById('remoteVideo').srcObject = null;
+            document.getElementById('localVideo').srcObject = null;
         }
 
         function startVoiceRecord() {
@@ -1114,6 +1250,22 @@
             }
         }
 
+        // FUNGSI BERSIHKAN RIWAYAT CHAT LOKAL & FIREBASE SECARA PERMANEN
+        function clearChatHistoryConfirm() {
+            if(confirm("Bersihkan seluruh riwayat pesan dengan kontak ini?")) {
+                const isAI = activeTarget === "GeminiAI";
+                const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
+                
+                localStorage.removeItem('iq_msgs_history_' + roomKey);
+                if(!isAI) {
+                    db.ref('iqchat_rooms_live/' + roomKey).remove();
+                }
+                loadAndListenMessages();
+                renderContactList();
+                alert("Riwayat chat berhasil dibersihkan!");
+            }
+        }
+
         function deleteMessageItem(timestamp, roomKey) {
             if(confirm("Tarik / Hapus pesan ini?")) {
                 let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
@@ -1152,6 +1304,11 @@
 
                         if(activeTarget === num) { renderChatUI(messages); }
                         renderContactList();
+                    } else {
+                        // Jika data di firebase dihapus/dibersihkan, hapus juga lokal
+                        localStorage.removeItem('iq_msgs_history_' + roomKey);
+                        if(activeTarget === num) { renderChatUI([]); }
+                        renderContactList();
                     }
                 });
             });
@@ -1189,8 +1346,8 @@
                         <div onclick="triggerNavOptions(${msg.content.lat}, ${msg.content.lng})" style="background:#e6f4ea; padding:10px; border-radius:6px; text-align:center; cursor:pointer;">
                             <div style="display:flex; justify-content:center; align-items:center; margin-bottom:6px;">${avatarMini}</div>
                             <i class="fa-solid fa-map-location-dot" style="font-size:22px; color:#137333; margin-bottom:4px;"></i>
-                            <div><b>ShareLok Terkini</b></div>
-                            <div style="color:#1a73e8; font-size:11.5px; display:block; margin-top:4px;">Ketuk untuk pilihan navigasi (Maps / inDrive / iqBike)</div>
+                            <div><b>Bagikan Lokasi</b></div>
+                            <div style="color:#1a73e8; font-size:11.5px; display:block; margin-top:4px; font-weight:bold;">Ketuk untuk buka Google Maps & inDrive</div>
                         </div>`;
                 } else if(msg.type === 'livelocation') {
                     bodyHtml = `
@@ -1342,6 +1499,7 @@
                 document.getElementById('loginModal').style.display = 'flex'; 
                 document.getElementById('chatHead').style.display = 'none';
             } else { 
+                document.getElementById('loginModal'].style.display = 'none'; 
                 document.getElementById('loginModal').style.display = 'none'; 
                 initAppSession(); 
             }
