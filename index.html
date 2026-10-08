@@ -324,8 +324,7 @@
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.database();
 
-        let currentUser = localStorage.getItem('iq_user_phone'] || "";
-        currentUser = localStorage.getItem('iq_user_phone') || "";
+        let currentUser = localStorage.getItem('iq_user_phone') || "";
         let activeTarget = localStorage.getItem('iq_active_target') || "";
         let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["628997032209", "6285934602965", "GeminiAI"]');
         let localStream = null, remoteStream = null;
@@ -921,7 +920,6 @@
                         activeCallRef.update({ offer: JSON.stringify(peerConnection.localDescription) });
                     });
                 }).catch(e => {
-                    // Fallback jika exact environment gagal
                     navigator.mediaDevices.getUserMedia({ video: withVideo ? true : false, audio: true }).then(stream => {
                         localStream = stream;
                         if(withVideo) {
@@ -959,12 +957,10 @@
             });
         }
 
-        // FUNGSI GANTI KAMERA DEPAN & BELAKANG AMAN (FIX ERROR SOURCE)
         function switchCameraFacing() {
             if(isAudioCall) return;
             useFrontCamera = !useFrontCamera;
             
-            // Hentikan track lama terlebih dahulu agar device/kamera ter-release
             if(localStream) {
                 localStream.getTracks().forEach(t => t.stop());
             }
@@ -987,7 +983,6 @@
                     localVid.srcObject = localStream;
                     localVid.play().catch(e => {});
                 }).catch(e => {
-                    // Fallback umum jika facingMode spesifik ditolak perangkat
                     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(fallbackStream => {
                         localStream = fallbackStream;
                         const videoTrack = fallbackStream.getVideoTracks()[0];
@@ -1250,7 +1245,6 @@
             }
         }
 
-        // FUNGSI BERSIHKAN RIWAYAT CHAT LOKAL & FIREBASE SECARA PERMANEN
         function clearChatHistoryConfirm() {
             if(confirm("Bersihkan seluruh riwayat pesan dengan kontak ini?")) {
                 const isAI = activeTarget === "GeminiAI";
@@ -1305,7 +1299,6 @@
                         if(activeTarget === num) { renderChatUI(messages); }
                         renderContactList();
                     } else {
-                        // Jika data di firebase dihapus/dibersihkan, hapus juga lokal
                         localStorage.removeItem('iq_msgs_history_' + roomKey);
                         if(activeTarget === num) { renderChatUI([]); }
                         renderContactList();
@@ -1499,7 +1492,6 @@
                 document.getElementById('loginModal').style.display = 'flex'; 
                 document.getElementById('chatHead').style.display = 'none';
             } else { 
-                document.getElementById('loginModal'].style.display = 'none'; 
                 document.getElementById('loginModal').style.display = 'none'; 
                 initAppSession(); 
             }
