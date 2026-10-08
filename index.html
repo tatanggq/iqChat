@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-    <title>iqChat - Walkie-Talkie & Video Call Pro Realtime</title>
+    <title>iqChat</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#075E54">
@@ -28,6 +28,7 @@
             --text-secondary: #667781;
             --ptt-active: #ef4444;
             --ptt-bg: #1e293b;
+            --missed-call: #ef4444;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -68,10 +69,21 @@
         .chat-room-panel { background: var(--wa-bg); background-image: radial-gradient(#0000000d 1px, transparent 1px); background-size: 24px 24px; display: flex; flex-direction: column; height: 100%; }
         .chat-messages { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; -webkit-overflow-scrolling: touch; }
         
-        .bubble { max-width: 78%; padding: 8px 12px; border-radius: 7.5px; font-size: 13.5px; position: relative; word-break: break-word; box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); line-height: 1.4; }
+        .bubble { max-width: 82%; padding: 8px 12px; border-radius: 7.5px; font-size: 13.5px; position: relative; word-break: break-word; box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); line-height: 1.4; }
         .incoming { background: #ffffff; align-self: flex-start; border-top-left-radius: 0; color: #111; }
         .outgoing { background: var(--wa-light-green); align-self: flex-end; border-top-right-radius: 0; color: #111; }
         .bubble-meta { font-size: 10px; color: #667781; text-align: right; margin-top: 3px; display: flex; justify-content: flex-end; align-items: center; gap: 3px; }
+
+        /* Call Log Bubble Specific Style */
+        .call-log-card { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-radius: 6px; min-width: 200px; }
+        .call-icon-circle { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+        .call-icon-circle.missed { background: #fee2e2; color: #ef4444; }
+        .call-icon-circle.success { background: #dcfce7; color: #059669; }
+        .call-details-box { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+        .call-title { font-weight: bold; font-size: 13.5px; }
+        .call-title.missed { color: #dc2626; }
+        .call-subtitle { font-size: 11px; color: #667781; margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+        .call-subtitle.missed { color: #ef4444; font-weight: 500; }
 
         .reply-quote-box { background: rgba(0,0,0,0.05); border-left: 4px solid var(--wa-dark-green); padding: 4px 8px; border-radius: 4px; margin-bottom: 6px; font-size: 12px; color: #333; }
         .reply-preview-container { background: #f0f2f5; padding: 8px 12px; display: none; align-items: center; justify-content: space-between; border-top: 1px solid #e9edef; font-size: 13px; }
@@ -80,7 +92,7 @@
         .chat-input-box { flex: 1; padding: 10px 16px; border: none; border-radius: 24px; outline: none; font-size: 14px; background: #fff; color: #111; }
         .btn-icon { background: none; border: none; color: #54656f; font-size: 18px; cursor: pointer; padding: 6px; z-index: 22; }
 
-        /* WALKIE TALKIE (PTT) OVERLAY & BUTTONS */
+        /* HT (PTT) OVERLAY & BUTTONS */
         .ptt-bar-container { background: var(--ptt-bg); padding: 10px 14px; display: none; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid #334155; }
         .ptt-status-text { color: #38bdf8; font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 6px; }
         .btn-ptt-talk { flex: 1; padding: 12px; background: #ef4444; color: white; border: none; border-radius: 25px; font-weight: bold; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); user-select: none; touch-action: manipulation; }
@@ -119,7 +131,7 @@
         .btn-pwa-install { background: #0288d1; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
         .btn-logout { background: #dc2626; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
 
-        /* REALTIME PTT HANDY TALKIE OVERLAY FOR LIVE CALL */
+        /* REALTIME PTT HT OVERLAY FOR LIVE CALL */
         .ptt-live-talk-btn { background: #ef4444; color: white; border: 3px solid #ffffff; width: 85px; height: 85px; border-radius: 50%; font-size: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(239, 68, 68, 0.8); user-select: none; touch-action: manipulation; transition: all 0.2s ease; }
         .ptt-live-talk-btn.active-tx { background: #22c55e; box-shadow: 0 0 35px rgba(34, 197, 94, 1); transform: scale(1.12); }
 
@@ -243,8 +255,8 @@
 
     <!-- LOGIN SCREEN -->
     <div id="loginModal" class="overlay-screen">
-        <i class="fa-solid fa-walkie-talkie" style="font-size: 68px; color: var(--wa-green); margin-bottom: 16px;"></i>
-        <h2>iqChat Walkie-Talkie Pro</h2>
+        <i class="fa-solid fa-Whastapp Messenger" style="font-size: 68px; color: var(--wa-green); margin-bottom: 16px;"></i>
+        <h2>iqChat</h2>
         <p style="font-size: 13px; color: #8696a0; margin-top: 6px;">Masukkan nomor WhatsApp aktif Anda.</p>
         <input type="tel" id="inputPhone" class="form-input" placeholder="Contoh: 628123456789 atau 08...">
         <button class="btn-green" onclick="requestOtpCode()">Kirim Kode Verifikasi OTP</button>
@@ -323,7 +335,7 @@
                 <!-- Action buttons: Separatasi tombol HT vs Video Call Realtime vs Voice Call -->
                 <div class="header-actions">
                     <button class="btn-icon" id="btnTogglePttMode" onclick="startHtCall()" title="Panggilan HT Walkie-Talkie" style="color:#38bdf8;"><i class="fa-solid fa-walkie-talkie"></i></button>
-                    <button class="btn-icon" onclick="clearChatHistoryConfirm()" title="Bersihkan Riwayat Chat" style="color:white;"><i class="fa-solid fa-trash-can"></i></button>
+                    <button class="btn-icon" onclick="clearChatHistoryConfirm()" title="Bersihkan Riwayat Chat & Hapus Kontak Bila Kosong" style="color:white;"><i class="fa-solid fa-trash-can"></i></button>
                     <button class="btn-icon" onclick="editContactProfile()" title="Simpan / Edit Kontak" style="color:white;"><i class="fa-solid fa-pen-to-square"></i></button>
                     <button class="btn-icon" onclick="startVoiceCall()" style="color:white;" title="Panggilan Suara Realtime"><i class="fa-solid fa-phone"></i></button>
                     <button class="btn-icon" onclick="startVideoCall()" style="color:white;" title="Video Call Realtime (WhatsApp)"><i class="fa-solid fa-video"></i></button>
@@ -387,7 +399,8 @@
         let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["628997032209", "6285934602965", "GeminiAI"]');
         let localStream = null, remoteStream = null;
         let activeCallRef = null, peerConnection = null, isSwapped = false, callType = 'video'; // 'video' | 'voice' | 'ht'
-        let useFrontCamera = true;
+        let currentFacingMode = 'user'; // 'user' | 'environment'
+        let currentVideoDeviceId = null;
         let activeReplyMsg = null;
         let pendingPopupTarget = null;
         let mapInstance = null, markerInstance = null, blueDotCircle = null;
@@ -398,9 +411,9 @@
         let roundVideoRecorder = null, roundVideoChunks = [];
         let pttRecorder = null, pttAudioChunks = [];
         let tempSelectedLat = null, tempSelectedLng = null;
-        let isPttModeActive = false;
         let swRegistration = null;
         let audioCtx = null;
+        let callStartTime = null;
 
         const rtcConfig = { 
             iceServers: [
@@ -408,6 +421,30 @@
                 { urls: 'stun:stun1.l.google.com:19302' }
             ] 
         };
+
+        // HELPER UTILS UNTUK FORMAT WAKTU PANGGILAN SANGAT AKURAT (WHATSAPP STYLE)
+        function formatCallTimeDetailed(timestamp) {
+            if(!timestamp) return "Baru saja";
+            const now = new Date();
+            const date = new Date(timestamp);
+            const diffSec = Math.floor((now - date) / 1000);
+            
+            if (diffSec < 60) return "Baru saja";
+            if (diffSec < 3600) return `${Math.floor(diffSec / 60)} menit yang lalu`;
+
+            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).replace(':', '.');
+            const isToday = now.toDateString() === date.toDateString();
+            
+            const yesterday = new Date(now);
+            yesterday.setDate(now.getDate() - 1);
+            const isYesterday = yesterday.toDateString() === date.toDateString();
+
+            if (isToday) return `Hari ini ${timeStr}`;
+            if (isYesterday) return `Kemarin ${timeStr}`;
+
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            return `${date.getDate()} ${months[date.getMonth()]} ${timeStr}`;
+        }
 
         // WEB AUDIO SYNTHESIZER FOR HT CHIRPS & SQUELCH NOISE
         function getAudioContext() {
@@ -426,7 +463,6 @@
                 const now = ctx.currentTime;
 
                 if (type === 'start') {
-                    // Double tone Roger chirp sound
                     const osc1 = ctx.createOscillator();
                     const osc2 = ctx.createOscillator();
                     const gain = ctx.createGain();
@@ -452,7 +488,6 @@
                     osc1.stop(now + 0.15);
                     osc2.stop(now + 0.15);
                 } else {
-                    // Squelch end tail sound (short burst of noise)
                     const bufferSize = ctx.sampleRate * 0.08;
                     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
                     const output = buffer.getChannelData(0);
@@ -687,8 +722,18 @@
                 let details = contactDetails[log.target] || {};
                 let displayName = details.name || ("+" + log.target);
                 let callIconType = log.callType === 'ht' ? '<i class="fa-solid fa-walkie-talkie"></i>' : (log.callType === 'video' ? '<i class="fa-solid fa-video"></i>' : '<i class="fa-solid fa-phone"></i>');
-                let directionIcon = log.type === 'outgoing' ? '<i class="fa-solid fa-arrow-up-right" style="color:#25D366; margin-right:4px;"></i>' : '<i class="fa-solid fa-arrow-down-left" style="color:#25D366; margin-right:4px;"></i>';
+                
+                const isMissed = log.status === "Tidak dijawab" || log.status === "Dibatalkan";
+                
+                // Indikator panah masuk / keluar WhatsApp
+                let directionIcon = '';
+                if (log.type === 'outgoing') {
+                    directionIcon = `<i class="fa-solid fa-arrow-up-right" style="color:${isMissed ? '#ef4444' : '#25D366'}; margin-right:4px;"></i>`;
+                } else {
+                    directionIcon = `<i class="fa-solid fa-arrow-down-left" style="color:${isMissed ? '#ef4444' : '#25D366'}; margin-right:4px;"></i>`;
+                }
 
+                let timeFormatted = formatCallTimeDetailed(log.timestamp);
                 let identifier = details.name ? details.name.slice(0,2).toUpperCase() : log.target.slice(-2);
                 let avatarHtml = getOnlineAvatarHTML(identifier, details.photo, 48, false);
 
@@ -697,11 +742,14 @@
                 div.innerHTML = `
                     ${avatarHtml}
                     <div class="contact-info">
-                        <div class="contact-name"><span>${displayName}</span></div>
-                        <div class="contact-preview" style="display:flex; align-items:center;">${directionIcon} <span>${log.status} (${log.time})</span></div>
+                        <div class="contact-name"><span style="${isMissed ? 'color:#ef4444;' : ''}">${displayName}</span></div>
+                        <div class="contact-preview" style="display:flex; align-items:center; ${isMissed ? 'color:#ef4444;' : ''}">
+                            ${directionIcon} 
+                            <span>${log.status} (${timeFormatted})</span>
+                        </div>
                     </div>
                     <div class="contact-meta-right">
-                        <button onclick="startSpecificCall('${log.target}', '${log.callType || (log.video ? 'video' : 'voice')}')" style="background:none; border:none; color:var(--wa-dark-green); font-size:18px; cursor:pointer; padding:8px;" title="Telepon Kembali">${callIconType}</button>
+                        <button onclick="startSpecificCall('${log.target}', '${log.callType || (log.video ? 'video' : 'voice')}')" style="background:none; border:none; color:${isMissed ? '#ef4444' : 'var(--wa-dark-green)'}; font-size:18px; cursor:pointer; padding:8px;" title="Telepon Kembali">${callIconType}</button>
                     </div>
                 `;
                 container.appendChild(div);
@@ -710,6 +758,10 @@
 
         function startSpecificCall(targetNum, mode) {
             activeTarget = targetNum;
+            if(!contacts.includes(targetNum)) {
+                contacts.push(targetNum);
+                localStorage.setItem('iq_contacts', JSON.stringify(contacts));
+            }
             if(mode === 'ht') startHtCall();
             else if(mode === 'video') startVideoCall();
             else startVoiceCall();
@@ -717,14 +769,15 @@
 
         function logCallHistory(target, mode, type, status) {
             let logs = JSON.parse(localStorage.getItem('iq_call_logs_' + currentUser) || '[]');
+            const now = Date.now();
             let callRecord = {
                 target: target,
                 callType: mode,
                 video: mode === 'video',
                 type: type,
                 status: status,
-                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                timestamp: Date.now()
+                time: new Date(now).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                timestamp: now
             };
             logs.push(callRecord);
             localStorage.setItem('iq_call_logs_' + currentUser, JSON.stringify(logs));
@@ -740,7 +793,7 @@
                     type: 'calllog',
                     status: 'read',
                     time: callRecord.time,
-                    timestamp: Date.now()
+                    timestamp: now
                 });
                 localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
                 db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
@@ -755,14 +808,46 @@
 
             if(!contacts.includes("GeminiAI")) contacts.push("GeminiAI");
 
+            // Filter out empty contacts dynamically if they don't have message history and are not Gemini
+            let validContacts = contacts.filter(num => {
+                if (num === "GeminiAI") return true;
+                const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
+                let msgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
+                return msgs.length > 0;
+            });
+
+            // Update local state if any were purged
+            if (validContacts.length !== contacts.length) {
+                contacts = validContacts;
+                localStorage.setItem('iq_contacts', JSON.stringify(contacts));
+            }
+
             contacts.filter(n => n.includes(filter)).forEach(num => {
                 const isAI = num === "GeminiAI";
                 const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 let allMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
                 let lastMsgObj = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1] : null;
-                let lastMsg = lastMsgObj ? (typeof lastMsgObj.content === 'object' ? (lastMsgObj.type === 'calllog' ? "📞 Panggilan " + (lastMsgObj.content.callType === 'ht' ? 'HT Walkie-Talkie' : (lastMsgObj.content.video ? 'Video' : 'Suara')) : (lastMsgObj.type === 'ptt' ? "📻 [Walkie-Talkie]" : "📍 [Media/Lokasi]")) : lastMsgObj.content) : (isAI ? "Tanya apa saja ke Gemini AI..." : "Ketuk untuk mulai percakapan");
-                let lastTime = lastMsgObj ? lastMsgObj.time : '';
+                
+                let lastMsg = "Ketuk untuk mulai percakapan";
+                if (lastMsgObj) {
+                    if (typeof lastMsgObj.content === 'object') {
+                        if (lastMsgObj.type === 'calllog') {
+                            const isMissed = lastMsgObj.content.status === "Tidak dijawab" || lastMsgObj.content.status === "Dibatalkan";
+                            const callLabel = lastMsgObj.content.callType === 'ht' ? 'HT Walkie-Talkie' : (lastMsgObj.content.video ? 'Video' : 'Suara');
+                            lastMsg = `<span style="${isMissed ? 'color:#ef4444;' : ''}">📞 Panggilan ${callLabel} (${lastMsgObj.content.status})</span>`;
+                        } else if (lastMsgObj.type === 'ptt') {
+                            lastMsg = "📻 [Walkie-Talkie]";
+                        } else {
+                            lastMsg = "📍 [Media/Lokasi]";
+                        }
+                    } else {
+                        lastMsg = lastMsgObj.content;
+                    }
+                } else if (isAI) {
+                    lastMsg = "Tanya apa saja ke Gemini AI...";
+                }
 
+                let lastTime = lastMsgObj ? lastMsgObj.time : '';
                 let details = contactDetails[num] || {};
                 let displayName = isAI ? "Gemini AI" : (details.name || ("+" + num));
                 let identifier = isAI ? "🤖" : (details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2));
@@ -776,8 +861,12 @@
                 let pressTimer;
                 div.onmousedown = div.ontouchstart = () => {
                     pressTimer = setTimeout(() => {
-                        if(confirm(`Hapus riwayat pesan lokal dengan ${displayName}?`)) {
+                        if(confirm(`Hapus seluruh riwayat chat & hapus ${displayName} dari kontak?`)) {
                             localStorage.removeItem('iq_msgs_history_' + roomKey);
+                            db.ref('iqchat_rooms_live/' + roomKey).remove();
+                            // Hapus nomor kontak jika tidak ada riwayat lagi
+                            contacts = contacts.filter(c => c !== num);
+                            localStorage.setItem('iq_contacts', JSON.stringify(contacts));
                             renderContactList();
                         }
                     }, 800);
@@ -832,7 +921,7 @@
                 pttRecorder.onstop = () => {
                     const audioBlob = new Blob(pttAudioChunks, { type: 'audio/webm' });
                     const reader = new FileReader();
-                    reader.onload = e => sendChatMessage({ data: e.target.result, size: 'PTT Walkie Talkie' }, 'ptt');
+                    reader.onload = e => sendChatMessage({ data: e.target.result, size: 'PTT HT' }, 'ptt');
                     reader.readAsDataURL(audioBlob);
                 };
                 pttRecorder.start();
@@ -880,18 +969,46 @@
             }
         }
 
-        // FIXED FLIP CAMERA SWITCH WITH WebRTC sender.replaceTrack SEAMLESS INTEGRATION
         async function switchCameraFacing() {
             if(callType === 'voice') return;
-            useFrontCamera = !useFrontCamera;
-            const facingMode = useFrontCamera ? 'user' : 'environment';
-            const constraints = { video: { facingMode: facingMode }, audio: true };
+            
+            // Toggle target mode
+            currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+
+            let newConstraints = {
+                video: { facingMode: { exact: currentFacingMode } },
+                audio: true
+            };
 
             try {
-                const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+                // Try exact facing mode request first
+                let newStream;
+                try {
+                    newStream = await navigator.mediaDevices.getUserMedia(newConstraints);
+                } catch(e) {
+                    // Fallback 1: Try soft facingMode hint
+                    try {
+                        newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode }, audio: true });
+                    } catch(e2) {
+                        // Fallback 2: Enumerate devices and pick next camera ID
+                        const devices = await navigator.mediaDevices.enumerateDevices();
+                        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                        if(videoDevices.length > 1) {
+                            const nextDev = videoDevices.find(d => d.deviceId !== currentVideoDeviceId) || videoDevices[0];
+                            currentVideoDeviceId = nextDev.deviceId;
+                            newStream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: currentVideoDeviceId } }, audio: true });
+                        } else {
+                            throw new Error("Kamera sekunder tidak ditemukan pada perangkat.");
+                        }
+                    }
+                }
+
                 const newVideoTrack = newStream.getVideoTracks()[0];
+                if(newVideoTrack) {
+                    currentVideoDeviceId = newVideoTrack.getSettings().deviceId || null;
+                }
                 
-                // Mute audio track baru jika dalam mode HT dan tidak sedang tekan PTT
+                // Set audio state according to active call type
                 if(callType === 'ht') {
                     const pttBtn = document.getElementById('btnPttLiveTx');
                     const isTxActive = pttBtn && pttBtn.classList.contains('active-tx');
@@ -900,7 +1017,7 @@
                     newStream.getAudioTracks().forEach(t => t.enabled = true);
                 }
 
-                // Stop old video tracks
+                // Safely stop old tracks
                 if(localStream) {
                     localStream.getVideoTracks().forEach(t => t.stop());
                 }
@@ -910,17 +1027,19 @@
                 localVid.srcObject = localStream;
                 await localVid.play().catch(e => {});
 
-                // Seamlessly swap track in RTCPeerConnection sender
+                // Replace track on existing WebRTC peer connection sender
                 if(peerConnection) {
                     const senders = peerConnection.getSenders();
                     const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-                    if(videoSender) {
+                    if(videoSender && newVideoTrack) {
                         await videoSender.replaceTrack(newVideoTrack);
                     }
                 }
             } catch (err) {
-                alert("Tidak dapat beralih kamera: " + err.message);
-                useFrontCamera = !useFrontCamera;
+                console.warn("Gagal beralih kamera:", err);
+                alert("Tidak dapat beralih kamera: " + (err.message || "Kamera lain tidak tersedia."));
+                // Reset facing mode
+                currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
             }
         }
 
@@ -928,6 +1047,12 @@
             activeTarget = num;
             localStorage.setItem('iq_active_target', activeTarget);
             
+            // Tambahkan ke daftar kontak jika belum ada
+            if (!contacts.includes(num)) {
+                contacts.push(num);
+                localStorage.setItem('iq_contacts', JSON.stringify(contacts));
+            }
+
             const isAI = num === "GeminiAI";
             const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
             let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
@@ -1079,7 +1204,6 @@
                 if (livePulsingDot) liveMapInstance.removeLayer(livePulsingDot);
                 if (liveAvatarMarker) liveMapInstance.removeLayer(liveAvatarMarker);
 
-                // Blue pulsing dot marker
                 const pulsingIcon = L.divIcon({
                     className: 'custom-pulse-wrapper',
                     html: `<div class="live-gps-pulse"></div>`,
@@ -1088,7 +1212,6 @@
                 });
                 livePulsingDot = L.marker([lat, lng], { icon: pulsingIcon }).addTo(liveMapInstance);
 
-                // Sender profile avatar icon on top
                 let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
                 let prof = profiles[senderPhone] || {};
                 let identifier = prof.name ? prof.name.slice(0,2).toUpperCase() : senderPhone.slice(-2);
@@ -1151,6 +1274,7 @@
         function initiateCallProcess() {
             const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             activeCallRef = db.ref('iqchat_calls/' + callKey);
+            callStartTime = null;
 
             activeCallRef.set({ caller: currentUser, status: 'calling', callType: callType, timestamp: Date.now() });
 
@@ -1165,7 +1289,6 @@
             document.getElementById('videoCallStatus').innerText = "Menunggu jawaban...";
             document.getElementById('btnAnswerCall').style.display = 'none';
             
-            // Visibility UI berdasarkan mode
             document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
             document.getElementById('btnPttLiveTx').style.display = (callType === 'ht') ? 'flex' : 'none';
 
@@ -1180,17 +1303,16 @@
                 document.getElementById('localVideoWrapper').style.display = 'none';
             }
 
-            const constraints = { video: (callType !== 'voice') ? { facingMode: useFrontCamera ? 'user' : 'environment' } : false, audio: true };
+            const constraints = { video: (callType !== 'voice') ? { facingMode: currentFacingMode } : false, audio: true };
 
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(stream => {
                     localStream = stream;
 
-                    // Mute audio jika Panggilan HT (butuh PTT)
                     if(callType === 'ht') {
                         localStream.getAudioTracks().forEach(t => t.enabled = false);
                     } else {
-                        localStream.getAudioTracks().forEach(t => t.enabled = true); // Full duplex audio untuk Voice & Video Call
+                        localStream.getAudioTracks().forEach(t => t.enabled = true);
                     }
 
                     if(callType !== 'voice') {
@@ -1212,6 +1334,7 @@
                 if(!callData) return;
                 
                 if(callData.status === 'accepted') {
+                    if(!callStartTime) callStartTime = Date.now();
                     if(callType === 'ht') {
                         document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
                     } else {
@@ -1222,6 +1345,7 @@
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.answer)));
                     }
                 } else if(callData.status === 'ended') {
+                    calculateAndLogEndCall('outgoing');
                     closeCallModalUI();
                 }
             });
@@ -1275,6 +1399,7 @@
                         activeCallRef = db.ref('iqchat_calls/' + callKey);
                         activeTarget = callData.caller;
                         callType = callData.callType || (callData.video ? 'video' : 'voice');
+                        callStartTime = null;
 
                         playCustomNotification(callData.caller, callData.caller, "Panggilan Masuk (" + (callType === 'ht' ? 'HT Walkie-Talkie' : (callType === 'video' ? 'Video' : 'Suara')) + ")");
 
@@ -1313,6 +1438,7 @@
                                 }
                             }).catch(e => {});
                     } else if(callData && callData.status === 'ended') {
+                        calculateAndLogEndCall('incoming');
                         closeCallModalUI();
                     }
                 });
@@ -1323,6 +1449,7 @@
             if(activeCallRef) {
                 document.getElementById('btnAnswerCall').style.display = 'none';
                 document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
+                callStartTime = Date.now();
 
                 setupPeerConnection();
                 if(localStream) {
@@ -1343,8 +1470,6 @@
                         } else {
                             document.getElementById('videoCallStatus').innerText = "Terhubung Realtime";
                         }
-                        
-                        logCallHistory(activeTarget, callType, 'incoming', 'Terhubung');
                     }
                 });
 
@@ -1358,11 +1483,28 @@
             }
         }
 
+        function calculateAndLogEndCall(direction) {
+            let statusText = "Tidak dijawab";
+            if (callStartTime) {
+                const durationSec = Math.floor((Date.now() - callStartTime) / 1000);
+                if (durationSec < 60) {
+                    statusText = `${durationSec} dtk`;
+                } else {
+                    const mins = Math.floor(durationSec / 60);
+                    const secs = durationSec % 60;
+                    statusText = `${mins} mnt ${secs} dtk`;
+                }
+            } else {
+                statusText = direction === 'outgoing' ? 'Dibatalkan' : 'Tidak dijawab';
+            }
+            logCallHistory(activeTarget, callType, direction, statusText);
+        }
+
         function endVideoCall() {
+            calculateAndLogEndCall('outgoing');
             if(activeCallRef) { 
                 activeCallRef.update({ status: 'ended' }); 
             }
-            logCallHistory(activeTarget, callType, 'outgoing', 'Selesai');
             closeCallModalUI();
         }
 
@@ -1378,6 +1520,7 @@
             document.getElementById('videoCallModal').style.display = 'none';
             document.getElementById('remoteVideo').srcObject = null;
             document.getElementById('localVideo').srcObject = null;
+            callStartTime = null;
         }
 
         function startVoiceRecord() {
@@ -1488,17 +1631,21 @@
         }
 
         function clearChatHistoryConfirm() {
-            if(confirm("Bersihkan seluruh riwayat pesan dengan kontak ini?")) {
+            if(confirm("Bersihkan seluruh riwayat pesan & hapus kontak ini dari daftar utama jika kosong?")) {
                 const isAI = activeTarget === "GeminiAI";
                 const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
                 
                 localStorage.removeItem('iq_msgs_history_' + roomKey);
                 if(!isAI) {
                     db.ref('iqchat_rooms_live/' + roomKey).remove();
+                    // Hapus nomor kontak dari daftar jika tidak ada chat lagi
+                    contacts = contacts.filter(c => c !== activeTarget);
+                    localStorage.setItem('iq_contacts', JSON.stringify(contacts));
                 }
                 loadAndListenMessages();
                 renderContactList();
-                alert("Riwayat chat berhasil dibersihkan!");
+                backToContactList();
+                alert("Riwayat chat & kontak berhasil dibersihkan!");
             }
         }
 
@@ -1508,10 +1655,17 @@
             
             let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
             localMsgs = localMsgs.filter(m => m.id !== msgId);
-            localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
             
-            if(!isAI) {
-                db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
+            if (localMsgs.length === 0 && !isAI) {
+                localStorage.removeItem('iq_msgs_history_' + roomKey);
+                db.ref('iqchat_rooms_live/' + roomKey).remove();
+                contacts = contacts.filter(c => c !== activeTarget);
+                localStorage.setItem('iq_contacts', JSON.stringify(contacts));
+            } else {
+                localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
+                if(!isAI) {
+                    db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
+                }
             }
             renderChatUI(localMsgs);
             renderContactList();
@@ -1626,14 +1780,30 @@
                     bodyHtml = `${replyQuoteHtml}<video controls src="${msg.content.data}" style="width:160px; height:160px; border-radius:50%; object-fit:cover;"></video>`;
                 } else if(msg.type === 'calllog') {
                     rawTextForReply = "[Riwayat Panggilan]";
-                    let callIcon = msg.content.callType === 'ht' ? '<i class="fa-solid fa-walkie-talkie" style="color:#38bdf8; font-size:18px;"></i>' : (msg.content.video ? '<i class="fa-solid fa-video" style="color:var(--wa-dark-green); font-size:18px;"></i>' : '<i class="fa-solid fa-phone" style="color:var(--wa-dark-green); font-size:18px;"></i>');
-                    let callLabel = msg.content.callType === 'ht' ? 'HT Walkie-Talkie' : (msg.content.video ? 'Video' : 'Suara');
+                    const isMissed = msg.content.status === "Tidak dijawab" || msg.content.status === "Dibatalkan";
+                    
+                    let callTitle = "Panggilan suara";
+                    let iconClass = "fa-solid fa-phone";
+                    if(msg.content.callType === 'ht') {
+                        callTitle = "HT Walkie-Talkie";
+                        iconClass = "fa-solid fa-walkie-talkie";
+                    } else if(msg.content.video) {
+                        callTitle = "Panggilan video";
+                        iconClass = "fa-solid fa-video";
+                    }
+
+                    let directionArrow = isMe ? '<i class="fa-solid fa-arrow-up-right"></i>' : '<i class="fa-solid fa-arrow-down-left"></i>';
+
                     bodyHtml = `
-                        <div style="display:flex; align-items:center; gap:10px; padding:4px;">
-                            ${callIcon}
-                            <div>
-                                <div style="font-weight:bold; font-size:13px;">Panggilan ${callLabel}</div>
-                                <div style="font-size:11px; color:#555;">${msg.content.status} (${msg.time})</div>
+                        <div class="call-log-card">
+                            <div class="call-icon-circle ${isMissed ? 'missed' : 'success'}">
+                                <i class="${iconClass}"></i>
+                            </div>
+                            <div class="call-details-box">
+                                <div class="call-title ${isMissed ? 'missed' : ''}">${callTitle}</div>
+                                <div class="call-subtitle ${isMissed ? 'missed' : ''}">
+                                    ${directionArrow} <span>${msg.content.status}</span>
+                                </div>
                             </div>
                         </div>`;
                 } else {
@@ -1665,9 +1835,8 @@
             area.scrollTop = area.scrollHeight;
         }
 
-        // ENHANCED DUAL NOTIFICATION TRIGGER (SOUND & VIBRATION + SERVICE WORKER)
+        // ENHANCED DUAL NOTIFICATION TRIGGER
         function playCustomNotification(targetNum, senderName, messageText) {
-            // 1. Audio Sound Trigger
             try {
                 const ctx = getAudioContext();
                 const now = ctx.currentTime;
@@ -1687,12 +1856,10 @@
                 osc.stop(now + 0.28);
             } catch(e) {}
 
-            // 2. Powerful Multi-Pattern Vibration
             if (navigator.vibrate) { 
                 navigator.vibrate([400, 100, 400, 100, 600]); 
             }
 
-            // 3. Service Worker Background Notification Push
             if (Notification.permission === "granted" && swRegistration) {
                 let textStr = typeof messageText === 'object' ? '[Media/Panggilan Walkie-Talkie]' : messageText;
                 swRegistration.showNotification("Pesan Walkie-Talkie: +" + senderName, {
