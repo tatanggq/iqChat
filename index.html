@@ -178,10 +178,15 @@
 
     <!-- VIDEO/VOICE CALL MODAL -->
     <div id="videoCallModal">
-        <div style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 20; background: rgba(0,0,0,0.6); padding: 12px;">
-            <h3 id="videoCallTitle" style="font-size: 18px; color: #fff;">Panggilan</h3>
-            <p id="videoCallStatus" style="font-size: 12px; color: #00ffcc; margin-top: 2px;">Menghubungkan...</p>
+        <div style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 20; background: rgba(0,0,0,0.6); padding: 12px; display: flex; justify-content: space-between; align-items: center; padding-left: 20px; padding-right: 20px;">
+            <div>
+                <h3 id="videoCallTitle" style="font-size: 16px; color: #fff; text-align: left;">Panggilan</h3>
+                <p id="videoCallStatus" style="font-size: 12px; color: #00ffcc; margin-top: 2px; text-align: left;">Menghubungkan...</p>
+            </div>
+            <!-- Tombol Ganti Kamera (Flip Camera) ala WhatsApp -->
+            <button id="btnSwitchCamera" onclick="switchCameraFacing()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-camera-rotate"></i></button>
         </div>
+        
         <!-- Remote Video/Audio Stream Container -->
         <div id="remoteMediaContainer" style="width: 100%; height: 100%; position: absolute; inset: 0; background: #000; z-index: 1; display: flex; align-items: center; justify-content: center;">
             <video id="remoteVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
@@ -191,7 +196,7 @@
             </div>
         </div>
         <!-- Local Video PiP Container -->
-        <div id="localVideoWrapper" onclick="switchVideoView()" style="position: absolute; top: 80px; right: 20px; width: 110px; height: 160px; background: #222; border-radius: 12px; overflow: hidden; border: 2px solid #fff; z-index: 25; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+        <div id="localVideoWrapper" onclick="switchVideoView()" style="position: absolute; top: 90px; right: 20px; width: 110px; height: 160px; background: #222; border-radius: 12px; overflow: hidden; border: 2px solid #fff; z-index: 25; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
             <video id="localVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
         </div>
         <div style="position: absolute; bottom: 40px; left: 0; right: 0; display: flex; justify-content: center; gap: 30px; z-index: 30;">
@@ -310,6 +315,7 @@
         let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["628997032209", "6285934602965", "GeminiAI"]');
         let localStream = null, remoteStream = null;
         let activeCallRef = null, peerConnection = null, isSwapped = false, isAudioCall = false;
+        let useFrontCamera = true; // Status kamera aktif (depan / belakang)
         let pendingPopupTarget = null;
         let mapInstance = null, markerInstance = null, blueDotCircle = null;
         let liveMapInstance = null, liveMarkers = {};
@@ -798,6 +804,7 @@
             document.getElementById('videoCallTitle').innerText = (withVideo ? "Video Call " : "Panggilan Suara ") + `+${activeTarget}`;
             document.getElementById('videoCallStatus').innerText = "Menunggu jawaban...";
             document.getElementById('btnAnswerCall').style.display = 'none';
+            document.getElementById('btnSwitchCamera').style.display = withVideo ? 'flex' : 'none';
 
             if(withVideo) {
                 document.getElementById('remoteVideo').style.display = 'block';
@@ -809,7 +816,9 @@
                 document.getElementById('localVideoWrapper').style.display = 'none';
             }
 
-            navigator.mediaDevices.getUserMedia({ video: withVideo, audio: true })
+            const constraints = { video: withVideo ? { facingMode: useFrontCamera ? 'user' : 'environment' } : false, audio: true };
+
+            navigator.mediaDevices.getUserMedia(constraints)
                 .then(stream => {
                     localStream = stream;
                     if(withVideo) {
@@ -846,6 +855,36 @@
                     peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(cand))).catch(e => {});
                 }
             });
+        }
+
+        // FUNGSI GANTI KAMERA DEPAN & BELAKANG ALA WHATSAPP
+        function switchCameraFacing() {
+            if(isAudioCall) return;
+            useFrontCamera = !useFrontCamera;
+            
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: useFrontCamera ? 'user' : 'environment' }, audio: true })
+                .then(newStream => {
+                    const videoTrack = newStream.getVideoTracks()[0];
+                    
+                    if(peerConnection) {
+                        const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                        if(sender) {
+                            sender.replaceTrack(videoTrack);
+                        }
+                    }
+
+                    if(localStream) {
+                        localStream.getVideoTracks().forEach(t => t.stop());
+                    }
+                    localStream = newStream;
+
+                    const localVid = document.getElementById('localVideo');
+                    localVid.srcObject = localStream;
+                    localVid.play().catch(e => {});
+                }).catch(e => {
+                    alert("Gagal mengganti kamera: " + e.message);
+                    useFrontCamera = !useFrontCamera; // kembalikan status jika gagal
+                });
         }
 
         // PERBAIKAN TOTAL WEBRTC: Menjamin ontrack langsung membinding stream video lawan dengan sempurna
@@ -894,6 +933,7 @@
                         document.getElementById('videoCallTitle').innerText = (isAudioCall ? "Panggilan Suara dari " : "Video Call dari ") + `+${callData.caller}`;
                         document.getElementById('videoCallStatus').innerText = "Panggilan masuk...";
                         document.getElementById('btnAnswerCall').style.display = 'block';
+                        document.getElementById('btnSwitchCamera').style.display = !isAudioCall ? 'flex' : 'none';
 
                         if(!isAudioCall) {
                             document.getElementById('remoteVideo').style.display = 'block';
