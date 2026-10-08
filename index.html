@@ -373,6 +373,7 @@
         let pttRecorder = null, pttAudioChunks = [];
         let tempSelectedLat = null, tempSelectedLng = null;
         let isPttModeActive = false;
+        let callStartTime = null;
 
         const rtcConfig = { 
             iceServers: [
@@ -565,7 +566,12 @@
                 let details = contactDetails[log.target] || {};
                 let displayName = details.name || ("+" + log.target);
                 let callIconType = log.video ? '<i class="fa-solid fa-video"></i>' : '<i class="fa-solid fa-phone"></i>';
-                let directionIcon = log.type === 'outgoing' ? '<i class="fa-solid fa-arrow-up-right" style="color:#25D366; margin-right:4px;"></i>' : '<i class="fa-solid fa-arrow-down-left" style="color:#25D366; margin-right:4px;"></i>';
+                
+                let isMissed = log.status === 'Tidak dijawab' || log.status === 'Dibatalkan';
+                let directionColor = isMissed ? '#ef4444' : '#25D366';
+                let directionIcon = log.type === 'outgoing' ? 
+                    `<i class="fa-solid fa-arrow-up-right" style="color:${directionColor}; margin-right:4px;"></i>` : 
+                    `<i class="fa-solid fa-arrow-down-left" style="color:${directionColor}; margin-right:4px;"></i>`;
 
                 let identifier = details.name ? details.name.slice(0,2).toUpperCase() : log.target.slice(-2);
                 let avatarHtml = getOnlineAvatarHTML(identifier, details.photo, 48, false);
@@ -575,8 +581,8 @@
                 div.innerHTML = `
                     ${avatarHtml}
                     <div class="contact-info">
-                        <div class="contact-name"><span>${displayName}</span></div>
-                        <div class="contact-preview" style="display:flex; align-items:center;">${directionIcon} <span>${log.status} (${log.time})</span></div>
+                        <div class="contact-name"><span style="${isMissed ? 'color:#ef4444;' : ''}">${displayName}</span></div>
+                        <div class="contact-preview" style="display:flex; align-items:center;">${directionIcon} <span style="${isMissed ? 'color:#ef4444; font-weight:bold;' : ''}">${log.status} (${log.time})</span></div>
                     </div>
                     <div class="contact-meta-right">
                         <button onclick="startSpecificCall('${log.target}', ${log.video})" style="background:none; border:none; color:var(--wa-dark-green); font-size:18px; cursor:pointer; padding:8px;" title="Telepon Kembali">${callIconType}</button>
@@ -597,8 +603,8 @@
             let callRecord = {
                 target: target,
                 video: video,
-                type: type,
-                status: status,
+                type: type, // 'outgoing' atau 'incoming'
+                status: status, // 'Terhubung', 'Tidak dijawab', 'Dibatalkan', atau 'XX dtk'
                 time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 timestamp: Date.now()
             };
@@ -636,7 +642,7 @@
                 const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 let allMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
                 let lastMsgObj = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1] : null;
-                let lastMsg = lastMsgObj ? (typeof lastMsgObj.content === 'object' ? (lastMsgObj.type === 'calllog' ? "📞 Panggilan " + (lastMsgObj.content.video ? "Video" : "Suara") : (lastMsgObj.type === 'ptt' ? "📻 [Walkie-Talkie]" : "📍 [Media/Lokasi]")) : lastMsgObj.content) : (isAI ? "Tanya apa saja ke Gemini AI..." : "Ketuk untuk mulai percakapan");
+                let lastMsg = lastMsgObj ? (typeof lastMsgObj.content === 'object' ? (lastMsgObj.type === 'calllog' ? "📞 Panggilan " + (lastMsgObj.content.video ? "Video" : "Suara") + " (" + lastMsgObj.content.status + ")" : (lastMsgObj.type === 'ptt' ? "📻 [Walkie-Talkie]" : "📍 [Media/Lokasi]")) : lastMsgObj.content) : (isAI ? "Tanya apa saja ke Gemini AI..." : "Ketuk untuk mulai percakapan");
                 let lastTime = lastMsgObj ? lastMsgObj.time : '';
 
                 let details = contactDetails[num] || {};
@@ -936,6 +942,7 @@
         }
 
         function initiateCallProcess(withVideo) {
+            callStartTime = null;
             const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             activeCallRef = db.ref('iqchat_calls/' + callKey);
 
@@ -995,11 +1002,25 @@
                 if(!callData) return;
                 
                 if(callData.status === 'accepted') {
+                    callStartTime = Date.now();
                     document.getElementById('videoCallStatus').innerText = "Terhubung";
                     if(callData.answer && peerConnection && !peerConnection.currentRemoteDescription) {
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.answer)));
                     }
+                } else if(callData.status === 'rejected') {
+                    logCallHistory(activeTarget, withVideo, 'outgoing', 'Tidak dijawab');
+                    closeCallModalUI();
+                } else if(callData.status === 'cancelled') {
+                    logCallHistory(activeTarget, withVideo, 'outgoing', 'Dibatalkan');
+                    closeCallModalUI();
                 } else if(callData.status === 'ended') {
+                    if(callStartTime) {
+                        let durationSec = Math.round((Date.now() - callStartTime) / 1000);
+                        let durStr = durationSec < 60 ? `${durationSec} dtk` : `${Math.floor(durationSec/60)} mnt ${durationSec%60} dtk`;
+                        logCallHistory(activeTarget, withVideo, 'outgoing', durStr);
+                    } else {
+                        logCallHistory(activeTarget, withVideo, 'outgoing', 'Tidak dijawab');
+                    }
                     closeCallModalUI();
                 }
             });
@@ -1109,6 +1130,9 @@
                                     localVid.play().catch(e => {});
                                 }
                             }).catch(e => {});
+                    } else if(callData && callData.status === 'cancelled') {
+                        logCallHistory(callData.caller, callData.video, 'incoming', 'Tidak dijawab');
+                        closeCallModalUI();
                     } else if(callData && callData.status === 'ended') {
                         closeCallModalUI();
                     }
@@ -1118,6 +1142,7 @@
 
         async function answerIncomingCall() {
             if(activeCallRef) {
+                callStartTime = Date.now();
                 document.getElementById('btnAnswerCall').style.display = 'none';
                 document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
 
@@ -1135,7 +1160,6 @@
                         
                         activeCallRef.update({ answer: JSON.stringify(peerConnection.localDescription), status: 'accepted' });
                         document.getElementById('videoCallStatus').innerText = "Terhubung";
-                        logCallHistory(activeTarget, !isAudioCall, 'incoming', 'Terhubung');
                     }
                 });
 
@@ -1151,13 +1175,37 @@
 
         function endVideoCall() {
             if(activeCallRef) { 
-                activeCallRef.update({ status: 'ended' }); 
+                activeCallRef.once('value', snapshot => {
+                    let data = snapshot.val();
+                    if(data) {
+                        if(data.status === 'calling') {
+                            if(data.caller === currentUser) {
+                                activeCallRef.update({ status: 'cancelled' });
+                                logCallHistory(activeTarget, !isAudioCall, 'outgoing', 'Dibatalkan');
+                            } else {
+                                activeCallRef.update({ status: 'rejected' });
+                                logCallHistory(activeTarget, !isAudioCall, 'incoming', 'Tidak dijawab');
+                            }
+                        } else if(data.status === 'accepted') {
+                            activeCallRef.update({ status: 'ended' });
+                            let durationSec = callStartTime ? Math.round((Date.now() - callStartTime) / 1000) : 0;
+                            let durStr = durationSec < 60 ? `${durationSec} dtk` : `${Math.floor(durationSec/60)} mnt ${durationSec%60} dtk`;
+                            let callType = data.caller === currentUser ? 'outgoing' : 'incoming';
+                            logCallHistory(activeTarget, !isAudioCall, callType, durStr);
+                        } else {
+                            activeCallRef.update({ status: 'ended' });
+                        }
+                    } else {
+                        closeCallModalUI();
+                    }
+                });
+            } else {
+                closeCallModalUI();
             }
-            logCallHistory(activeTarget, !isAudioCall, 'outgoing', 'Selesai');
-            closeCallModalUI();
         }
 
         function closeCallModalUI() {
+            callStartTime = null;
             if(localStream) { 
                 localStream.getTracks().forEach(track => track.stop()); 
                 localStream = null;
@@ -1417,13 +1465,18 @@
                     bodyHtml = `${replyQuoteHtml}<video controls src="${msg.content.data}" style="width:160px; height:160px; border-radius:50%; object-fit:cover;"></video>`;
                 } else if(msg.type === 'calllog') {
                     rawTextForReply = "[Riwayat Panggilan]";
-                    let callIcon = msg.content.video ? '<i class="fa-solid fa-video" style="color:var(--wa-dark-green); font-size:18px;"></i>' : '<i class="fa-solid fa-phone" style="color:var(--wa-dark-green); font-size:18px;"></i>';
+                    let isMissed = msg.content.status === 'Tidak dijawab' || msg.content.status === 'Dibatalkan';
+                    let iconColor = isMissed ? '#ef4444' : 'var(--wa-dark-green)';
+                    let callIcon = msg.content.video ? 
+                        `<i class="fa-solid fa-video" style="color:${iconColor}; font-size:18px;"></i>` : 
+                        `<i class="fa-solid fa-phone" style="color:${iconColor}; font-size:18px;"></i>`;
+                    
                     bodyHtml = `
                         <div style="display:flex; align-items:center; gap:10px; padding:4px;">
                             ${callIcon}
                             <div>
-                                <div style="font-weight:bold; font-size:13px;">Panggilan ${msg.content.video ? 'Video' : 'Suara'}</div>
-                                <div style="font-size:11px; color:#555;">${msg.content.status} (${msg.time})</div>
+                                <div style="font-weight:bold; font-size:13px; ${isMissed ? 'color:#ef4444;' : ''}">Panggilan ${msg.content.video ? 'Video' : 'Suara'}</div>
+                                <div style="font-size:11px; color:${isMissed ? '#ef4444' : '#555'}; font-weight:${isMissed ? 'bold' : 'normal'};">${msg.content.status} (${msg.time})</div>
                             </div>
                         </div>`;
                 } else {
