@@ -71,6 +71,10 @@
         .outgoing { background: var(--wa-light-green); align-self: flex-end; border-top-right-radius: 0; color: #111; }
         .bubble-meta { font-size: 10px; color: #667781; text-align: right; margin-top: 3px; display: flex; justify-content: flex-end; align-items: center; gap: 3px; }
 
+        /* REPLY QUOTE STYLING DALAM CHAT */
+        .reply-quote-box { background: rgba(0,0,0,0.05); border-left: 4px solid var(--wa-dark-green); padding: 4px 8px; border-radius: 4px; margin-bottom: 6px; font-size: 12px; color: #333; }
+        .reply-preview-container { background: #f0f2f5; padding: 8px 12px; display: none; align-items: center; justify-content: space-between; border-top: 1px solid #e9edef; font-size: 13px; }
+        
         .chat-input-area { background: #f0f2f5; padding: 10px 14px; display: flex; align-items: center; gap: 8px; border-top: 1px solid #e9edef; flex-shrink: 0; width: 100%; }
         .chat-input-box { flex: 1; padding: 10px 16px; border: none; border-radius: 24px; outline: none; font-size: 14px; background: #fff; color: #111; }
         .btn-icon { background: none; border: none; color: #54656f; font-size: 18px; cursor: pointer; padding: 6px; z-index: 22; }
@@ -301,6 +305,15 @@
                 <div class="attach-item" onclick="startRoundVideoRecord()"><i class="fa-solid fa-video" style="color:#3b82f6;"></i> Video Bulat (1 Menit)</div>
             </div>
 
+            <!-- KOTAK PRATINJAU REPLY PESAN -->
+            <div id="replyPreviewBox" class="reply-preview-container">
+                <div>
+                    <div style="font-size:11px; font-weight:bold; color:var(--wa-dark-green);" id="replyingToName">Membalas Pesan</div>
+                    <div id="replyingToText" style="font-size:12px; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px;">Isi pesan...</div>
+                </div>
+                <button onclick="cancelReplyMessage()" style="background:none; border:none; color:#667781; cursor:pointer; font-size:16px;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
             <div class="chat-input-area">
                 <input type="file" id="fileInput" style="display:none" onchange="handleFileSelected(this)">
                 <button class="btn-icon" onclick="toggleAttachMenu()"><i class="fa-solid fa-paperclip"></i></button>
@@ -330,6 +343,7 @@
         let localStream = null, remoteStream = null;
         let activeCallRef = null, peerConnection = null, isSwapped = false, isAudioCall = false;
         let useFrontCamera = true;
+        let activeReplyMsg = null;
         let pendingPopupTarget = null;
         let mapInstance = null, markerInstance = null, blueDotCircle = null;
         let liveMapInstance = null, liveMarkers = {};
@@ -961,7 +975,7 @@
             if(isAudioCall) return;
             useFrontCamera = !useFrontCamera;
             
-            const constraints = { video: { facingMode: useFrontCamera ? 'user' : 'environment' }, audio: true };
+            const constraints = { video: { facingMode: useFrontCamera ? 'user' : { exact: 'environment' } }, audio: true };
 
             try {
                 const newStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -971,10 +985,7 @@
                     localStream.getVideoTracks().forEach(t => t.stop());
                 }
 
-                // Ganti track aktif di MediaStream lokal
-                localStream.removeTrack(localStream.getVideoTracks()[0]);
-                localStream.addTrack(videoTrack);
-
+                localStream = newStream;
                 const localVid = document.getElementById('localVideo');
                 localVid.srcObject = localStream;
                 await localVid.play().catch(e => {});
@@ -986,9 +997,9 @@
                     }
                 }
             } catch (err) {
-                // Fallback jika kamera belakang tidak didukung browser/device
+                // Fallback jika exact environment tidak didukung, gunakan ideal atau default
                 try {
-                    const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: useFrontCamera ? 'user' : 'environment' }, audio: true });
                     const videoTrack = fallbackStream.getVideoTracks()[0];
                     if(localStream) localStream.getVideoTracks().forEach(t => t.stop());
                     localStream = fallbackStream;
@@ -1002,7 +1013,7 @@
                         if(sender) await sender.replaceTrack(videoTrack);
                     }
                 } catch(e2) {
-                    alert("Gagal membalik kamera: " + e2.message);
+                    alert("Kamera lain tidak tersedia di perangkat ini.");
                     useFrontCamera = !useFrontCamera;
                 }
             }
@@ -1196,17 +1207,32 @@
                 let aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Halo! Saya Gemini AI siap membantu Anda.";
                 
                 let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
-                localMsgs.push({
+                let aiMsgObj = {
+                    id: 'msg_' + Date.now(),
                     sender: "GeminiAI",
                     content: aiText,
                     type: 'text',
                     status: 'read',
                     time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                     timestamp: Date.now()
-                });
+                };
+                localMsgs.push(aiMsgObj);
                 localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
                 if(activeTarget === "GeminiAI") { renderChatUI(localMsgs); }
             } catch(e) {}
+        }
+
+        function replyToMessage(msgId, senderName, textContent) {
+            activeReplyMsg = { id: msgId, sender: senderName, text: typeof textContent === 'object' ? '[Media/Berkas]' : textContent };
+            document.getElementById('replyingToName').innerText = "Membalas ke " + senderName;
+            document.getElementById('replyingToText').innerText = activeReplyMsg.text;
+            document.getElementById('replyPreviewBox').style.display = 'flex';
+            document.getElementById('messageInput').focus();
+        }
+
+        function cancelReplyMessage() {
+            activeReplyMsg = null;
+            document.getElementById('replyPreviewBox').style.display = 'none';
         }
 
         function sendChatMessage(customContent = null, type = 'text') {
@@ -1218,13 +1244,17 @@
             const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             
             const msgObj = {
+                id: 'msg_' + Date.now(),
                 sender: currentUser,
                 content: content,
                 type: type,
+                replyTo: activeReplyMsg ? { sender: activeReplyMsg.sender, text: activeReplyMsg.text } : null,
                 status: 'delivered',
                 time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 timestamp: Date.now()
             };
+
+            cancelReplyMessage();
 
             let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
             localMsgs.push(msgObj);
@@ -1234,7 +1264,7 @@
             if(isAI) {
                 queryGeminiAI(typeof content === 'string' ? content : 'Bantu saya', roomKey);
             } else {
-                db.ref('iqchat_rooms_live/' + roomKey).push(msgObj);
+                db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
             }
 
             if(!customContent) input.value = "";
@@ -1268,12 +1298,20 @@
             }
         }
 
-        function deleteMessageItem(timestamp, roomKey) {
+        function deleteMessageItem(msgId) {
             if(confirm("Tarik / Hapus pesan ini?")) {
+                const isAI = activeTarget === "GeminiAI";
+                const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
+                
                 let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
-                localMsgs = localMsgs.filter(m => m.timestamp !== timestamp);
+                localMsgs = localMsgs.filter(m => m.id !== msgId);
                 localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
-                loadAndListenMessages();
+                
+                if(!isAI) {
+                    db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
+                }
+                renderChatUI(localMsgs);
+                renderContactList();
             }
         }
 
@@ -1285,7 +1323,7 @@
                 db.ref('iqchat_rooms_live/' + roomKey).on('value', (snapshot) => {
                     const data = snapshot.val();
                     if(data) {
-                        let messages = Object.values(data);
+                        let messages = Array.isArray(data) ? data : Object.values(data);
                         localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(messages));
                         
                         let countKey = 'count_' + roomKey;
@@ -1293,7 +1331,7 @@
                         
                         if (messages.length > prevCount) {
                             const latest = messages[messages.length - 1];
-                            if (latest.sender !== currentUser) {
+                            if (latest && latest.sender !== currentUser) {
                                 if (activeTarget !== num) {
                                     let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
                                     unreadCounts[roomKey] = (unreadCounts[roomKey] || 0) + 1;
@@ -1328,9 +1366,11 @@
             area.innerHTML = "";
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
             const isAI = activeTarget === "GeminiAI";
-            const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             
             messages.forEach(msg => {
+                if(!msg) return;
+                if(!msg.id) msg.id = 'msg_' + (msg.timestamp || Date.now());
+
                 const isMe = msg.sender === currentUser;
                 const bubble = document.createElement('div');
                 bubble.className = `bubble ${isMe ? 'outgoing' : 'incoming'}`;
@@ -1339,11 +1379,25 @@
                 let senderInitial = details.name ? details.name.slice(0,2).toUpperCase() : (msg.sender === currentUser ? currentUser.slice(-2) : msg.sender.slice(-2));
                 let avatarMini = getOnlineAvatarHTML(senderInitial, details.photo, 28, true);
 
+                let replyQuoteHtml = "";
+                if(msg.replyTo) {
+                    replyQuoteHtml = `
+                        <div class="reply-quote-box">
+                            <div style="font-weight:bold; color:var(--wa-dark-green);">${msg.replyTo.sender}</div>
+                            <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${msg.replyTo.text}</div>
+                        </div>
+                    `;
+                }
+
                 let bodyHtml = "";
+                let rawTextForReply = "";
                 if(msg.type === 'image') {
-                    bodyHtml = `<img src="${msg.content.data}" style="max-width:100%; border-radius:6px; margin-bottom:4px;"><div style="font-size:11px;">📷 ${msg.content.name}</div>`;
+                    rawTextForReply = "[Foto]";
+                    bodyHtml = `${replyQuoteHtml}<img src="${msg.content.data}" style="max-width:100%; border-radius:6px; margin-bottom:4px;"><div style="font-size:11px;">📷 ${msg.content.name}</div>`;
                 } else if(msg.type === 'location') {
+                    rawTextForReply = "[Lokasi]";
                     bodyHtml = `
+                        ${replyQuoteHtml}
                         <div onclick="triggerNavOptions(${msg.content.lat}, ${msg.content.lng})" style="background:#e6f4ea; padding:10px; border-radius:6px; text-align:center; cursor:pointer;">
                             <div style="display:flex; justify-content:center; align-items:center; margin-bottom:6px;">${avatarMini}</div>
                             <i class="fa-solid fa-map-location-dot" style="font-size:22px; color:#137333; margin-bottom:4px;"></i>
@@ -1351,21 +1405,24 @@
                             <div style="color:#1a73e8; font-size:11.5px; display:block; margin-top:4px; font-weight:bold;">Ketuk untuk buka Google Maps & inDrive</div>
                         </div>`;
                 } else if(msg.type === 'livelocation') {
+                    rawTextForReply = "[Live Location]";
                     bodyHtml = `
+                        ${replyQuoteHtml}
                         <div style="background:#e6f4ea; padding:10px; border-radius:6px; text-align:center;">
-                            <div style="display:flex; justify-content:center; align-items:center; margin-bottom:6px;" onclick="openLiveLocationMap('${roomKey}')">${avatarMini}</div>
+                            <div style="display:flex; justify-content:center; align-items:center; margin-bottom:6px;">${avatarMini}</div>
                             <i class="fa-solid fa-location-arrow" style="font-size:22px; color:#075E54; margin-bottom:4px;"></i>
                             <div><b>Berbagi Lokasi Terkini</b></div>
                             <div style="font-size:11px; color:#555; margin:2px 0;">${msg.content.duration}</div>
-                            <div onclick="openLiveLocationMap('${roomKey}')" style="color:#1a73e8; font-size:12px; display:block; margin-top:4px; cursor:pointer; font-weight:bold;">Ketuk Avatar/Kotak untuk Peta Real-time</div>
-                            ${isMe ? `<button onclick="stopLiveLocation()" style="background:#dc2626; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; margin-top:6px; cursor:pointer;">Berhenti Berbagi</button>` : ''}
                         </div>`;
                 } else if(msg.type === 'voicename') {
-                    bodyHtml = `<audio controls src="${msg.content.data}" style="max-width:200px; height:32px;"></audio>`;
+                    rawTextForReply = "[Voice Note]";
+                    bodyHtml = `${replyQuoteHtml}<audio controls src="${msg.content.data}" style="max-width:200px; height:32px;"></audio>`;
                 } else if(msg.type === 'roundvideo') {
-                    bodyHtml = `<video controls src="${msg.content.data}" style="width:160px; height:160px; border-radius:50%; object-fit:cover;"></video>`;
+                    rawTextForReply = "[Video Bulat]";
+                    bodyHtml = `${replyQuoteHtml}<video controls src="${msg.content.data}" style="width:160px; height:160px; border-radius:50%; object-fit:cover;"></video>`;
                 } else {
-                    bodyHtml = `<div>${msg.content}</div>`;
+                    rawTextForReply = msg.content;
+                    bodyHtml = `${replyQuoteHtml}<div>${msg.content}</div>`;
                 }
 
                 let checkIcon = '';
@@ -1379,7 +1436,14 @@
                     }
                 }
 
-                bubble.innerHTML = `${bodyHtml}<div class="bubble-meta">${msg.time} ${checkIcon} <i class="fa-solid fa-trash" style="font-size:9px; cursor:pointer; margin-left:4px;" onclick="deleteMessageItem(${msg.timestamp}, '${roomKey}')" title="Hapus Pesan"></i></div>`;
+                let senderLabel = isMe ? "Anda" : (details.name || ("+" + activeTarget));
+                bubble.innerHTML = `
+                    ${bodyHtml}
+                    <div class="bubble-meta">
+                        <i class="fa-solid fa-reply" style="cursor:pointer; margin-right:6px;" onclick="replyToMessage('${msg.id}', '${senderLabel}', '${rawTextForReply.replace(/'/g, "\\'")}')" title="Balas"></i>
+                        ${msg.time} ${checkIcon} 
+                        <i class="fa-solid fa-trash" style="font-size:9px; cursor:pointer; margin-left:4px;" onclick="deleteMessageItem('${msg.id}')" title="Hapus Pesan"></i>
+                    </div>`;
                 area.appendChild(bubble);
             });
             area.scrollTop = area.scrollHeight;
