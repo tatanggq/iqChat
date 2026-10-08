@@ -419,14 +419,24 @@
         let meshDataChannel = null;
         let isOnlineState = navigator.onLine;
 
-        // Configuration for STUN and TURN Servers to bypass symmetric NAT (3G/4G/5G Cellular & Wi-Fi cross-network)
+        // QUEUED ICE CANDIDATES BUFFER
+        let pendingIceCandidates = [];
+
+        // LOCAL OFFLINE SIGNALING (LOCAL WI-FI / HOTSPOT WEBSOCKET)
+        let localWebSocket = null;
+        let localWsServerUrl = localStorage.getItem('iq_local_ws_url') || "";
+
+        // Enhanced Redundant ICE Servers for Cross-Carrier Cellular & Symmetric NAT Traversal
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
                 { urls: 'stun:stun.services.mozilla.com' },
-                // Free Public TURN Relay Servers (OpenRelay & Metered)
+                { urls: 'stun:global.stun.twilio.com:3478' },
+                // Free Public TURN Relay Servers (OpenRelay & Metered - UDP/TCP 80, 443, 3478)
                 {
                     urls: 'turn:openrelay.metered.ca:80',
                     username: 'openrelay',
@@ -439,6 +449,11 @@
                 },
                 {
                     urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                    username: 'openrelay',
+                    credential: 'openrelay'
+                },
+                {
+                    urls: 'turns:openrelay.metered.ca:443?transport=tcp',
                     username: 'openrelay',
                     credential: 'openrelay'
                 }
@@ -574,6 +589,7 @@
             setInterval(updateMyPresence, 5000);
             initPersistentBackgroundGPS();
             updateNetworkConnectionStatus();
+            initLocalWebSocketSignaling();
         });
 
         function initPersistentBackgroundGPS() {
@@ -948,10 +964,35 @@
             }
         }
 
+        function initLocalWebSocketSignaling() {
+            if(!localWsServerUrl) return;
+            try {
+                localWebSocket = new WebSocket(localWsServerUrl);
+                localWebSocket.onopen = () => {
+                    console.log("Terhubung ke Local Wi-Fi WebSocket Signaling Server!");
+                    localWebSocket.send(JSON.stringify({ type: 'register', phone: currentUser }));
+                };
+                localWebSocket.onmessage = (event) => {
+                    let msg = JSON.parse(event.data);
+                    handleLocalSignalingPacket(msg);
+                };
+                localWebSocket.onerror = (e) => console.log("Local WebSocket Error:", e);
+            } catch(e) {}
+        }
+
+        function handleLocalSignalingPacket(packet) {
+            if (packet.target !== currentUser) return;
+            if (packet.type === 'offer' || packet.type === 'answer' || packet.type === 'candidate') {
+                processSignalingMessage(packet);
+            }
+        }
+
         function relayPacketToMeshGateway(packet) {
             console.log("Relaying packet via WebRTC Mesh Relay DataChannel:", packet);
             if (meshDataChannel && meshDataChannel.readyState === 'open') {
                 meshDataChannel.send(JSON.stringify(packet));
+            } else if (localWebSocket && localWebSocket.readyState === WebSocket.OPEN) {
+                localWebSocket.send(JSON.stringify(packet));
             } else {
                 let queue = JSON.parse(localStorage.getItem('iq_mesh_queue') || '[]');
                 queue.push(packet);
@@ -1337,6 +1378,7 @@
             const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             activeCallRef = db.ref('iqchat_calls/' + callKey);
             callStartTime = null;
+            pendingIceCandidates = [];
 
             if (isOnlineState) {
                 activeCallRef.set({ caller: currentUser, status: 'calling', callType: callType, timestamp: Date.now() });
@@ -1350,7 +1392,7 @@
             else callTitleStr = "Panggilan Suara Realtime ";
 
             document.getElementById('videoCallTitle').innerText = callTitleStr + `+${activeTarget}`;
-            document.getElementById('videoCallStatus').innerText = "Menunggu jawaban...";
+            document.getElementById('videoCallStatus').innerText = "Memanggil...";
             document.getElementById('btnAnswerCall').style.display = 'none';
             
             document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
@@ -1391,6 +1433,8 @@
                     peerConnection.createOffer().then(offer => peerConnection.setLocalDescription(offer)).then(() => {
                         if(isOnlineState) {
                             activeCallRef.update({ offer: JSON.stringify(peerConnection.localDescription) });
+                        } else if (localWebSocket && localWebSocket.readyState === WebSocket.OPEN) {
+                            localWebSocket.send(JSON.stringify({ type: 'offer', target: activeTarget, sender: currentUser, offer: peerConnection.localDescription }));
                         }
                     });
                 }).catch(e => alert("Gagal akses kamera/mic: " + e.message));
@@ -1410,6 +1454,7 @@
 
                         if(callData.answer && peerConnection && !peerConnection.currentRemoteDescription) {
                             await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.answer)));
+                            await processPendingIceCandidates();
                         }
                     } else if(callData.status === 'ended') {
                         calculateAndLogEndCall('outgoing');
@@ -1419,10 +1464,31 @@
 
                 db.ref('iqchat_calls/' + callKey + '/candidates').on('child_added', snapshot => {
                     let cand = snapshot.val();
-                    if(cand && peerConnection && peerConnection.remoteDescription) {
-                        peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(cand))).catch(e => {});
+                    if(cand) {
+                        const candidateObj = JSON.parse(cand);
+                        addOrQueueIceCandidate(candidateObj);
                     }
                 });
+            }
+        }
+
+        async function addOrQueueIceCandidate(candidateObj) {
+            if (peerConnection && peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidateObj));
+                } catch(e) { console.warn("Failed adding candidate:", e); }
+            } else {
+                pendingIceCandidates.push(candidateObj);
+            }
+        }
+
+        async function processPendingIceCandidates() {
+            if (!peerConnection || !peerConnection.remoteDescription) return;
+            while(pendingIceCandidates.length > 0) {
+                const cand = pendingIceCandidates.shift();
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(cand));
+                } catch(e) { console.warn("Error processing buffered candidate:", e); }
             }
         }
 
@@ -1430,7 +1496,6 @@
             if(peerConnection) return;
             peerConnection = new RTCPeerConnection(rtcConfig);
             
-            // Event listener for monitoring ICE connection state changes and executing ICE restarts on failure
             peerConnection.oniceconnectionstatechange = () => {
                 const state = peerConnection.iceConnectionState;
                 console.log("ICE Connection StateChanged:", state);
@@ -1485,15 +1550,19 @@
             };
 
             peerConnection.onicecandidate = (event) => {
-                if(event.candidate && isOnlineState) {
-                    const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
-                    db.ref('iqchat_calls/' + callKey + '/candidates').push(JSON.stringify(event.candidate));
+                if(event.candidate) {
+                    if(isOnlineState) {
+                        const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
+                        db.ref('iqchat_calls/' + callKey + '/candidates').push(JSON.stringify(event.candidate));
+                    } else if(localWebSocket && localWebSocket.readyState === WebSocket.OPEN) {
+                        localWebSocket.send(JSON.stringify({ type: 'candidate', target: activeTarget, sender: currentUser, candidate: event.candidate }));
+                    }
                 }
             };
         }
 
         async function handleIceRestart() {
-            if (!peerConnection || !activeCallRef || !isOnlineState) return;
+            if (!peerConnection || !activeCallRef) return;
             try {
                 console.log("Memicu WebRTC ICE Restart...");
                 if (peerConnection.restartIce) {
@@ -1501,10 +1570,12 @@
                 }
                 const offer = await peerConnection.createOffer({ iceRestart: true });
                 await peerConnection.setLocalDescription(offer);
-                activeCallRef.update({ 
-                    offer: JSON.stringify(peerConnection.localDescription),
-                    restartTimestamp: Date.now()
-                });
+                if (isOnlineState) {
+                    activeCallRef.update({ 
+                        offer: JSON.stringify(peerConnection.localDescription),
+                        restartTimestamp: Date.now()
+                    });
+                }
             } catch (err) {
                 console.error("Gagal melakukan ICE restart:", err);
             }
@@ -1531,6 +1602,7 @@
                         activeTarget = callData.caller;
                         callType = callData.callType || (callData.video ? 'video' : 'voice');
                         callStartTime = null;
+                        pendingIceCandidates = [];
 
                         playCustomNotification(callData.caller, callData.caller, "Panggilan Masuk (" + (callType === 'ht' ? 'HT Walkie-Talkie' : (callType === 'video' ? 'Video' : 'Suara')) + ")");
 
@@ -1591,6 +1663,8 @@
                     let callData = snapshot.val();
                     if(callData && callData.offer) {
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.offer)));
+                        await processPendingIceCandidates();
+
                         let answer = await peerConnection.createAnswer();
                         await peerConnection.setLocalDescription(answer);
                         
@@ -1607,10 +1681,33 @@
                 const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
                 db.ref('iqchat_calls/' + callKey + '/candidates').on('child_added', snapshot => {
                     let cand = snapshot.val();
-                    if(cand && peerConnection && peerConnection.remoteDescription) {
-                        peerConnection.addIceCandidate(new RTCIceCandidate(JSON.parse(cand))).catch(e => {});
+                    if(cand) {
+                        const candidateObj = JSON.parse(cand);
+                        addOrQueueIceCandidate(candidateObj);
                     }
                 });
+            }
+        }
+
+        function processSignalingMessage(packet) {
+            if (packet.type === 'offer') {
+                setupPeerConnection();
+                peerConnection.setRemoteDescription(new RTCSessionDescription(packet.offer)).then(async () => {
+                    await processPendingIceCandidates();
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    if (localWebSocket) {
+                        localWebSocket.send(JSON.stringify({ type: 'answer', target: packet.sender, sender: currentUser, answer: answer }));
+                    }
+                });
+            } else if (packet.type === 'answer') {
+                if (peerConnection) {
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(packet.answer)).then(() => {
+                        processPendingIceCandidates();
+                    });
+                }
+            } else if (packet.type === 'candidate') {
+                addOrQueueIceCandidate(packet.candidate);
             }
         }
 
@@ -1648,6 +1745,7 @@
                 peerConnection.close(); 
                 peerConnection = null; 
             }
+            pendingIceCandidates = [];
             document.getElementById('videoCallModal').style.display = 'none';
             document.getElementById('remoteVideo').srcObject = null;
             document.getElementById('localVideo').srcObject = null;
