@@ -191,7 +191,7 @@
         <button onclick="stopRoundVideoRecord()" style="background:red; color:white; border:none; padding:10px 20px; border-radius:20px; margin-top:20px; font-weight:bold; cursor:pointer;">Selesai & Kirim</button>
     </div>
 
-    <!-- VIDEO/VOICE CALL MODAL WITH REALTIME PTT STREAMING -->
+    <!-- VIDEO/VOICE/HT CALL MODAL WITH WebRTC STREAMING -->
     <div id="videoCallModal">
         <div style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 20; background: rgba(0,0,0,0.6); padding: 12px; display: flex; justify-content: space-between; align-items: center; padding-left: 20px; padding-right: 20px;">
             <div>
@@ -206,8 +206,8 @@
         <div id="remoteMediaContainer" style="width: 100%; height: 100%; position: absolute; inset: 0; background: #000; z-index: 1; display: flex; align-items: center; justify-content: center;">
             <video id="remoteVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
             <div id="audioOnlyIndicator" style="display:none; flex-direction:column; align-items:center; color:white; gap:12px;">
-                <i class="fa-solid fa-walkie-talkie" style="font-size: 64px; color: var(--wa-green);"></i>
-                <h4 style="font-size: 20px;">Panggilan HT Walkie-Talkie</h4>
+                <i class="fa-solid fa-phone" style="font-size: 64px; color: var(--wa-green);"></i>
+                <h4 id="audioCallIndicatorText" style="font-size: 20px;">Panggilan Suara Realtime</h4>
             </div>
         </div>
         <!-- Local Video PiP Container -->
@@ -215,15 +215,15 @@
             <video id="localVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
         </div>
 
-        <!-- REALTIME PTT LIVE STREAM CONTROLS -->
+        <!-- CALL CONTROLS BAR -->
         <div style="position: absolute; bottom: 30px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 30;">
             <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none;"><i class="fa-solid fa-phone"></i></button>
 
-            <!-- Viral PTT Realtime Push-to-Talk Button over WebRTC -->
+            <!-- PTT Push-to-Talk Button (Tampil Khusus Mode HT) -->
             <button id="btnPttLiveTx" class="ptt-live-talk-btn" 
                     onmousedown="startPttLiveAudio()" onmouseup="stopPttLiveAudio()"
                     ontouchstart="startPttLiveAudio()" ontouchend="stopPttLiveAudio()"
-                    title="Tahan untuk Bicara Live Walkie-Talkie">
+                    title="Tahan untuk Bicara Live HT" style="display:none;">
                 <i class="fa-solid fa-microphone"></i>
             </button>
 
@@ -310,12 +310,13 @@
                         </div>
                     </div>
                 </div>
+                <!-- Action buttons: Separatasi tombol HT vs Video Call Realtime vs Voice Call -->
                 <div class="header-actions">
-                    <button class="btn-icon" id="btnTogglePttMode" onclick="togglePttModeUI()" title="Toggle Walkie Talkie (PTT)" style="color:#38bdf8;"><i class="fa-solid fa-walkie-talkie"></i></button>
+                    <button class="btn-icon" id="btnTogglePttMode" onclick="startHtCall()" title="Panggilan HT Walkie-Talkie" style="color:#38bdf8;"><i class="fa-solid fa-walkie-talkie"></i></button>
                     <button class="btn-icon" onclick="clearChatHistoryConfirm()" title="Bersihkan Riwayat Chat" style="color:white;"><i class="fa-solid fa-trash-can"></i></button>
                     <button class="btn-icon" onclick="editContactProfile()" title="Simpan / Edit Kontak" style="color:white;"><i class="fa-solid fa-pen-to-square"></i></button>
-                    <button class="btn-icon" onclick="startVoiceCall()" style="color:white;" title="Panggilan Suara Walkie-Talkie"><i class="fa-solid fa-phone"></i></button>
-                    <button class="btn-icon" onclick="startVideoCall()" style="color:white;" title="Video Call Walkie-Talkie"><i class="fa-solid fa-video"></i></button>
+                    <button class="btn-icon" onclick="startVoiceCall()" style="color:white;" title="Panggilan Suara Realtime"><i class="fa-solid fa-phone"></i></button>
+                    <button class="btn-icon" onclick="startVideoCall()" style="color:white;" title="Video Call Realtime (WhatsApp)"><i class="fa-solid fa-video"></i></button>
                 </div>
             </div>
 
@@ -337,7 +338,7 @@
                 <button onclick="cancelReplyMessage()" style="background:none; border:none; color:#667781; cursor:pointer; font-size:16px;"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <!-- PTT WALKIE TALKIE CONTROL BAR OVERLAY -->
+            <!-- PTT WALKIE TALKIE CONTROL BAR OVERLAY IN CHAT -->
             <div id="pttControlBar" class="ptt-bar-container">
                 <div class="ptt-status-text" id="pttStatusLabel"><i class="fa-solid fa-radio"></i> PTT HT Live Ready</div>
                 <button id="btnPttPush" class="btn-ptt-talk" 
@@ -375,7 +376,7 @@
         let activeTarget = localStorage.getItem('iq_active_target') || "";
         let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["628997032209", "6285934602965", "GeminiAI"]');
         let localStream = null, remoteStream = null;
-        let activeCallRef = null, peerConnection = null, isSwapped = false, isAudioCall = false;
+        let activeCallRef = null, peerConnection = null, isSwapped = false, callType = 'video'; // 'video' | 'voice' | 'ht'
         let useFrontCamera = true;
         let activeReplyMsg = null;
         let pendingPopupTarget = null;
@@ -599,7 +600,7 @@
             callLogs.slice().reverse().forEach(log => {
                 let details = contactDetails[log.target] || {};
                 let displayName = details.name || ("+" + log.target);
-                let callIconType = log.video ? '<i class="fa-solid fa-video"></i>' : '<i class="fa-solid fa-phone"></i>';
+                let callIconType = log.callType === 'ht' ? '<i class="fa-solid fa-walkie-talkie"></i>' : (log.callType === 'video' ? '<i class="fa-solid fa-video"></i>' : '<i class="fa-solid fa-phone"></i>');
                 let directionIcon = log.type === 'outgoing' ? '<i class="fa-solid fa-arrow-up-right" style="color:#25D366; margin-right:4px;"></i>' : '<i class="fa-solid fa-arrow-down-left" style="color:#25D366; margin-right:4px;"></i>';
 
                 let identifier = details.name ? details.name.slice(0,2).toUpperCase() : log.target.slice(-2);
@@ -614,24 +615,26 @@
                         <div class="contact-preview" style="display:flex; align-items:center;">${directionIcon} <span>${log.status} (${log.time})</span></div>
                     </div>
                     <div class="contact-meta-right">
-                        <button onclick="startSpecificCall('${log.target}', ${log.video})" style="background:none; border:none; color:var(--wa-dark-green); font-size:18px; cursor:pointer; padding:8px;" title="Telepon Kembali">${callIconType}</button>
+                        <button onclick="startSpecificCall('${log.target}', '${log.callType || (log.video ? 'video' : 'voice')}')" style="background:none; border:none; color:var(--wa-dark-green); font-size:18px; cursor:pointer; padding:8px;" title="Telepon Kembali">${callIconType}</button>
                     </div>
                 `;
                 container.appendChild(div);
             });
         }
 
-        function startSpecificCall(targetNum, isVideo) {
+        function startSpecificCall(targetNum, mode) {
             activeTarget = targetNum;
-            if(isVideo) startVideoCall();
+            if(mode === 'ht') startHtCall();
+            else if(mode === 'video') startVideoCall();
             else startVoiceCall();
         }
 
-        function logCallHistory(target, video, type, status) {
+        function logCallHistory(target, mode, type, status) {
             let logs = JSON.parse(localStorage.getItem('iq_call_logs_' + currentUser) || '[]');
             let callRecord = {
                 target: target,
-                video: video,
+                callType: mode,
+                video: mode === 'video',
                 type: type,
                 status: status,
                 time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
@@ -671,7 +674,7 @@
                 const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 let allMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
                 let lastMsgObj = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1] : null;
-                let lastMsg = lastMsgObj ? (typeof lastMsgObj.content === 'object' ? (lastMsgObj.type === 'calllog' ? "📞 Panggilan " + (lastMsgObj.content.video ? "Video" : "Suara") : (lastMsgObj.type === 'ptt' ? "📻 [Walkie-Talkie]" : "📍 [Media/Lokasi]")) : lastMsgObj.content) : (isAI ? "Tanya apa saja ke Gemini AI..." : "Ketuk untuk mulai percakapan");
+                let lastMsg = lastMsgObj ? (typeof lastMsgObj.content === 'object' ? (lastMsgObj.type === 'calllog' ? "📞 Panggilan " + (lastMsgObj.content.callType === 'ht' ? 'HT Walkie-Talkie' : (lastMsgObj.content.video ? 'Video' : 'Suara')) : (lastMsgObj.type === 'ptt' ? "📻 [Walkie-Talkie]" : "📍 [Media/Lokasi]")) : lastMsgObj.content) : (isAI ? "Tanya apa saja ke Gemini AI..." : "Ketuk untuk mulai percakapan");
                 let lastTime = lastMsgObj ? lastMsgObj.time : '';
 
                 let details = contactDetails[num] || {};
@@ -726,23 +729,7 @@
             }
         }
 
-        function togglePttModeUI() {
-            isPttModeActive = !isPttModeActive;
-            const pttBar = document.getElementById('pttControlBar');
-            const chatInputBar = document.getElementById('chatInputBar');
-            const btnPtt = document.getElementById('btnTogglePttMode');
-
-            if (isPttModeActive) {
-                pttBar.style.display = 'flex';
-                chatInputBar.style.display = 'none';
-                btnPtt.style.color = '#ef4444';
-            } else {
-                pttBar.style.display = 'none';
-                chatInputBar.style.display = 'flex';
-                btnPtt.style.color = '#38bdf8';
-            }
-        }
-
+        // CHAT WALKIE TALKIE TRANSMISSION (AUDIO CLIP)
         function startPttTransmit() {
             if(!activeTarget) return;
             const pttBtn = document.getElementById('btnPttPush');
@@ -780,11 +767,11 @@
             }
         }
 
-        // VIRAL REALTIME PTT OVER WEBRTC STREAM (PUSH TO TALK REALTIME HANDYTALKIE)
+        // REALTIME PTT OVER WEBRTC STREAM FOR HT CALL MODE
         function startPttLiveAudio() {
             const btn = document.getElementById('btnPttLiveTx');
             btn.classList.add('active-tx');
-            document.getElementById('videoCallStatus').innerText = "📻 Bicara (PTT Transmisi Live)...";
+            document.getElementById('videoCallStatus').innerText = "📻 Transmisi Suara HT Aktif...";
 
             if(localStream) {
                 localStream.getAudioTracks().forEach(track => { track.enabled = true; });
@@ -795,16 +782,16 @@
         function stopPttLiveAudio() {
             const btn = document.getElementById('btnPttLiveTx');
             btn.classList.remove('active-tx');
-            document.getElementById('videoCallStatus').innerText = "Terhubung (Mute/Standby PTT)";
+            document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
 
             if(localStream) {
                 localStream.getAudioTracks().forEach(track => { track.enabled = false; });
             }
         }
 
-        // PERFECT FLIP CAMERA SWITCH FIX
+        // FIXED FLIP CAMERA SWITCH (Smooth WebRTC video track replacement without session drops)
         async function switchCameraFacing() {
-            if(isAudioCall) return;
+            if(callType === 'voice') return;
             useFrontCamera = !useFrontCamera;
             const facingMode = useFrontCamera ? 'user' : 'environment';
             const constraints = { video: { facingMode: facingMode }, audio: true };
@@ -813,9 +800,14 @@
                 const newStream = await navigator.mediaDevices.getUserMedia(constraints);
                 const newVideoTrack = newStream.getVideoTracks()[0];
                 
-                // Mute audio track default untuk PTT jika sedang standby
-                newStream.getAudioTracks().forEach(t => t.enabled = false);
+                // Mute audio track baru jika dalam mode HT dan tidak sedang tekan PTT
+                if(callType === 'ht') {
+                    const pttBtn = document.getElementById('btnPttLiveTx');
+                    const isTxActive = pttBtn.classList.contains('active-tx');
+                    newStream.getAudioTracks().forEach(t => t.enabled = isTxActive);
+                }
 
+                // Hentikan video track lama agar tidak mengunci sumber daya kamera
                 if(localStream) {
                     localStream.getVideoTracks().forEach(t => t.stop());
                 }
@@ -825,6 +817,7 @@
                 localVid.srcObject = localStream;
                 await localVid.play().catch(e => {});
 
+                // Ganti video track pada WebRTC sender secara seamless
                 if(peerConnection) {
                     const senders = peerConnection.getSenders();
                     const videoSender = senders.find(s => s.track && s.track.kind === 'video');
@@ -999,49 +992,71 @@
             }
         }
 
+        // CALL MODES DISPATCHER
         function startVoiceCall() {
             if(!activeTarget) return;
-            isAudioCall = true;
-            initiateCallProcess(false);
+            callType = 'voice';
+            initiateCallProcess();
         }
 
         function startVideoCall() {
             if(!activeTarget) return;
-            isAudioCall = false;
-            initiateCallProcess(true);
+            callType = 'video';
+            initiateCallProcess();
         }
 
-        function initiateCallProcess(withVideo) {
+        function startHtCall() {
+            if(!activeTarget) return;
+            callType = 'ht';
+            initiateCallProcess();
+        }
+
+        function initiateCallProcess() {
             const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             activeCallRef = db.ref('iqchat_calls/' + callKey);
 
-            activeCallRef.set({ caller: currentUser, status: 'calling', video: withVideo, timestamp: Date.now() });
+            activeCallRef.set({ caller: currentUser, status: 'calling', callType: callType, timestamp: Date.now() });
 
             document.getElementById('videoCallModal').style.display = 'flex';
-            document.getElementById('videoCallTitle').innerText = (withVideo ? "Video Call Walkie-Talkie " : "Panggilan Suara ") + `+${activeTarget}`;
+            
+            let callTitleStr = "";
+            if(callType === 'ht') callTitleStr = "Panggilan HT Walkie-Talkie ";
+            else if(callType === 'video') callTitleStr = "Video Call Realtime ";
+            else callTitleStr = "Panggilan Suara Realtime ";
+
+            document.getElementById('videoCallTitle').innerText = callTitleStr + `+${activeTarget}`;
             document.getElementById('videoCallStatus').innerText = "Menunggu jawaban...";
             document.getElementById('btnAnswerCall').style.display = 'none';
-            document.getElementById('btnSwitchCamera').style.display = withVideo ? 'flex' : 'none';
+            
+            // Visibility UI berdasarkan mode
+            document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
+            document.getElementById('btnPttLiveTx').style.display = (callType === 'ht') ? 'flex' : 'none';
 
-            if(withVideo) {
+            if(callType !== 'voice') {
                 document.getElementById('remoteVideo').style.display = 'block';
                 document.getElementById('audioOnlyIndicator').style.display = 'none';
                 document.getElementById('localVideoWrapper').style.display = 'block';
             } else {
                 document.getElementById('remoteVideo').style.display = 'none';
                 document.getElementById('audioOnlyIndicator').style.display = 'flex';
+                document.getElementById('audioCallIndicatorText').innerText = "Panggilan Suara Realtime";
                 document.getElementById('localVideoWrapper').style.display = 'none';
             }
 
-            const constraints = { video: withVideo ? { facingMode: useFrontCamera ? 'user' : 'environment' } : false, audio: true };
+            const constraints = { video: (callType !== 'voice') ? { facingMode: useFrontCamera ? 'user' : 'environment' } : false, audio: true };
 
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(stream => {
                     localStream = stream;
-                    // Default standby PTT mute audio track
-                    localStream.getAudioTracks().forEach(t => t.enabled = false);
 
-                    if(withVideo) {
+                    // Mute audio jika Panggilan HT (butuh PTT)
+                    if(callType === 'ht') {
+                        localStream.getAudioTracks().forEach(t => t.enabled = false);
+                    } else {
+                        localStream.getAudioTracks().forEach(t => t.enabled = true); // Panggilan biasa (audio full-duplex)
+                    }
+
+                    if(callType !== 'voice') {
                         const localVid = document.getElementById('localVideo');
                         localVid.srcObject = stream;
                         localVid.play().catch(e => {});
@@ -1060,7 +1075,12 @@
                 if(!callData) return;
                 
                 if(callData.status === 'accepted') {
-                    document.getElementById('videoCallStatus').innerText = "Terhubung (Standby PTT)";
+                    if(callType === 'ht') {
+                        document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
+                    } else {
+                        document.getElementById('videoCallStatus').innerText = "Terhubung Realtime";
+                    }
+
                     if(callData.answer && peerConnection && !peerConnection.currentRemoteDescription) {
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.answer)));
                     }
@@ -1099,7 +1119,7 @@
         }
 
         function switchVideoView() {
-            if(isAudioCall) return;
+            if(callType === 'voice') return;
             isSwapped = !isSwapped;
             let localVid = document.getElementById('localVideo');
             let remoteVid = document.getElementById('remoteVideo');
@@ -1117,31 +1137,39 @@
                     if(callData && callData.caller !== currentUser && callData.status === 'calling') {
                         activeCallRef = db.ref('iqchat_calls/' + callKey);
                         activeTarget = callData.caller;
-                        isAudioCall = !callData.video;
+                        callType = callData.callType || (callData.video ? 'video' : 'voice');
 
-                        playCustomNotification(callData.caller, callData.caller, "Panggilan Masuk Walkie-Talkie");
+                        playCustomNotification(callData.caller, callData.caller, "Panggilan Masuk (" + (callType === 'ht' ? 'HT Walkie-Talkie' : (callType === 'video' ? 'Video' : 'Suara')) + ")");
 
                         document.getElementById('videoCallModal').style.display = 'flex';
-                        document.getElementById('videoCallTitle').innerText = (isAudioCall ? "Panggilan Suara dari " : "Video Call dari ") + `+${callData.caller}`;
+                        
+                        let callTitleStr = callType === 'ht' ? "Panggilan HT Walkie-Talkie dari " : (callType === 'video' ? "Video Call Realtime dari " : "Panggilan Suara dari ");
+                        document.getElementById('videoCallTitle').innerText = callTitleStr + `+${callData.caller}`;
                         document.getElementById('videoCallStatus').innerText = "Panggilan masuk...";
                         document.getElementById('btnAnswerCall').style.display = 'block';
-                        document.getElementById('btnSwitchCamera').style.display = !isAudioCall ? 'flex' : 'none';
+                        document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
+                        document.getElementById('btnPttLiveTx').style.display = (callType === 'ht') ? 'flex' : 'none';
 
-                        if(!isAudioCall) {
+                        if(callType !== 'voice') {
                             document.getElementById('remoteVideo').style.display = 'block';
                             document.getElementById('audioOnlyIndicator').style.display = 'none';
                             document.getElementById('localVideoWrapper').style.display = 'block';
                         } else {
                             document.getElementById('remoteVideo').style.display = 'none';
                             document.getElementById('audioOnlyIndicator').style.display = 'flex';
+                            document.getElementById('audioCallIndicatorText').innerText = "Panggilan Suara Realtime";
                             document.getElementById('localVideoWrapper').style.display = 'none';
                         }
 
-                        navigator.mediaDevices.getUserMedia({ video: !isAudioCall, audio: true })
+                        navigator.mediaDevices.getUserMedia({ video: (callType !== 'voice'), audio: true })
                             .then(stream => {
                                 localStream = stream;
-                                localStream.getAudioTracks().forEach(t => t.enabled = false);
-                                if(!isAudioCall) {
+                                if(callType === 'ht') {
+                                    localStream.getAudioTracks().forEach(t => t.enabled = false);
+                                } else {
+                                    localStream.getAudioTracks().forEach(t => t.enabled = true);
+                                }
+                                if(callType !== 'voice') {
                                     const localVid = document.getElementById('localVideo');
                                     localVid.srcObject = stream;
                                     localVid.play().catch(e => {});
@@ -1172,8 +1200,14 @@
                         await peerConnection.setLocalDescription(answer);
                         
                         activeCallRef.update({ answer: JSON.stringify(peerConnection.localDescription), status: 'accepted' });
-                        document.getElementById('videoCallStatus').innerText = "Terhubung (Standby PTT)";
-                        logCallHistory(activeTarget, !isAudioCall, 'incoming', 'Terhubung');
+                        
+                        if(callType === 'ht') {
+                            document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
+                        } else {
+                            document.getElementById('videoCallStatus').innerText = "Terhubung Realtime";
+                        }
+                        
+                        logCallHistory(activeTarget, callType, 'incoming', 'Terhubung');
                     }
                 });
 
@@ -1191,7 +1225,7 @@
             if(activeCallRef) { 
                 activeCallRef.update({ status: 'ended' }); 
             }
-            logCallHistory(activeTarget, !isAudioCall, 'outgoing', 'Selesai');
+            logCallHistory(activeTarget, callType, 'outgoing', 'Selesai');
             closeCallModalUI();
         }
 
@@ -1455,12 +1489,13 @@
                     bodyHtml = `${replyQuoteHtml}<video controls src="${msg.content.data}" style="width:160px; height:160px; border-radius:50%; object-fit:cover;"></video>`;
                 } else if(msg.type === 'calllog') {
                     rawTextForReply = "[Riwayat Panggilan]";
-                    let callIcon = msg.content.video ? '<i class="fa-solid fa-video" style="color:var(--wa-dark-green); font-size:18px;"></i>' : '<i class="fa-solid fa-phone" style="color:var(--wa-dark-green); font-size:18px;"></i>';
+                    let callIcon = msg.content.callType === 'ht' ? '<i class="fa-solid fa-walkie-talkie" style="color:#38bdf8; font-size:18px;"></i>' : (msg.content.video ? '<i class="fa-solid fa-video" style="color:var(--wa-dark-green); font-size:18px;"></i>' : '<i class="fa-solid fa-phone" style="color:var(--wa-dark-green); font-size:18px;"></i>');
+                    let callLabel = msg.content.callType === 'ht' ? 'HT Walkie-Talkie' : (msg.content.video ? 'Video' : 'Suara');
                     bodyHtml = `
                         <div style="display:flex; align-items:center; gap:10px; padding:4px;">
                             ${callIcon}
                             <div>
-                                <div style="font-weight:bold; font-size:13px;">Panggilan ${msg.content.video ? 'Video' : 'Suara'}</div>
+                                <div style="font-weight:bold; font-size:13px;">Panggilan ${callLabel}</div>
                                 <div style="font-size:11px; color:#555;">${msg.content.status} (${msg.time})</div>
                             </div>
                         </div>`;
