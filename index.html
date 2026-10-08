@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#075E54">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Leaflet CSS untuk Peta Sharelok -->
+    <!-- Leaflet CSS untuk Peta Sharelok & Live Location -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -120,8 +120,18 @@
         .btn-logout { background: #dc2626; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
 
         /* REALTIME PTT HANDY TALKIE OVERLAY FOR LIVE CALL */
-        .ptt-live-talk-btn { background: #ef4444; color: white; border: 3px solid #ffffff; width: 80px; height: 80px; border-radius: 50%; font-size: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(239, 68, 68, 0.8); user-select: none; touch-action: manipulation; transition: all 0.2s ease; }
-        .ptt-live-talk-btn.active-tx { background: #22c55e; box-shadow: 0 0 30px rgba(34, 197, 94, 1); transform: scale(1.1); }
+        .ptt-live-talk-btn { background: #ef4444; color: white; border: 3px solid #ffffff; width: 85px; height: 85px; border-radius: 50%; font-size: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(239, 68, 68, 0.8); user-select: none; touch-action: manipulation; transition: all 0.2s ease; }
+        .ptt-live-talk-btn.active-tx { background: #22c55e; box-shadow: 0 0 35px rgba(34, 197, 94, 1); transform: scale(1.12); }
+
+        /* LIVE LOCATION PULSING DOT ANIMATION */
+        .live-gps-pulse { width: 18px; height: 18px; background: #25D366; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 0 0 rgba(37, 211, 102, 0.6); animation: livePulse 1.8s infinite; }
+        @keyframes livePulse {
+            0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.8); }
+            70% { box-shadow: 0 0 0 16px rgba(37, 211, 102, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+        }
+        
+        .leaflet-custom-avatar-marker { display: flex; align-items: center; justify-content: center; filter: drop-shadow(0px 3px 8px rgba(0,0,0,0.4)); }
     </style>
 </head>
 <body>
@@ -381,7 +391,7 @@
         let activeReplyMsg = null;
         let pendingPopupTarget = null;
         let mapInstance = null, markerInstance = null, blueDotCircle = null;
-        let liveMapInstance = null, liveMarkers = {};
+        let liveMapInstance = null, liveAvatarMarker = null, livePulsingDot = null;
         let currentLat = -6.9175, currentLng = 107.6191;
         let gpsWatchId = null;
         let mediaRecorder = null, audioChunks = [];
@@ -390,6 +400,7 @@
         let tempSelectedLat = null, tempSelectedLng = null;
         let isPttModeActive = false;
         let swRegistration = null;
+        let audioCtx = null;
 
         const rtcConfig = { 
             iceServers: [
@@ -397,6 +408,77 @@
                 { urls: 'stun:stun1.l.google.com:19302' }
             ] 
         };
+
+        // WEB AUDIO SYNTHESIZER FOR HT CHIRPS & SQUELCH NOISE
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playWalkieChirp(type = 'start') {
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+
+                if (type === 'start') {
+                    // Double tone Roger chirp sound
+                    const osc1 = ctx.createOscillator();
+                    const osc2 = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc1.type = 'sine';
+                    osc2.type = 'square';
+
+                    osc1.frequency.setValueAtTime(1200, now);
+                    osc1.frequency.setValueAtTime(1800, now + 0.06);
+
+                    osc2.frequency.setValueAtTime(600, now);
+                    osc2.frequency.setValueAtTime(900, now + 0.06);
+
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+                    osc1.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc1.start(now);
+                    osc2.start(now);
+                    osc1.stop(now + 0.15);
+                    osc2.stop(now + 0.15);
+                } else {
+                    // Squelch end tail sound (short burst of noise)
+                    const bufferSize = ctx.sampleRate * 0.08;
+                    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                    const output = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+
+                    const whiteNoise = ctx.createBufferSource();
+                    whiteNoise.buffer = buffer;
+
+                    const filter = ctx.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.value = 1000;
+
+                    const gain = ctx.createGain();
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+                    whiteNoise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    whiteNoise.start(now);
+                }
+            } catch (e) { console.error("Audio synth error:", e); }
+        }
 
         // SERVICE WORKER & BACKGROUND GPS REGISTER
         if ('serviceWorker' in navigator) {
@@ -432,6 +514,10 @@
                             lng: currentLng,
                             timestamp: Date.now()
                         });
+                    }
+                    if (liveMapInstance && liveAvatarMarker) {
+                        liveAvatarMarker.setLatLng([currentLat, currentLng]);
+                        if(livePulsingDot) livePulsingDot.setLatLng([currentLat, currentLng]);
                     }
                 }, err => {}, { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 });
             }
@@ -732,10 +818,11 @@
         // CHAT WALKIE TALKIE TRANSMISSION (AUDIO CLIP)
         function startPttTransmit() {
             if(!activeTarget) return;
+            playWalkieChirp('start');
             const pttBtn = document.getElementById('btnPttPush');
             const statusLabel = document.getElementById('pttStatusLabel');
             pttBtn.classList.add('transmitting');
-            statusLabel.innerHTML = `<i class="fa-solid fa-tower-broadcast fa-spin" style="color:#ef4444;"></i> Transmisi Live...`;
+            statusLabel.innerHTML = `<i class="fa-solid fa-tower-broadcast fa-spin" style="color:#ef4444;"></i> TRANSMITTING VOICE...`;
 
             navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
                 localStream = stream;
@@ -753,6 +840,7 @@
         }
 
         function stopPttTransmit() {
+            playWalkieChirp('end');
             const pttBtn = document.getElementById('btnPttPush');
             const statusLabel = document.getElementById('pttStatusLabel');
             pttBtn.classList.remove('transmitting');
@@ -767,16 +855,18 @@
             }
         }
 
-        // REALTIME PTT OVER WEBRTC STREAM FOR HT CALL MODE
+        // REALTIME PTT OVER WEBRTC STREAM FOR HT CALL MODE WITH AUDIO CHIRPS & DUPLEX DYNAMIC TOGGLE
         function startPttLiveAudio() {
             const btn = document.getElementById('btnPttLiveTx');
             btn.classList.add('active-tx');
-            document.getElementById('videoCallStatus').innerText = "📻 Transmisi Suara HT Aktif...";
+            document.getElementById('videoCallStatus').innerText = "📻 TRANSMITTING VOICE (LIVE HT)...";
+
+            playWalkieChirp('start');
+            if (navigator.vibrate) { navigator.vibrate([100, 50, 100]); }
 
             if(localStream) {
                 localStream.getAudioTracks().forEach(track => { track.enabled = true; });
             }
-            if (navigator.vibrate) { navigator.vibrate(60); }
         }
 
         function stopPttLiveAudio() {
@@ -784,12 +874,13 @@
             btn.classList.remove('active-tx');
             document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
 
+            playWalkieChirp('end');
             if(localStream) {
                 localStream.getAudioTracks().forEach(track => { track.enabled = false; });
             }
         }
 
-        // FIXED FLIP CAMERA SWITCH (Smooth WebRTC video track replacement without session drops)
+        // FIXED FLIP CAMERA SWITCH WITH WebRTC sender.replaceTrack SEAMLESS INTEGRATION
         async function switchCameraFacing() {
             if(callType === 'voice') return;
             useFrontCamera = !useFrontCamera;
@@ -803,11 +894,13 @@
                 // Mute audio track baru jika dalam mode HT dan tidak sedang tekan PTT
                 if(callType === 'ht') {
                     const pttBtn = document.getElementById('btnPttLiveTx');
-                    const isTxActive = pttBtn.classList.contains('active-tx');
+                    const isTxActive = pttBtn && pttBtn.classList.contains('active-tx');
                     newStream.getAudioTracks().forEach(t => t.enabled = isTxActive);
+                } else {
+                    newStream.getAudioTracks().forEach(t => t.enabled = true);
                 }
 
-                // Hentikan video track lama agar tidak mengunci sumber daya kamera
+                // Stop old video tracks
                 if(localStream) {
                     localStream.getVideoTracks().forEach(t => t.stop());
                 }
@@ -817,7 +910,7 @@
                 localVid.srcObject = localStream;
                 await localVid.play().catch(e => {});
 
-                // Ganti video track pada WebRTC sender secara seamless
+                // Seamlessly swap track in RTCPeerConnection sender
                 if(peerConnection) {
                     const senders = peerConnection.getSenders();
                     const videoSender = senders.find(s => s.track && s.track.kind === 'video');
@@ -966,6 +1059,50 @@
                 startTime: Date.now()
             };
             sendChatMessage(liveObj, 'livelocation');
+            openLiveLocationMap(currentLat, currentLng, currentUser);
+        }
+
+        function openLiveLocationMap(lat, lng, senderPhone) {
+            tempSelectedLat = lat;
+            tempSelectedLng = lng;
+            document.getElementById('liveMapModal').style.display = 'flex';
+
+            setTimeout(() => {
+                if (!liveMapInstance) {
+                    liveMapInstance = L.map('liveMapContainer').setView([lat, lng], 16);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(liveMapInstance);
+                } else {
+                    liveMapInstance.invalidateSize();
+                    liveMapInstance.setView([lat, lng], 16);
+                }
+
+                if (livePulsingDot) liveMapInstance.removeLayer(livePulsingDot);
+                if (liveAvatarMarker) liveMapInstance.removeLayer(liveAvatarMarker);
+
+                // Blue pulsing dot marker
+                const pulsingIcon = L.divIcon({
+                    className: 'custom-pulse-wrapper',
+                    html: `<div class="live-gps-pulse"></div>`,
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                });
+                livePulsingDot = L.marker([lat, lng], { icon: pulsingIcon }).addTo(liveMapInstance);
+
+                // Sender profile avatar icon on top
+                let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
+                let prof = profiles[senderPhone] || {};
+                let identifier = prof.name ? prof.name.slice(0,2).toUpperCase() : senderPhone.slice(-2);
+                let avatarHtml = getOnlineAvatarHTML(identifier, prof.photo, 42, true);
+
+                const avatarIcon = L.divIcon({
+                    className: 'leaflet-custom-avatar-marker',
+                    html: avatarHtml,
+                    iconSize: [42, 42],
+                    iconAnchor: [21, 21]
+                });
+                liveAvatarMarker = L.marker([lat, lng], { icon: avatarIcon }).addTo(liveMapInstance);
+
+            }, 300);
         }
 
         function triggerNavOptions(lat, lng) {
@@ -1053,7 +1190,7 @@
                     if(callType === 'ht') {
                         localStream.getAudioTracks().forEach(t => t.enabled = false);
                     } else {
-                        localStream.getAudioTracks().forEach(t => t.enabled = true); // Panggilan biasa (audio full-duplex)
+                        localStream.getAudioTracks().forEach(t => t.enabled = true); // Full duplex audio untuk Voice & Video Call
                     }
 
                     if(callType !== 'voice') {
@@ -1472,11 +1609,11 @@
                     rawTextForReply = "[Live Location]";
                     bodyHtml = `
                         ${replyQuoteHtml}
-                        <div style="background:#e6f4ea; padding:10px; border-radius:6px; text-align:center;">
+                        <div onclick="openLiveLocationMap(${msg.content.lat}, ${msg.content.lng}, '${msg.sender}')" style="background:#e6f4ea; padding:10px; border-radius:6px; text-align:center; cursor:pointer;">
                             <div style="display:flex; justify-content:center; align-items:center; margin-bottom:6px;">${avatarMini}</div>
                             <i class="fa-solid fa-location-arrow" style="font-size:22px; color:#075E54; margin-bottom:4px;"></i>
-                            <div><b>Berbagi Lokasi Terkini</b></div>
-                            <div style="font-size:11px; color:#555; margin:2px 0;">${msg.content.duration}</div>
+                            <div><b>Berbagi Lokasi Terkini (Live)</b></div>
+                            <div style="font-size:11px; color:#1a73e8; margin:2px 0; font-weight:bold;">Ketuk untuk buka Peta Terkini</div>
                         </div>`;
                 } else if(msg.type === 'voicename') {
                     rawTextForReply = "[Voice Note]";
@@ -1528,27 +1665,31 @@
             area.scrollTop = area.scrollHeight;
         }
 
-        // DUAL NOTIFICATION TRIGGER (SOUND & VIBRATION + BACKGROUND SERVICE WORKER)
+        // ENHANCED DUAL NOTIFICATION TRIGGER (SOUND & VIBRATION + SERVICE WORKER)
         function playCustomNotification(targetNum, senderName, messageText) {
             // 1. Audio Sound Trigger
             try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.25);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.exponentialRampToValueAtTime(440, now + 0.25);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+
                 osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.3);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.28);
             } catch(e) {}
 
-            // 2. Dual Vibration Trigger
+            // 2. Powerful Multi-Pattern Vibration
             if (navigator.vibrate) { 
-                navigator.vibrate([300, 150, 300, 150, 400]); 
+                navigator.vibrate([400, 100, 400, 100, 600]); 
             }
 
             // 3. Service Worker Background Notification Push
@@ -1557,7 +1698,7 @@
                 swRegistration.showNotification("Pesan Walkie-Talkie: +" + senderName, {
                     body: textStr,
                     icon: "https://cdn-icons-png.flaticon.com/512/3616/3616852.png",
-                    vibrate: [300, 150, 300],
+                    vibrate: [400, 100, 400, 100, 600],
                     tag: "iqchat-msg-" + Date.now()
                 });
             }
