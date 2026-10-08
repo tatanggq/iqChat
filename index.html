@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-    <title>iqChat - Pro Messenger</title>
+    <title>iqChat - Walkie-Talkie & Video Call Pro</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#075E54">
@@ -26,6 +26,8 @@
             --panel-bg: #ffffff;
             --text-main: #111b21;
             --text-secondary: #667781;
+            --ptt-active: #ef4444;
+            --ptt-bg: #1e293b;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -71,13 +73,18 @@
         .outgoing { background: var(--wa-light-green); align-self: flex-end; border-top-right-radius: 0; color: #111; }
         .bubble-meta { font-size: 10px; color: #667781; text-align: right; margin-top: 3px; display: flex; justify-content: flex-end; align-items: center; gap: 3px; }
 
-        /* REPLY QUOTE STYLING DALAM CHAT */
         .reply-quote-box { background: rgba(0,0,0,0.05); border-left: 4px solid var(--wa-dark-green); padding: 4px 8px; border-radius: 4px; margin-bottom: 6px; font-size: 12px; color: #333; }
         .reply-preview-container { background: #f0f2f5; padding: 8px 12px; display: none; align-items: center; justify-content: space-between; border-top: 1px solid #e9edef; font-size: 13px; }
         
         .chat-input-area { background: #f0f2f5; padding: 10px 14px; display: flex; align-items: center; gap: 8px; border-top: 1px solid #e9edef; flex-shrink: 0; width: 100%; }
         .chat-input-box { flex: 1; padding: 10px 16px; border: none; border-radius: 24px; outline: none; font-size: 14px; background: #fff; color: #111; }
         .btn-icon { background: none; border: none; color: #54656f; font-size: 18px; cursor: pointer; padding: 6px; z-index: 22; }
+
+        /* WALKIE TALKIE (PTT) OVERLAY & BUTTONS */
+        .ptt-bar-container { background: var(--ptt-bg); padding: 10px 14px; display: none; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid #334155; }
+        .ptt-status-text { color: #38bdf8; font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 6px; }
+        .btn-ptt-talk { flex: 1; padding: 12px; background: #ef4444; color: white; border: none; border-radius: 25px; font-weight: bold; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); user-select: none; touch-action: manipulation; }
+        .btn-ptt-talk:active, .btn-ptt-talk.transmitting { background: #dc2626; transform: scale(0.98); box-shadow: 0 0 18px rgba(239, 68, 68, 0.8); }
 
         #attachMenu { position: absolute; bottom: 70px; left: 16px; background: #202c33; border-radius: 12px; padding: 10px; display: none; flex-direction: column; gap: 8px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .attach-item { color: white; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; }
@@ -187,7 +194,7 @@
                 <h3 id="videoCallTitle" style="font-size: 16px; color: #fff; text-align: left;">Panggilan</h3>
                 <p id="videoCallStatus" style="font-size: 12px; color: #00ffcc; margin-top: 2px; text-align: left;">Menghubungkan...</p>
             </div>
-            <!-- Tombol Ganti Kamera (Flip Camera) ala WhatsApp -->
+            <!-- Tombol Ganti Kamera (Flip Camera) -->
             <button id="btnSwitchCamera" onclick="switchCameraFacing()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-camera-rotate"></i></button>
         </div>
         
@@ -195,7 +202,7 @@
         <div id="remoteMediaContainer" style="width: 100%; height: 100%; position: absolute; inset: 0; background: #000; z-index: 1; display: flex; align-items: center; justify-content: center;">
             <video id="remoteVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
             <div id="audioOnlyIndicator" style="display:none; flex-direction:column; align-items:center; color:white; gap:12px;">
-                <i class="fa-solid fa-microphone-lines" style="font-size: 64px; color: var(--wa-green);"></i>
+                <i class="fa-solid fa-walkie-talkie" style="font-size: 64px; color: var(--wa-green);"></i>
                 <h4 style="font-size: 20px;">Panggilan Suara Aktif</h4>
             </div>
         </div>
@@ -211,8 +218,8 @@
 
     <!-- LOGIN SCREEN -->
     <div id="loginModal" class="overlay-screen">
-        <i class="fa-brands fa-whatsapp" style="font-size: 68px; color: var(--wa-green); margin-bottom: 16px;"></i>
-        <h2>iqChat Web Messenger</h2>
+        <i class="fa-solid fa-walkie-talkie" style="font-size: 68px; color: var(--wa-green); margin-bottom: 16px;"></i>
+        <h2>iqChat Walkie-Talkie</h2>
         <p style="font-size: 13px; color: #8696a0; margin-top: 6px;">Masukkan nomor WhatsApp aktif Anda.</p>
         <input type="tel" id="inputPhone" class="form-input" placeholder="Contoh: 628123456789 atau 08...">
         <button class="btn-green" onclick="requestOtpCode()">Kirim Kode Verifikasi OTP</button>
@@ -227,7 +234,7 @@
         <button class="btn-green" onclick="verifyOtpCode()">Verifikasi & Masuk</button>
     </div>
 
-    <!-- MAIN APP -->
+    <!-- MAIN APP WINDOW -->
     <div class="app-window" id="appWindowContainer">
         
         <!-- VIEW CONTACT LIST -->
@@ -235,7 +242,7 @@
             <div class="app-header">
                 <div class="header-title" onclick="openProfileSettings()">
                     <div id="myHeaderAvatarContainer"></div>
-                    <span id="headerMyName">iqChat</span>
+                    <span id="headerMyName">iqChat Pro</span>
                 </div>
                 <div class="header-actions">
                     <button id="btnInstall" class="btn-pwa-install" onclick="triggerPwaInstall()"><i class="fa-solid fa-download"></i> Install</button>
@@ -245,7 +252,7 @@
             
             <div style="background:#115e59; color:white; padding:6px 14px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
                 <span>Akun: <b id="myPhoneBadge">-</b></span>
-                <span id="connectionStatusBadge" style="color:#a7f3d0;">Cloud & Offline Ready</span>
+                <span id="connectionStatusBadge" style="color:#a7f3d0;"><i class="fa-solid fa-tower-cell"></i> Offline / Low Data Ready</span>
             </div>
 
             <!-- TABS MENU WHATSAPP (CHAT & PANGGILAN) -->
@@ -263,7 +270,7 @@
                 <div class="contact-list" id="contactListContainer"></div>
             </div>
 
-            <!-- TAB CONTAINER CALLS (RIWAYAT PANGGILAN KHUSUS) -->
+            <!-- TAB CONTAINER CALLS (RIWAYAT PANGGILAN) -->
             <div id="tabContentCalls" class="contact-list" style="display:none; flex:1;">
                 <div id="callLogsContainer"></div>
             </div>
@@ -289,6 +296,7 @@
                     </div>
                 </div>
                 <div class="header-actions">
+                    <button class="btn-icon" id="btnTogglePttMode" onclick="togglePttModeUI()" title="Toggle Walkie Talkie (PTT)" style="color:#38bdf8;"><i class="fa-solid fa-walkie-talkie"></i></button>
                     <button class="btn-icon" onclick="clearChatHistoryConfirm()" title="Bersihkan Riwayat Chat" style="color:white;"><i class="fa-solid fa-trash-can"></i></button>
                     <button class="btn-icon" onclick="editContactProfile()" title="Simpan / Edit Kontak" style="color:white;"><i class="fa-solid fa-pen-to-square"></i></button>
                     <button class="btn-icon" onclick="startVoiceCall()" style="color:white;" title="Panggilan Suara"><i class="fa-solid fa-phone"></i></button>
@@ -314,7 +322,18 @@
                 <button onclick="cancelReplyMessage()" style="background:none; border:none; color:#667781; cursor:pointer; font-size:16px;"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <div class="chat-input-area">
+            <!-- PTT WALKIE TALKIE CONTROL BAR OVERLAY -->
+            <div id="pttControlBar" class="ptt-bar-container">
+                <div class="ptt-status-text" id="pttStatusLabel"><i class="fa-solid fa-radio"></i> PTT Siap (Tekan & Tahan)</div>
+                <button id="btnPttPush" class="btn-ptt-talk" 
+                        onmousedown="startPttTransmit()" onmouseup="stopPttTransmit()" 
+                        ontouchstart="startPttTransmit()" ontouchend="stopPttTransmit()">
+                    <i class="fa-solid fa-microphone"></i> TEKAN UNTUK BICARA (PTT)
+                </button>
+            </div>
+
+            <!-- STANDARD CHAT INPUT AREA -->
+            <div class="chat-input-area" id="chatInputBar">
                 <input type="file" id="fileInput" style="display:none" onchange="handleFileSelected(this)">
                 <button class="btn-icon" onclick="toggleAttachMenu()"><i class="fa-solid fa-paperclip"></i></button>
                 
@@ -351,7 +370,9 @@
         let liveLocationInterval = null;
         let mediaRecorder = null, audioChunks = [];
         let roundVideoRecorder = null, roundVideoChunks = [];
+        let pttRecorder = null, pttAudioChunks = [];
         let tempSelectedLat = null, tempSelectedLng = null;
+        let isPttModeActive = false;
 
         const rtcConfig = { 
             iceServers: [
@@ -363,7 +384,7 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(() => {
                 if (Notification.permission !== "granted") { Notification.requestPermission(); }
-            });
+            }).catch(() => {});
         }
 
         let deferredPrompt;
@@ -392,7 +413,7 @@
                     if (choiceResult.outcome === 'accepted') { document.getElementById('btnInstall').style.display = 'none'; }
                     deferredPrompt = null;
                 });
-            } else { alert("Aplikasi sudah terinstal atau gunakan menu 'Tambahkan ke Layar Utama' Chrome."); }
+            } else { alert("Aplikasi siap dipasang atau tambahkan ke Layar Utama."); }
         }
 
         function requestOtpCode() {
@@ -524,7 +545,7 @@
                 chatBtn.style.borderBottom = '3px solid transparent';
                 chatBtn.style.color = '#cfd8dc';
                 callContent.style.display = 'flex';
-                callContent.style.display = 'none';
+                chatContent.style.display = 'none';
                 renderCallLogs();
             }
         }
@@ -576,15 +597,14 @@
             let callRecord = {
                 target: target,
                 video: video,
-                type: type, // 'outgoing' atau 'incoming'
-                status: status, // 'Terhubung', 'Tak dijawab', 'Selesai'
+                type: type,
+                status: status,
                 time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 timestamp: Date.now()
             };
             logs.push(callRecord);
             localStorage.setItem('iq_call_logs_' + currentUser, JSON.stringify(logs));
 
-            // Catat juga ke dalam riwayat chat agar muncul ala WhatsApp asli
             const isAI = target === "GeminiAI";
             if(!isAI) {
                 const roomKey = [currentUser.replace(/\D/g,''), target.replace(/\D/g,'')].sort().join('_');
@@ -616,7 +636,7 @@
                 const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 let allMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
                 let lastMsgObj = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1] : null;
-                let lastMsg = lastMsgObj ? (typeof lastMsgObj.content === 'object' ? (lastMsgObj.type === 'calllog' ? "📞 Panggilan " + (lastMsgObj.content.video ? "Video" : "Suara") : "📍 [Media/Lokasi]") : lastMsgObj.content) : (isAI ? "Tanya apa saja ke Gemini AI..." : "Ketuk untuk mulai percakapan");
+                let lastMsg = lastMsgObj ? (typeof lastMsgObj.content === 'object' ? (lastMsgObj.type === 'calllog' ? "📞 Panggilan " + (lastMsgObj.content.video ? "Video" : "Suara") : (lastMsgObj.type === 'ptt' ? "📻 [Walkie-Talkie]" : "📍 [Media/Lokasi]")) : lastMsgObj.content) : (isAI ? "Tanya apa saja ke Gemini AI..." : "Ketuk untuk mulai percakapan");
                 let lastTime = lastMsgObj ? lastMsgObj.time : '';
 
                 let details = contactDetails[num] || {};
@@ -668,6 +688,60 @@
                 if(num.startsWith('0')) { num = '62' + num.slice(1); }
                 if(!contacts.includes(num)) { contacts.push(num); localStorage.setItem('iq_contacts', JSON.stringify(contacts)); }
                 openChatRoom(num);
+            }
+        }
+
+        function togglePttModeUI() {
+            isPttModeActive = !isPttModeActive;
+            const pttBar = document.getElementById('pttControlBar');
+            const chatInputBar = document.getElementById('chatInputBar');
+            const btnPtt = document.getElementById('btnTogglePttMode');
+
+            if (isPttModeActive) {
+                pttBar.style.display = 'flex';
+                chatInputBar.style.display = 'none';
+                btnPtt.style.color = '#ef4444';
+            } else {
+                pttBar.style.display = 'none';
+                chatInputBar.style.display = 'flex';
+                btnPtt.style.color = '#38bdf8';
+            }
+        }
+
+        function startPttTransmit() {
+            if(!activeTarget) return;
+            const pttBtn = document.getElementById('btnPttPush');
+            const statusLabel = document.getElementById('pttStatusLabel');
+            pttBtn.classList.add('transmitting');
+            statusLabel.innerHTML = `<i class="fa-solid fa-tower-broadcast fa-spin" style="color:#ef4444;"></i> Transmisi Suara...`;
+
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                localStream = stream;
+                pttRecorder = new MediaRecorder(stream);
+                pttAudioChunks = [];
+                pttRecorder.ondataavailable = e => pttAudioChunks.push(e.data);
+                pttRecorder.onstop = () => {
+                    const audioBlob = new Blob(pttAudioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onload = e => sendChatMessage({ data: e.target.result, size: 'PTT Walkie Talkie' }, 'ptt');
+                    reader.readAsDataURL(audioBlob);
+                };
+                pttRecorder.start();
+            }).catch(e => alert("Akses mikrofon ditolak untuk PTT."));
+        }
+
+        function stopPttTransmit() {
+            const pttBtn = document.getElementById('btnPttPush');
+            const statusLabel = document.getElementById('pttStatusLabel');
+            pttBtn.classList.remove('transmitting');
+            statusLabel.innerHTML = `<i class="fa-solid fa-radio"></i> PTT Siap (Tekan & Tahan)`;
+
+            if(pttRecorder && pttRecorder.state !== 'inactive') {
+                pttRecorder.stop();
+            }
+            if(localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
             }
         }
 
@@ -825,56 +899,6 @@
             }
         }
 
-        function stopLiveLocation() {
-            if(liveLocationInterval) clearInterval(liveLocationInterval);
-            alert("Berbagi lokasi terkini dihentikan.");
-        }
-
-        function openLiveLocationMap(roomKey) {
-            document.getElementById('liveMapModal').style.display = 'flex';
-            setTimeout(() => {
-                if (!liveMapInstance) {
-                    liveMapInstance = L.map('liveMapContainer').setView([currentLat, currentLng], 16);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(liveMapInstance);
-                } else {
-                    liveMapInstance.invalidateSize();
-                }
-
-                db.ref('iqchat_liveloc/' + roomKey).on('value', snapshot => {
-                    const locs = snapshot.val();
-                    let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
-                    let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
-
-                    if (locs) {
-                        Object.keys(locs).forEach(userNum => {
-                            let pos = locs[userNum];
-                            let prof = profiles[userNum] || contactDetails[userNum] || {};
-                            let initial = prof.name ? prof.name.slice(0,2).toUpperCase() : userNum.slice(-2);
-                            let photo = prof.photo || "";
-
-                            let avatarHtml = `<div style="width:36px; height:36px; border-radius:50%; background:#075E54; color:white; font-weight:bold; font-size:12px; display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.3); ${photo ? 'background-image:url('+photo+'); background-size:cover;' : ''}">${photo ? '' : initial}</div>`;
-                            
-                            let customIcon = L.divIcon({
-                                html: avatarHtml,
-                                className: 'custom-live-avatar-marker',
-                                iconSize: [36, 36],
-                                iconAnchor: [18, 18]
-                            });
-
-                            if (liveMarkers[userNum]) {
-                                liveMarkers[userNum].setLatLng([pos.lat, pos.lng]);
-                            } else {
-                                liveMarkers[userNum] = L.marker([pos.lat, pos.lng], {icon: customIcon}).addTo(liveMapInstance);
-                                liveMarkers[userNum].on('click', () => {
-                                    triggerNavOptions(pos.lat, pos.lng);
-                                });
-                            }
-                        });
-                    }
-                });
-            }, 300);
-        }
-
         function triggerNavOptions(lat, lng) {
             tempSelectedLat = lat;
             tempSelectedLng = lng;
@@ -991,8 +1015,6 @@
         async function switchCameraFacing() {
             if(isAudioCall) return;
             useFrontCamera = !useFrontCamera;
-            
-            // Perbaikan agar flip kamera aman menggunakan constraint fleksibel tanpa error exact
             const constraints = { video: { facingMode: useFrontCamera ? 'user' : 'environment' }, audio: true };
 
             try {
@@ -1197,32 +1219,6 @@
             document.getElementById('videoRoundModal').style.display = 'none';
         }
 
-        async function queryGeminiAI(promptText, roomKey) {
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyA...`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-                });
-                const data = await response.json();
-                let aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Halo! Saya Gemini AI siap membantu Anda.";
-                
-                let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
-                let aiMsgObj = {
-                    id: 'msg_' + Date.now(),
-                    sender: "GeminiAI",
-                    content: aiText,
-                    type: 'text',
-                    status: 'read',
-                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                    timestamp: Date.now()
-                };
-                localMsgs.push(aiMsgObj);
-                localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
-                if(activeTarget === "GeminiAI") { renderChatUI(localMsgs); }
-            } catch(e) {}
-        }
-
         function replyToMessage(msgId, senderName, textContent) {
             activeReplyMsg = { id: msgId, sender: senderName, text: typeof textContent === 'object' ? '[Media/Berkas]' : textContent };
             document.getElementById('replyingToName').innerText = "Membalas ke " + senderName;
@@ -1262,9 +1258,7 @@
             localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
             renderChatUI(localMsgs);
 
-            if(isAI) {
-                queryGeminiAI(typeof content === 'string' ? content : 'Bantu saya', roomKey);
-            } else {
+            if(!isAI) {
                 db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
             }
 
@@ -1300,7 +1294,6 @@
         }
 
         function deleteMessageItem(msgId) {
-            // Perbaikan aksi hapus pesan persisten satu per satu secara instan
             const isAI = activeTarget === "GeminiAI";
             const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             
@@ -1365,7 +1358,6 @@
             const area = document.getElementById('chatMessagesArea');
             area.innerHTML = "";
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
-            const isAI = activeTarget === "GeminiAI";
             
             messages.forEach(msg => {
                 if(!msg) return;
@@ -1417,6 +1409,9 @@
                 } else if(msg.type === 'voicename') {
                     rawTextForReply = "[Voice Note]";
                     bodyHtml = `${replyQuoteHtml}<audio controls src="${msg.content.data}" style="max-width:200px; height:32px;"></audio>`;
+                } else if(msg.type === 'ptt') {
+                    rawTextForReply = "[Walkie Talkie PTT]";
+                    bodyHtml = `${replyQuoteHtml}<div style="display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-radio" style="color:#ef4444; font-size:18px;"></i><b>Walkie-Talkie Voice</b></div><audio controls src="${msg.content.data}" style="max-width:200px; height:32px; margin-top:4px;"></audio>`;
                 } else if(msg.type === 'roundvideo') {
                     rawTextForReply = "[Video Bulat]";
                     bodyHtml = `${replyQuoteHtml}<video controls src="${msg.content.data}" style="width:160px; height:160px; border-radius:50%; object-fit:cover;"></video>`;
