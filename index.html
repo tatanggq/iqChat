@@ -510,7 +510,7 @@
                 chatBtn.style.borderBottom = '3px solid transparent';
                 chatBtn.style.color = '#cfd8dc';
                 callContent.style.display = 'flex';
-                chatContent.style.display = 'none';
+                callContent.style.display = 'none';
                 renderCallLogs();
             }
         }
@@ -902,7 +902,7 @@
                 document.getElementById('localVideoWrapper').style.display = 'none';
             }
 
-            const constraints = { video: withVideo ? { facingMode: useFrontCamera ? 'user' : { exact: 'environment' } } : false, audio: true };
+            const constraints = { video: withVideo ? { facingMode: useFrontCamera ? 'user' : 'environment' } : false, audio: true };
 
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(stream => {
@@ -957,47 +957,55 @@
             });
         }
 
-        function switchCameraFacing() {
+        async function switchCameraFacing() {
             if(isAudioCall) return;
             useFrontCamera = !useFrontCamera;
             
-            if(localStream) {
-                localStream.getTracks().forEach(t => t.stop());
-            }
-
             const constraints = { video: { facingMode: useFrontCamera ? 'user' : 'environment' }, audio: true };
 
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then(newStream => {
-                    localStream = newStream;
-                    const videoTrack = newStream.getVideoTracks()[0];
-                    
-                    if(peerConnection) {
-                        const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                        if(sender) {
-                            sender.replaceTrack(videoTrack);
-                        }
-                    }
+            try {
+                const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+                const videoTrack = newStream.getVideoTracks()[0];
+                
+                if(localStream) {
+                    localStream.getVideoTracks().forEach(t => t.stop());
+                }
 
+                // Ganti track aktif di MediaStream lokal
+                localStream.removeTrack(localStream.getVideoTracks()[0]);
+                localStream.addTrack(videoTrack);
+
+                const localVid = document.getElementById('localVideo');
+                localVid.srcObject = localStream;
+                await localVid.play().catch(e => {});
+
+                if(peerConnection) {
+                    const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if(sender) {
+                        await sender.replaceTrack(videoTrack);
+                    }
+                }
+            } catch (err) {
+                // Fallback jika kamera belakang tidak didukung browser/device
+                try {
+                    const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    const videoTrack = fallbackStream.getVideoTracks()[0];
+                    if(localStream) localStream.getVideoTracks().forEach(t => t.stop());
+                    localStream = fallbackStream;
+                    
                     const localVid = document.getElementById('localVideo');
                     localVid.srcObject = localStream;
-                    localVid.play().catch(e => {});
-                }).catch(e => {
-                    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(fallbackStream => {
-                        localStream = fallbackStream;
-                        const videoTrack = fallbackStream.getVideoTracks()[0];
-                        if(peerConnection) {
-                            const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                            if(sender) sender.replaceTrack(videoTrack);
-                        }
-                        const localVid = document.getElementById('localVideo');
-                        localVid.srcObject = localStream;
-                        localVid.play().catch(err => {});
-                    }).catch(err => {
-                        alert("Gagal mengganti kamera: " + err.message);
-                        useFrontCamera = !useFrontCamera;
-                    });
-                });
+                    await localVid.play().catch(e => {});
+
+                    if(peerConnection) {
+                        const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                        if(sender) await sender.replaceTrack(videoTrack);
+                    }
+                } catch(e2) {
+                    alert("Gagal membalik kamera: " + e2.message);
+                    useFrontCamera = !useFrontCamera;
+                }
+            }
         }
 
         function setupPeerConnection() {
