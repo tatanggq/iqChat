@@ -319,7 +319,12 @@
         let roundVideoRecorder = null, roundVideoChunks = [];
         let tempSelectedLat = null, tempSelectedLng = null;
 
-        const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        const rtcConfig = { 
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ] 
+        };
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(() => {
@@ -745,7 +750,6 @@
             document.getElementById('navChoiceModal').style.display = 'flex';
         }
 
-        // PERBAIKAN TOTAL: LANGSUNG DIRECT MENGARAHKAN APLIKASI MAPS NATIVE & INDRIVE MENGGUNAKAN INTENT / DEEP LINK
         function openNavOption(type) {
             document.getElementById('navChoiceModal').style.display = 'none';
             document.getElementById('liveMapModal').style.display = 'none';
@@ -772,14 +776,12 @@
             }
         }
 
-        // PERBAIKAN TOTAL PANGGILAN SUARA (VOICE CALL) - TIDAK LAGI MASUK KE VIDEO CALL
         function startVoiceCall() {
             if(!activeTarget) return;
             isAudioCall = true;
             initiateCallProcess(false);
         }
 
-        // PERBAIKAN TOTAL VIDEO CALL - MENGATASI BLANK HITAM DENGAN AUTOPLAY INSTAN
         function startVideoCall() {
             if(!activeTarget) return;
             isAudioCall = false;
@@ -846,6 +848,7 @@
             });
         }
 
+        // PERBAIKAN TOTAL WEBRTC: Menjamin ontrack langsung membinding stream video lawan dengan sempurna
         function setupPeerConnection() {
             if(peerConnection) return;
             peerConnection = new RTCPeerConnection(rtcConfig);
