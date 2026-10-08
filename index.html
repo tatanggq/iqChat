@@ -573,15 +573,34 @@
 
         function logCallHistory(target, video, type, status) {
             let logs = JSON.parse(localStorage.getItem('iq_call_logs_' + currentUser) || '[]');
-            logs.push({
+            let callRecord = {
                 target: target,
                 video: video,
                 type: type, // 'outgoing' atau 'incoming'
                 status: status, // 'Terhubung', 'Tak dijawab', 'Selesai'
                 time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 timestamp: Date.now()
-            });
+            };
+            logs.push(callRecord);
             localStorage.setItem('iq_call_logs_' + currentUser, JSON.stringify(logs));
+
+            // Catat juga ke dalam riwayat chat agar muncul ala WhatsApp asli
+            const isAI = target === "GeminiAI";
+            if(!isAI) {
+                const roomKey = [currentUser.replace(/\D/g,''), target.replace(/\D/g,'')].sort().join('_');
+                let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
+                localMsgs.push({
+                    id: 'msg_' + Date.now(),
+                    sender: currentUser,
+                    content: callRecord,
+                    type: 'calllog',
+                    status: 'read',
+                    time: callRecord.time,
+                    timestamp: Date.now()
+                });
+                localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
+                db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
+            }
         }
 
         function renderContactList(filter = "") {
@@ -596,11 +615,9 @@
                 const isAI = num === "GeminiAI";
                 const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 let allMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
-                let lastMsg = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1].content : (isAI ? "Tanya apa saja ke Gemini AI..." : "Ketuk untuk mulai percakapan");
-                if(typeof lastMsg === 'object') {
-                    lastMsg = lastMsg.type === 'livelocation' ? "📍 [Berbagi Lokasi Terkini]" : (lastMsg.type === 'location' ? "📍 [ShareLok Terkini]" : "[Media/File]");
-                }
-                let lastTime = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1].time : '';
+                let lastMsgObj = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1] : null;
+                let lastMsg = lastMsgObj ? (typeof lastMsgObj.content === 'object' ? (lastMsgObj.type === 'calllog' ? "📞 Panggilan " + (lastMsgObj.content.video ? "Video" : "Suara") : "📍 [Media/Lokasi]") : lastMsgObj.content) : (isAI ? "Tanya apa saja ke Gemini AI..." : "Ketuk untuk mulai percakapan");
+                let lastTime = lastMsgObj ? lastMsgObj.time : '';
 
                 let details = contactDetails[num] || {};
                 let displayName = isAI ? "Gemini AI" : (details.name || ("+" + num));
@@ -975,7 +992,8 @@
             if(isAudioCall) return;
             useFrontCamera = !useFrontCamera;
             
-            const constraints = { video: { facingMode: useFrontCamera ? 'user' : { exact: 'environment' } }, audio: true };
+            // Perbaikan agar flip kamera aman menggunakan constraint fleksibel tanpa error exact
+            const constraints = { video: { facingMode: useFrontCamera ? 'user' : 'environment' }, audio: true };
 
             try {
                 const newStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -997,24 +1015,8 @@
                     }
                 }
             } catch (err) {
-                try {
-                    const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: useFrontCamera ? 'user' : 'environment' }, audio: true });
-                    const videoTrack = fallbackStream.getVideoTracks()[0];
-                    if(localStream) localStream.getVideoTracks().forEach(t => t.stop());
-                    localStream = fallbackStream;
-                    
-                    const localVid = document.getElementById('localVideo');
-                    localVid.srcObject = localStream;
-                    await localVid.play().catch(e => {});
-
-                    if(peerConnection) {
-                        const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                        if(sender) await sender.replaceTrack(videoTrack);
-                    }
-                } catch(e2) {
-                    alert("Kamera lain tidak tersedia di perangkat ini.");
-                    useFrontCamera = !useFrontCamera;
-                }
+                alert("Tidak dapat beralih kamera: " + err.message);
+                useFrontCamera = !useFrontCamera;
             }
         }
 
@@ -1298,20 +1300,19 @@
         }
 
         function deleteMessageItem(msgId) {
-            if(confirm("Tarik / Hapus pesan ini?")) {
-                const isAI = activeTarget === "GeminiAI";
-                const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
-                
-                let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
-                localMsgs = localMsgs.filter(m => m.id !== msgId);
-                localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
-                
-                if(!isAI) {
-                    db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
-                }
-                renderChatUI(localMsgs);
-                renderContactList();
+            // Perbaikan aksi hapus pesan persisten satu per satu secara instan
+            const isAI = activeTarget === "GeminiAI";
+            const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
+            
+            let localMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
+            localMsgs = localMsgs.filter(m => m.id !== msgId);
+            localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(localMsgs));
+            
+            if(!isAI) {
+                db.ref('iqchat_rooms_live/' + roomKey).set(localMsgs);
             }
+            renderChatUI(localMsgs);
+            renderContactList();
         }
 
         function setupGlobalListeners() {
@@ -1419,13 +1420,24 @@
                 } else if(msg.type === 'roundvideo') {
                     rawTextForReply = "[Video Bulat]";
                     bodyHtml = `${replyQuoteHtml}<video controls src="${msg.content.data}" style="width:160px; height:160px; border-radius:50%; object-fit:cover;"></video>`;
+                } else if(msg.type === 'calllog') {
+                    rawTextForReply = "[Riwayat Panggilan]";
+                    let callIcon = msg.content.video ? '<i class="fa-solid fa-video" style="color:var(--wa-dark-green); font-size:18px;"></i>' : '<i class="fa-solid fa-phone" style="color:var(--wa-dark-green); font-size:18px;"></i>';
+                    bodyHtml = `
+                        <div style="display:flex; align-items:center; gap:10px; padding:4px;">
+                            ${callIcon}
+                            <div>
+                                <div style="font-weight:bold; font-size:13px;">Panggilan ${msg.content.video ? 'Video' : 'Suara'}</div>
+                                <div style="font-size:11px; color:#555;">${msg.content.status} (${msg.time})</div>
+                            </div>
+                        </div>`;
                 } else {
                     rawTextForReply = msg.content;
                     bodyHtml = `${replyQuoteHtml}<div>${msg.content}</div>`;
                 }
 
                 let checkIcon = '';
-                if(isMe) {
+                if(isMe && msg.type !== 'calllog') {
                     if(msg.status === 'read') {
                         checkIcon = '<i class="fa-solid fa-check-double" style="color:#53bdeb;" title="Dibaca"></i>';
                     } else if(msg.status === 'delivered') {
@@ -1439,7 +1451,7 @@
                 bubble.innerHTML = `
                     ${bodyHtml}
                     <div class="bubble-meta">
-                        <i class="fa-solid fa-reply" style="cursor:pointer; margin-right:6px;" onclick="replyToMessage('${msg.id}', '${senderLabel}', '${rawTextForReply.replace(/'/g, "\\'")}')" title="Balas"></i>
+                        ${msg.type !== 'calllog' ? `<i class="fa-solid fa-reply" style="cursor:pointer; margin-right:6px;" onclick="replyToMessage('${msg.id}', '${senderLabel}', '${rawTextForReply.replace(/'/g, "\\'")}')" title="Balas"></i>` : ''}
                         ${msg.time} ${checkIcon} 
                         <i class="fa-solid fa-trash" style="font-size:9px; cursor:pointer; margin-left:4px;" onclick="deleteMessageItem('${msg.id}')" title="Hapus Pesan"></i>
                     </div>`;
@@ -1540,7 +1552,7 @@
             document.getElementById('popupAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 42, true);
 
             document.getElementById('popupSenderName').innerText = "+" + num;
-            document.getElementById('popupMessageText').innerText = typeof text === 'object' ? '[Media/Berkas]' : text;
+            document.getElementById('popupMessageText').innerText = typeof text === 'object' ? '[Media/Panggilan]' : text;
             document.getElementById('incomingPopup').style.display = 'flex';
             setTimeout(() => { document.getElementById('incomingPopup').style.display = 'none'; }, 6000);
         }
