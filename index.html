@@ -386,7 +386,6 @@
         let incomingCallListenerAttached = false;
         let activeCallKey = null;
 
-        // Enhanced STUN/TURN pool with aggressive fallback for cross-NAT / Wi-Fi vs Cellular asymmetry
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -1697,7 +1696,6 @@
 
         function closeCallModalUI(isIncomingDisconnect = false) {
             if (isIncomingDisconnect && callStartTime) {
-                // Panggilan masuk sudah terhubung lalu ditutup lawan
                 calculateAndLogEndCall('incoming', true);
             }
             if(localStream) { 
