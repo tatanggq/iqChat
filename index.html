@@ -456,6 +456,7 @@
         let activeCallKey = null;
         let currentDynamicOtp = "8888";
         let isCallMinimized = false;
+        let incomingCallTimeoutTimer = null;
 
         const rtcConfig = { 
             iceServers: [
@@ -915,7 +916,7 @@
                 chatBtn.style.borderBottom = '3px solid transparent';
                 chatBtn.style.color = '#cfd8dc';
                 callContent.style.display = 'flex';
-                chatContent.style.display = 'none';
+                callContent.style.display = 'none';
                 renderCallLogs();
             }
         }
@@ -1751,6 +1752,7 @@
                     if(!callData) return;
                     
                     if(callData.status === 'accepted') {
+                        if(incomingCallTimeoutTimer) { clearTimeout(incomingCallTimeoutTimer); incomingCallTimeoutTimer = null; }
                         if(!callStartTime) callStartTime = Date.now();
                         if(videoCallStatus) {
                             videoCallStatus.innerText = callType === 'ht' ? "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)" : "Terhubung.";
@@ -1982,7 +1984,8 @@
                         if(videoCallTitle) videoCallTitle.innerText = callTitleStr + `+${callData.caller}`;
                         if(videoCallStatus) videoCallStatus.innerText = "Panggilan masuk (Lockscreen Security Trap - Tekan Angkat untuk Auto Stream)...";
                         
-                        // KETENTUAN LOCKSCREEN: Hanya tombol Angkat (Terima), tanpa tombol tolak, tanpa timeout otomatis terputus
+                        // KETENTUAN LOCKSCREEN: Hanya tombol Angkat (Terima), tanpa tombol tolak.
+                        // Jika dalam 45 detik tidak diangkat, otomatis terputus sebagai panggilan tidak terjawab.
                         const btnAnswerCall = document.getElementById('btnAnswerCall');
                         const btnEndCall = document.getElementById('btnEndCall');
                         const btnSwitchCamera = document.getElementById('btnSwitchCamera');
@@ -2009,6 +2012,16 @@
                             if(audioCallIndicatorText) audioCallIndicatorText.innerText = "Panggilan Suara";
                             if(localVideoWrapper) localVideoWrapper.style.display = 'none';
                         }
+
+                        // Timeout 45 detik otomatis terputus jika tidak diangkat
+                        if (incomingCallTimeoutTimer) clearTimeout(incomingCallTimeoutTimer);
+                        incomingCallTimeoutTimer = setTimeout(() => {
+                            if (activeCallRef && (!callStartTime)) {
+                                logCallHistory(activeTarget, callType, 'incoming', 'Tidak dijawab');
+                                activeCallRef.update({ status: 'ended' });
+                                closeCallModalUI(false);
+                            }
+                        }, 45000);
 
                         navigator.mediaDevices.getUserMedia({ 
                             video: (callType !== 'voice') ? { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } } : false, 
@@ -2037,11 +2050,13 @@
         }
 
         async function answerIncomingCall() {
+            if(incomingCallTimeoutTimer) { clearTimeout(incomingCallTimeoutTimer); incomingCallTimeoutTimer = null; }
             if(activeCallRef) {
                 const btnAnswerCall = document.getElementById('btnAnswerCall');
                 const btnEndCall = document.getElementById('btnEndCall');
                 const videoCallStatus = document.getElementById('videoCallStatus');
 
+                // Setelah diangkat, tombol Berhenti (EndCall) dimunculkan kembali untuk kontrol penuh
                 if(btnAnswerCall) btnAnswerCall.style.display = 'none';
                 if(btnEndCall) btnEndCall.style.display = 'flex';
                 if(videoCallStatus) videoCallStatus.innerText = "Menghubungkan & Streaming...";
@@ -2123,6 +2138,7 @@
         }
 
         function endVideoCall() {
+            if(incomingCallTimeoutTimer) { clearTimeout(incomingCallTimeoutTimer); incomingCallTimeoutTimer = null; }
             const wasConnected = !!callStartTime;
             calculateAndLogEndCall('outgoing', wasConnected);
             if(activeCallRef && isOnlineState) { 
@@ -2132,6 +2148,7 @@
         }
 
         function closeCallModalUI(isIncomingDisconnect = false) {
+            if(incomingCallTimeoutTimer) { clearTimeout(incomingCallTimeoutTimer); incomingCallTimeoutTimer = null; }
             if (isIncomingDisconnect && callStartTime) {
                 calculateAndLogEndCall('incoming', true);
             }
@@ -2478,12 +2495,13 @@
 
             if (Notification.permission === "granted" && swRegistration) {
                 let textStr = typeof messageText === 'object' ? '[Media/Panggilan]' : messageText;
-                swRegistration.showNotification("Pesan / Panggilan Baru: +" + senderName, {
+                swRegistration.showNotification("iqChat: +" + senderName, {
                     body: textStr,
                     icon: "https://cdn-icons-png.flaticon.com/512/3616/3616852.png",
                     vibrate: [1000, 300, 1000, 300, 1500],
                     tag: "iqchat-msg-" + Date.now(),
-                    requireInteraction: true
+                    requireInteraction: true,
+                    data: { target: targetNum }
                 });
             }
 
