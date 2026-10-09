@@ -136,7 +136,6 @@
 </head>
 <body>
 
-    <!-- MODAL PILIHAN NAVIGASI -->
     <div id="navChoiceModal">
         <div class="nav-choice-box">
             <h3 style="font-size: 16px; color: #111;">Pilih Aplikasi Navigasi</h3>
@@ -148,7 +147,6 @@
         </div>
     </div>
 
-    <!-- MODAL PREVIEW PETA LIVE LOCATION -->
     <div id="liveMapModal">
         <div style="display:flex; justify-content:space-between; align-items:center; color:white; padding: 0 4px;">
             <b>Peta Berbagi Lokasi Terkini (Real-time)</b>
@@ -162,7 +160,6 @@
         </div>
     </div>
 
-    <!-- POPUP PESAN MASUK -->
     <div id="incomingPopup" onclick="openChatFromPopup()">
         <div id="popupAvatarContainer"></div>
         <div style="flex: 1; min-width: 0;">
@@ -172,14 +169,12 @@
         <i class="fa-solid fa-chevron-right" style="color: #8696a0; font-size: 14px;"></i>
     </div>
 
-    <!-- CHAT HEAD BUBBLE & DROP ZONE X -->
     <div id="chatHead" class="chat-head-bubble" title="Geser ke X untuk menutup">
         <div id="chatHeadAvatarContainer" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; position:relative;"></div>
         <div id="chatHeadUnread" class="chat-head-unread">0</div>
     </div>
     <div id="dropZoneX"><i class="fa-solid fa-xmark"></i></div>
 
-    <!-- MODAL SHARELOK -->
     <div id="mapModal">
         <div style="display:flex; justify-content:space-between; align-items:center; color:white; padding: 0 4px;">
             <b id="mapModalTitle">Kirim Lokasi Terkini</b>
@@ -194,25 +189,21 @@
         </div>
     </div>
 
-    <!-- MODAL VIDEO BULAT -->
     <div id="videoRoundModal">
         <video id="roundVideoPreview" autoplay muted playsinline style="width: 240px; height: 240px; border-radius: 50%; object-fit: cover; border: 4px solid var(--wa-green);"></video>
         <p id="roundVideoStatus" style="color:white; margin-top:20px;">Merekam video bulat... (Maks 60 detik)</p>
         <button onclick="stopRoundVideoRecord()" style="background:red; color:white; border:none; padding:10px 20px; border-radius:20px; margin-top:20px; font-weight:bold; cursor:pointer;">Selesai & Kirim</button>
     </div>
 
-    <!-- VIDEO/VOICE/HT CALL MODAL WITH WebRTC STREAMING -->
     <div id="videoCallModal">
         <div style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 20; background: rgba(0,0,0,0.6); padding: 12px; display: flex; justify-content: space-between; align-items: center; padding-left: 20px; padding-right: 20px;">
             <div>
                 <h3 id="videoCallTitle" style="font-size: 16px; color: #fff; text-align: left;">Panggilan</h3>
                 <p id="videoCallStatus" style="font-size: 12px; color: #00ffcc; margin-top: 2px; text-align: left;">Menghubungkan...</p>
             </div>
-            <!-- Tombol Ganti Kamera -->
             <button id="btnSwitchCamera" onclick="switchCameraFacing()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-camera-rotate"></i></button>
         </div>
         
-        <!-- Remote Video/Audio Stream Container -->
         <div id="remoteMediaContainer" style="width: 100%; height: 100%; position: absolute; inset: 0; background: #000; z-index: 1; display: flex; align-items: center; justify-content: center;">
             <video id="remoteVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
             <div id="audioOnlyIndicator" style="display:none; flex-direction:column; align-items:center; color:white; gap:12px;">
@@ -220,16 +211,14 @@
                 <h4 id="audioCallIndicatorText" style="font-size: 20px;">Panggilan Suara Realtime</h4>
             </div>
         </div>
-        <!-- Local Video PiP Container -->
+        
         <div id="localVideoWrapper" onclick="switchVideoView()" style="position: absolute; top: 90px; right: 20px; width: 110px; height: 160px; background: #222; border-radius: 12px; overflow: hidden; border: 2px solid #fff; z-index: 25; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
             <video id="localVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
         </div>
 
-        <!-- CALL CONTROLS BAR -->
         <div style="position: absolute; bottom: 30px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 30;">
             <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none;"><i class="fa-solid fa-phone"></i></button>
 
-            <!-- PTT Push-to-Talk Button (Tampil Khusus Mode HT) -->
             <button id="btnPttLiveTx" class="ptt-live-talk-btn" 
                     onmousedown="startPttLiveAudio()" onmouseup="stopPttLiveAudio()"
                     ontouchstart="startPttLiveAudio()" ontouchend="stopPttLiveAudio()"
@@ -241,7 +230,6 @@
         </div>
     </div>
 
-    <!-- LOGIN SCREEN (WhatsApp Style) -->
     <div id="loginModal" class="overlay-screen">
         <i class="fa-brands fa-whatsapp" style="font-size: 68px; color: var(--wa-green); margin-bottom: 16px;"></i>
         <h2>iqChat</h2>
@@ -250,7 +238,6 @@
         <button class="btn-green" onclick="requestOtpCode()">Kirim Kode Verifikasi OTP</button>
     </div>
 
-    <!-- OTP SCREEN -->
     <div id="otpModal" class="overlay-screen" style="display:none;">
         <i class="fa-solid fa-shield-halved" style="font-size: 58px; color: var(--wa-green); margin-bottom: 16px;"></i>
         <h2>Konfirmasi OTP WhatsApp</h2>
@@ -259,10 +246,8 @@
         <button class="btn-green" onclick="verifyOtpCode()">Verifikasi & Masuk</button>
     </div>
 
-    <!-- MAIN APP WINDOW -->
     <div class="app-window" id="appWindowContainer">
         
-        <!-- VIEW CONTACT LIST -->
         <div id="viewContactList" class="view-panel active">
             <div class="app-header">
                 <div class="header-title" onclick="openProfileSettings()">
@@ -280,13 +265,11 @@
                 <span id="connectionStatusBadge" style="color:#a7f3d0;"><i class="fa-solid fa-tower-cell"></i> Online Realtime</span>
             </div>
 
-            <!-- TABS MENU WHATSAPP (CHAT & PANGGILAN) -->
             <div style="display:flex; background:#075E54; color:white; font-weight:bold; font-size:14px;">
                 <div id="tabChatBtn" onclick="switchMainTab('chats')" style="flex:1; text-align:center; padding:10px; cursor:pointer; border-bottom:3px solid white;">CHATS</div>
                 <div id="tabCallBtn" onclick="switchMainTab('calls')" style="flex:1; text-align:center; padding:10px; cursor:pointer; border-bottom:3px solid transparent; color:#cfd8dc;">PANGGILAN</div>
             </div>
 
-            <!-- TAB CONTAINER CHATS -->
             <div id="tabContentChats" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
                 <div class="search-bar-container">
                     <input type="text" class="search-box" placeholder="Cari kontak atau riwayat pesan..." oninput="filterContacts(this.value)">
@@ -295,13 +278,11 @@
                 <div class="contact-list" id="contactListContainer"></div>
             </div>
 
-            <!-- TAB CONTAINER CALLS (RIWAYAT PANGGILAN) -->
             <div id="tabContentCalls" class="contact-list" style="display:none; flex:1;">
                 <div id="callLogsContainer"></div>
             </div>
         </div>
 
-        <!-- VIEW CHAT ROOM -->
         <div id="viewChatRoom" class="view-panel chat-room-panel">
             <div class="app-header">
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -320,10 +301,9 @@
                         </div>
                     </div>
                 </div>
-                <!-- Action buttons: Separatasi tombol HT vs Video Call Realtime vs Voice Call -->
                 <div class="header-actions">
                     <button class="btn-icon" id="btnTogglePttMode" onclick="startHtCall()" title="Panggilan HT Walkie-Talkie" style="color:#38bdf8;"><i class="fa-solid fa-walkie-talkie"></i></button>
-                    <button class="btn-icon" onclick="clearChatHistoryConfirm()" title="Bersihkan Riwayat Chat & Hapus Kontak Bila Kosong" style="color:white;"><i class="fa-solid fa-trash-can"></i></button>
+                    <button class="btn-icon" onclick="clearChatHistoryConfirm()" title="Bersihkan Riwayat Chat" style="color:white;"><i class="fa-solid fa-trash-can"></i></button>
                     <button class="btn-icon" onclick="editContactProfile()" title="Simpan / Edit Kontak" style="color:white;"><i class="fa-solid fa-pen-to-square"></i></button>
                     <button class="btn-icon" onclick="startVoiceCall()" style="color:white;" title="Panggilan Suara Realtime"><i class="fa-solid fa-phone"></i></button>
                     <button class="btn-icon" onclick="startVideoCall()" style="color:white;" title="Video Call Realtime"><i class="fa-solid fa-video"></i></button>
@@ -332,14 +312,12 @@
 
             <div class="chat-messages" id="chatMessagesArea"></div>
 
-            <!-- MENU ATTACHMENT -->
             <div id="attachMenu">
                 <div class="attach-item" onclick="triggerFileInput('image/*')"><i class="fa-solid fa-image" style="color:#a855f7;"></i> Foto & Galeri</div>
                 <div class="attach-item" onclick="openShareLokModal()"><i class="fa-solid fa-location-dot" style="color:#22c55e;"></i> Lokasi (ShareLok & Live)</div>
                 <div class="attach-item" onclick="startRoundVideoRecord()"><i class="fa-solid fa-video" style="color:#3b82f6;"></i> Video Bulat (1 Menit)</div>
             </div>
 
-            <!-- KOTAK PRATINJAU REPLY PESAN -->
             <div id="replyPreviewBox" class="reply-preview-container">
                 <div>
                     <div style="font-size:11px; font-weight:bold; color:var(--wa-dark-green);" id="replyingToName">Membalas Pesan</div>
@@ -348,7 +326,6 @@
                 <button onclick="cancelReplyMessage()" style="background:none; border:none; color:#667781; cursor:pointer; font-size:16px;"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <!-- PTT WALKIE TALKIE CONTROL BAR OVERLAY IN CHAT -->
             <div id="pttControlBar" class="ptt-bar-container">
                 <div class="ptt-status-text" id="pttStatusLabel"><i class="fa-solid fa-radio"></i> PTT HT Live Ready</div>
                 <button id="btnPttPush" class="btn-ptt-talk" 
@@ -358,7 +335,6 @@
                 </button>
             </div>
 
-            <!-- STANDARD CHAT INPUT AREA -->
             <div class="chat-input-area" id="chatInputBar">
                 <input type="file" id="fileInput" style="display:none" onchange="handleFileSelected(this)">
                 <button class="btn-icon" onclick="toggleAttachMenu()"><i class="fa-solid fa-paperclip"></i></button>
@@ -372,7 +348,6 @@
 
     </div>
 
-    <!-- AUDIO & HIDDEN UPLOAD INPUT -->
     <input type="file" id="profileImageInput" accept="image/*" style="display:none;" onchange="saveProfileImage(this)">
 
     <script>
@@ -402,7 +377,7 @@
         let swRegistration = null;
         let audioCtx = null;
         let callStartTime = null;
-        let appSessionStartTime = Date.now();
+        const appSessionStartTime = Date.now();
         let meshDataChannel = null;
         let isOnlineState = navigator.onLine;
         let pendingIceCandidates = [];
@@ -1092,6 +1067,11 @@
 
                 if(localStream) {
                     localStream.getVideoTracks().forEach(t => t.stop());
+                    // Preserve existing audio track if already attached to peerConnection to avoid dropping audio
+                    const oldAudioTrack = localStream.getAudioTracks()[0];
+                    if (oldAudioTrack && newStream.getAudioTracks().length > 0) {
+                        // replace new audio track with active audio track or keep existing
+                    }
                 }
 
                 localStream = newStream;
@@ -1104,6 +1084,11 @@
                     const videoSender = senders.find(s => s.track && s.track.kind === 'video');
                     if(videoSender && newVideoTrack) {
                         await videoSender.replaceTrack(newVideoTrack);
+                    }
+                    const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
+                    const newAudioTrack = newStream.getAudioTracks()[0];
+                    if(audioSender && newAudioTrack) {
+                        await audioSender.replaceTrack(newAudioTrack);
                     }
                 }
             } catch (err) {
@@ -1491,7 +1476,6 @@
                 meshDataChannel.onopen = () => console.log("Mesh DataChannel Connected");
                 meshDataChannel.onmessage = (e) => {
                     let pkt = JSON.parse(e.data);
-                    console.log("Packet received via WebRTC Mesh:", pkt);
                     if (isOnlineState) {
                         relayPacketToMeshGateway(pkt);
                     }
@@ -1530,7 +1514,6 @@
         async function handleIceRestart() {
             if (!peerConnection || !activeCallRef) return;
             try {
-                console.log("Memicu WebRTC ICE Restart...");
                 if (peerConnection.restartIce) {
                     peerConnection.restartIce();
                 }
@@ -1563,11 +1546,12 @@
                 const callKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 db.ref('iqchat_calls/' + callKey).on('value', async (snapshot) => {
                     let callData = snapshot.val();
-                    // STRICT CHECK: callData must be status 'calling' AND timestamp must be newer than app session start time
                     if(callData && callData.caller !== currentUser && callData.status === 'calling') {
+                        // IGNORE calls that started before this app session to avoid stale missed call bugs on reload
                         if (!callData.timestamp || callData.timestamp < appSessionStartTime) {
-                            return; // Skip stale or old calls from previous sessions upon refresh
+                            return;
                         }
+
                         activeCallRef = db.ref('iqchat_calls/' + callKey);
                         activeTarget = callData.caller;
                         callType = callData.callType || (callData.video ? 'video' : 'voice');
@@ -1887,7 +1871,6 @@
                         
                         let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
                         if (activeTarget !== num) {
-                            // Hitung pesan masuk dari pengirim lain yang timestamp-nya lebih baru dari waktu session saat ini
                             let unreadFromOther = messages.filter(m => m && m.sender !== currentUser && m.timestamp > appSessionStartTime && m.status !== 'read').length;
                             unreadCounts[roomKey] = Math.max(unreadCounts[roomKey] || 0, unreadFromOther);
                         } else {
@@ -2146,7 +2129,7 @@
             let identifier = details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2);
             document.getElementById('popupAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 42, true);
 
-            document.getElementById('popupSenderName', "+" + num);
+            document.getElementById('popupSenderName').innerText = "+" + num;
             document.getElementById('popupMessageText').innerText = typeof text === 'object' ? '[Media/Panggilan]' : text;
             document.getElementById('incomingPopup').style.display = 'flex';
             setTimeout(() => { document.getElementById('incomingPopup').style.display = 'none'; }, 6000);
