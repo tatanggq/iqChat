@@ -149,7 +149,7 @@
 
     <div id="liveMapModal">
         <div style="display:flex; justify-content:space-between; align-items:center; color:white; padding: 0 4px;">
-            <b>Peta Berbagi Lokasi Terkini (Real-time)</b>
+            <b>Peta Berbagi Lokasi Terkini</b>
             <button onclick="document.getElementById('liveMapModal').style.display='none'" style="background:red; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Tutup</button>
         </div>
         <div id="liveMapContainer"></div>
@@ -177,7 +177,7 @@
 
     <div id="mapModal">
         <div style="display:flex; justify-content:space-between; align-items:center; color:white; padding: 0 4px;">
-            <b id="mapModalTitle">Kirim Lokasi Terkini</b>
+            <b id="mapModalTitle">Kirim Lokasi</b>
             <button onclick="closeMapModal()" style="background:red; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Batal</button>
         </div>
         <div id="mapContainer">
@@ -185,7 +185,7 @@
         </div>
         <div style="background: white; padding: 12px; border-radius: 8px; display: flex; flex-direction: column; gap: 8px;">
             <button onclick="sendPickedLocation()" style="background:var(--wa-green); border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; color:#000;">Kirim Lokasi Ini (Pin)</button>
-            <button onclick="sendLiveLocation()" style="background:#075E54; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-location-arrow"></i> Bagikan Lokasi Terkini (Live Location)</button>
+            <button onclick="sendLiveLocation()" style="background:#075E54; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-location-arrow"></i> Berbagi Lokasi Terkini</button>
         </div>
     </div>
 
@@ -262,7 +262,7 @@
             
             <div style="background:#115e59; color:white; padding:6px 14px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
                 <span>Akun: <b id="myPhoneBadge">-</b></span>
-                <span id="connectionStatusBadge" style="color:#a7f3d0;"><i class="fa-solid fa-tower-cell"></i> WHATSAPP </span>
+                <span id="connectionStatusBadge" style="color:#a7f3d0;"><i class="fa-solid fa-tower-cell"></i> WHATSAPP</span>
             </div>
 
             <div style="display:flex; background:#075E54; color:white; font-weight:bold; font-size:14px;">
@@ -314,7 +314,7 @@
 
             <div id="attachMenu">
                 <div class="attach-item" onclick="triggerFileInput('image/*')"><i class="fa-solid fa-image" style="color:#a855f7;"></i> Foto & Galeri</div>
-                <div class="attach-item" onclick="openShareLokModal()"><i class="fa-solid fa-location-dot" style="color:#22c55e;"></i> Lokasi (ShareLok & Live)</div>
+                <div class="attach-item" onclick="openShareLokModal()"><i class="fa-solid fa-location-dot" style="color:#22c55e;"></i> Lokasi (Kirim Pin & Live)</div>
                 <div class="attach-item" onclick="startRoundVideoRecord()"><i class="fa-solid fa-video" style="color:#3b82f6;"></i> Video Bulat (1 Menit)</div>
             </div>
 
@@ -327,7 +327,7 @@
             </div>
 
             <div id="pttControlBar" class="ptt-bar-container">
-                <div class="ptt-status-text" id="pttStatusLabel"><i class="fa-solid fa-radio"></i> PTT HT Live Ready</div>
+                <div class="ptt-status-text" id="pttStatusLabel"><i class="fa-solid fa-radio"></i> PTT HT Ready</div>
                 <button id="btnPttPush" class="btn-ptt-talk" 
                         onmousedown="startPttTransmit()" onmouseup="stopPttTransmit()" 
                         ontouchstart="startPttTransmit()" ontouchend="stopPttTransmit()">
@@ -359,7 +359,7 @@
 
         let currentUser = localStorage.getItem('iq_user_phone') || "";
         let activeTarget = localStorage.getItem('iq_active_target') || "";
-        let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["628997032209", "6285934602965", "GeminiAI"]');
+        let contacts = JSON.parse(localStorage.getItem('iq_contacts') || '["GeminiAI"]');
         let localStream = null, remoteStream = null;
         let activeCallRef = null, peerConnection = null, isSwapped = false, callType = 'video';
         let currentFacingMode = 'user'; 
@@ -841,6 +841,10 @@
                             lastMsg = `<span style="${isMissed ? 'color:#ef4444;' : ''}">📞 Panggilan ${callLabel} (${lastMsgObj.content.status})</span>`;
                         } else if (lastMsgObj.type === 'ptt') {
                             lastMsg = "📻 [Walkie-Talkie]";
+                        } else if (lastMsgObj.type === 'location') {
+                            lastMsg = "📍 [Kirim Lokasi Pin]";
+                        } else if (lastMsgObj.type === 'livelocation') {
+                            lastMsg = "📍 [Berbagi Lokasi Terkini]";
                         } else {
                             lastMsg = "📍 [Media/Lokasi]";
                         }
@@ -989,7 +993,7 @@
             const pttBtn = document.getElementById('btnPttPush');
             const statusLabel = document.getElementById('pttStatusLabel');
             pttBtn.classList.remove('transmitting');
-            statusLabel.innerHTML = `<i class="fa-solid fa-radio"></i> PTT HT Live Ready`;
+            statusLabel.innerHTML = `<i class="fa-solid fa-radio"></i> PTT HT Ready`;
 
             if(pttRecorder && pttRecorder.state !== 'inactive') {
                 pttRecorder.stop();
@@ -1226,7 +1230,15 @@
 
         function sendPickedLocation() {
             closeMapModal();
-            sendChatMessage({ lat: currentLat, lng: currentLng, title: "Kirim Lokasi" }, 'location');
+            // Use the exact coordinates where the user dropped/dragged the pin on the map
+            let finalLat = currentLat;
+            let finalLng = currentLng;
+            if (markerInstance) {
+                let pos = markerInstance.getLatLng();
+                finalLat = pos.lat;
+                finalLng = pos.lng;
+            }
+            sendChatMessage({ lat: finalLat, lng: finalLng, title: "Kirim Lokasi Pin" }, 'location');
         }
 
         function sendLiveLocation() {
@@ -1301,10 +1313,25 @@
                 const webMaps = `https://www.google.com/maps/search/?api=1&query=${tempSelectedLat},${tempSelectedLng}`;
                 window.open(webMaps, '_blank');
             } else if(type === 'indrive') {
-                const indriveApp = `indrive://taxi?destination_lat=${tempSelectedLat}&destination_lon=${tempSelectedLng}`;
-                const indriveWeb = `https://indrive.com/`;
-                window.location.href = indriveApp;
-                setTimeout(() => { window.open(indriveWeb, '_blank'); }, 600);
+                // Direct app URI scheme for inDrive passing destination coordinates for ordering
+                const indriveAppUrl = `indrive://taxi?destination_lat=${tempSelectedLat}&destination_lon=${tempSelectedLng}`;
+                // Fallback store/web link if app is not installed
+                const indriveStoreUrl = `https://indrive.com/`;
+                
+                let fallbackTriggered = false;
+                const timer = setTimeout(() => {
+                    if (!fallbackTriggered) {
+                        fallbackTriggered = true;
+                        window.open(indriveStoreUrl, '_blank');
+                    }
+                }, 1200);
+
+                window.addEventListener('blur', () => {
+                    clearTimeout(timer);
+                    fallbackTriggered = true;
+                }, { once: true });
+
+                window.location.href = indriveAppUrl;
             } else if(type === 'iqbike') {
                 console.log(`Memesan Ojol iqBike ke koordinat: ${tempSelectedLat.toFixed(5)}, ${tempSelectedLng.toFixed(5)}`);
             }
@@ -1342,8 +1369,8 @@
             
             let callTitleStr = "";
             if(callType === 'ht') callTitleStr = "Panggilan HT Walkie-Talkie ";
-            else if(callType === 'video') callTitleStr = "Video Call";
-            else callTitleStr = "Panggilan Suara";
+            else if(callType === 'video') callTitleStr = "Video Call ";
+            else callTitleStr = "Panggilan Suara ";
 
             document.getElementById('videoCallTitle').innerText = callTitleStr + `+${activeTarget}`;
             document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
@@ -1459,9 +1486,9 @@
                 const statusEl = document.getElementById('videoCallStatus');
                 if (statusEl) {
                     if (state === 'checking') {
-                        statusEl.innerText = "Menghubungkan lintas jaringan (Wi-Fi / Seluler)...";
+                        statusEl.innerText = "Menghubungkan...";
                     } else if (state === 'connected' || state === 'completed') {
-                        statusEl.innerText = callType === 'ht' ? "Terhubung HT (Standby Mute - Tahan PTT saat Bicara)" : "Terhubung.";
+                        statusEl.innerText = callType === 'ht' ? "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)" : "Terhubung.";
                     } else if (state === 'failed') {
                         statusEl.innerText = "Jaringan berbeda terdeteksi. Mengaktifkan TURN Relay TCP...";
                         handleIceRestart();
@@ -1615,7 +1642,7 @@
         async function answerIncomingCall() {
             if(activeCallRef) {
                 document.getElementById('btnAnswerCall').style.display = 'none';
-                document.getElementById('videoCallStatus').innerText = "Menghubungkan 1-Klik...";
+                document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
                 callStartTime = Date.now();
 
                 setupPeerConnection();
@@ -1636,7 +1663,7 @@
                             activeCallRef.update({ answer: JSON.stringify(peerConnection.localDescription), status: 'accepted' });
                             
                             if(callType === 'ht') {
-                                document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT Saat Bicara)";
+                                document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
                             } else {
                                 document.getElementById('videoCallStatus').innerText = "Terhubung.";
                             }
@@ -1955,24 +1982,24 @@
                     rawTextForReply = "[Foto]";
                     bodyHtml = `${replyQuoteHtml}<img src="${msg.content.data}" style="max-width:100%; border-radius:6px; margin-bottom:4px;"><div style="font-size:11px;">📷 ${msg.content.name}</div>`;
                 } else if(msg.type === 'location') {
-                    rawTextForReply = "[Lokasi]";
+                    rawTextForReply = "[Kirim Lokasi Pin]";
                     bodyHtml = `
                         ${replyQuoteHtml}
                         <div onclick="triggerNavOptions(${msg.content.lat}, ${msg.content.lng})" style="background:#e6f4ea; padding:10px; border-radius:6px; text-align:center; cursor:pointer;">
                             <div style="display:flex; justify-content:center; align-items:center; margin-bottom:6px;">${avatarMini}</div>
                             <i class="fa-solid fa-map-location-dot" style="font-size:22px; color:#137333; margin-bottom:4px;"></i>
-                            <div><b>Bagikan Lokasi</b></div>
+                            <div><b>Kirim Lokasi Pin</b></div>
                             <div style="color:#1a73e8; font-size:11.5px; display:block; margin-top:4px; font-weight:bold;">Ketuk untuk buka Google Maps & inDrive</div>
                         </div>`;
                 } else if(msg.type === 'livelocation') {
-                    rawTextForReply = "[Live Location]";
+                    rawTextForReply = "[Berbagi Lokasi Terkini]";
                     bodyHtml = `
                         ${replyQuoteHtml}
                         <div onclick="openLiveLocationMap(${msg.content.lat}, ${msg.content.lng}, '${msg.sender}')" style="background:#e6f4ea; padding:10px; border-radius:6px; text-align:center; cursor:pointer;">
                             <div style="display:flex; justify-content:center; align-items:center; margin-bottom:6px;">${avatarMini}</div>
                             <i class="fa-solid fa-location-arrow" style="font-size:22px; color:#075E54; margin-bottom:4px;"></i>
-                            <div><b>Berbagi Lokasi Terkini (Live)</b></div>
-                            <div style="font-size:11px; color:#1a73e8; margin:2px 0; font-weight:bold;">Ketuk untuk buka Peta Terkini</div>
+                            <div><b>Berbagi Lokasi Terkini</b></div>
+                            <div style="font-size:11px; color:#1a73e8; margin:2px 0; font-weight:bold;">Ketuk untuk buka Peta</div>
                         </div>`;
                 } else if(msg.type === 'voicename') {
                     rawTextForReply = "[Voice Note]";
