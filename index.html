@@ -383,14 +383,15 @@
         let pendingIceCandidates = [];
         let localWebSocket = null;
         let localWsServerUrl = localStorage.getItem('iq_local_ws_url') || "";
+        let incomingCallListenerAttached = false;
+        let activeCallKey = null;
 
+        // Enhanced STUN/TURN pool with aggressive fallback for cross-NAT / Wi-Fi vs Cellular asymmetry
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' },
                 { urls: 'stun:stun.services.mozilla.com' },
                 { urls: 'stun:global.stun.twilio.com:3478' },
                 { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
@@ -398,7 +399,9 @@
                 { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' },
                 { urls: 'turns:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
             ],
-            iceCandidatePoolSize: 10
+            iceCandidatePoolSize: 10,
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require'
         };
 
         window.addEventListener('online', updateNetworkConnectionStatus);
@@ -928,7 +931,6 @@
         }
 
         function relayPacketToMeshGateway(packet) {
-            console.log("Relaying packet via WebRTC Mesh Relay DataChannel:", packet);
             if (meshDataChannel && meshDataChannel.readyState === 'open') {
                 meshDataChannel.send(JSON.stringify(packet));
             } else if (localWebSocket && localWebSocket.readyState === WebSocket.OPEN) {
@@ -969,7 +971,7 @@
 
             navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
                 localStream = stream;
-                pttRecorder = new MediaRecorder(stream);
+                pttRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
                 pttAudioChunks = [];
                 pttRecorder.ondataavailable = e => pttAudioChunks.push(e.data);
                 pttRecorder.onstop = () => {
@@ -1028,7 +1030,7 @@
             currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
 
             let newConstraints = {
-                video: { facingMode: { exact: currentFacingMode } },
+                video: { facingMode: { exact: currentFacingMode }, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } },
                 audio: true
             };
 
@@ -1047,7 +1049,7 @@
                             currentVideoDeviceId = nextDev.deviceId;
                             newStream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: currentVideoDeviceId } }, audio: true });
                         } else {
-                            throw new Error("Kamera sekunder tidak ditemukan pada perangkat.");
+                            throw new Error("Kamera sekunder tidak ditemukan.");
                         }
                     }
                 }
@@ -1067,11 +1069,6 @@
 
                 if(localStream) {
                     localStream.getVideoTracks().forEach(t => t.stop());
-                    // Preserve existing audio track if already attached to peerConnection to avoid dropping audio
-                    const oldAudioTrack = localStream.getAudioTracks()[0];
-                    if (oldAudioTrack && newStream.getAudioTracks().length > 0) {
-                        // replace new audio track with active audio track or keep existing
-                    }
                 }
 
                 localStream = newStream;
@@ -1084,11 +1081,6 @@
                     const videoSender = senders.find(s => s.track && s.track.kind === 'video');
                     if(videoSender && newVideoTrack) {
                         await videoSender.replaceTrack(newVideoTrack);
-                    }
-                    const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
-                    const newAudioTrack = newStream.getAudioTracks()[0];
-                    if(audioSender && newAudioTrack) {
-                        await audioSender.replaceTrack(newAudioTrack);
                     }
                 }
             } catch (err) {
@@ -1109,7 +1101,6 @@
 
             const isAI = num === "GeminiAI";
             const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
-            
             let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
             unreadCounts[roomKey] = 0;
             localStorage.setItem('iq_unread_counts', JSON.stringify(unreadCounts));
@@ -1326,8 +1317,8 @@
         }
 
         function initiateCallProcess() {
-            const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
-            activeCallRef = db.ref('iqchat_calls/' + callKey);
+            activeCallKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
+            activeCallRef = db.ref('iqchat_calls/' + activeCallKey);
             callStartTime = null;
             pendingIceCandidates = [];
 
@@ -1360,7 +1351,10 @@
                 document.getElementById('localVideoWrapper').style.display = 'none';
             }
 
-            const constraints = { video: (callType !== 'voice') ? { facingMode: currentFacingMode } : false, audio: true };
+            const constraints = { 
+                video: (callType !== 'voice') ? { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } } : false, 
+                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+            };
 
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(stream => {
@@ -1381,13 +1375,15 @@
                     setupPeerConnection();
                     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
                     
-                    peerConnection.createOffer().then(offer => peerConnection.setLocalDescription(offer)).then(() => {
-                        if(isOnlineState) {
-                            activeCallRef.update({ offer: JSON.stringify(peerConnection.localDescription) });
-                        } else if (localWebSocket && localWebSocket.readyState === WebSocket.OPEN) {
-                            localWebSocket.send(JSON.stringify({ type: 'offer', target: activeTarget, sender: currentUser, offer: peerConnection.localDescription }));
-                        }
-                    });
+                    peerConnection.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: (callType !== 'voice') })
+                        .then(offer => peerConnection.setLocalDescription(offer))
+                        .then(() => {
+                            if(isOnlineState) {
+                                activeCallRef.update({ offer: JSON.stringify(peerConnection.localDescription) });
+                            } else if (localWebSocket && localWebSocket.readyState === WebSocket.OPEN) {
+                                localWebSocket.send(JSON.stringify({ type: 'offer', target: activeTarget, sender: currentUser, offer: peerConnection.localDescription }));
+                            }
+                        });
                 }).catch(e => alert("Gagal akses kamera/mic: " + e.message));
 
             if(isOnlineState) {
@@ -1408,12 +1404,11 @@
                             await processPendingIceCandidates();
                         }
                     } else if(callData.status === 'ended') {
-                        calculateAndLogEndCall('outgoing');
-                        closeCallModalUI();
+                        closeCallModalUI(false);
                     }
                 });
 
-                db.ref('iqchat_calls/' + callKey + '/candidates').on('child_added', snapshot => {
+                db.ref('iqchat_calls/' + activeCallKey + '/candidates').on('child_added', snapshot => {
                     let cand = snapshot.val();
                     if(cand) {
                         const candidateObj = JSON.parse(cand);
@@ -1454,19 +1449,19 @@
                 const statusEl = document.getElementById('videoCallStatus');
                 if (statusEl) {
                     if (state === 'checking') {
-                        statusEl.innerText = "Menghubungkan via TURN Relay...";
+                        statusEl.innerText = "Menghubungkan lintas jaringan (Wi-Fi / Kuota)...";
                     } else if (state === 'connected' || state === 'completed') {
                         statusEl.innerText = callType === 'ht' ? "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)" : "Terhubung Realtime";
                     } else if (state === 'failed') {
-                        statusEl.innerText = "Koneksi terganggu. Mencoba ICE Restart...";
+                        statusEl.innerText = "Koneksi terganggu. Mengaktifkan TURN Relay...";
                         handleIceRestart();
                     } else if (state === 'disconnected') {
-                        statusEl.innerText = "Sinyal terputus. Mencari jalur alternatif...";
+                        statusEl.innerText = "Sinyal terputus sementara...";
                         setTimeout(() => {
                             if (peerConnection && (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed')) {
                                 handleIceRestart();
                             }
-                        }, 3000);
+                        }, 2500);
                     }
                 }
             };
@@ -1501,11 +1496,10 @@
 
             peerConnection.onicecandidate = (event) => {
                 if(event.candidate) {
-                    if(isOnlineState) {
-                        const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
-                        db.ref('iqchat_calls/' + callKey + '/candidates').push(JSON.stringify(event.candidate));
+                    if(isOnlineState && activeCallKey) {
+                        db.ref('iqchat_calls/' + activeCallKey + '/candidates').push(JSON.stringify(event.candidate));
                     } else if(localWebSocket && localWebSocket.readyState === WebSocket.OPEN) {
-                        localWebSocket.send(JSON.stringify({ type: 'candidate', target: activeTarget, sender: currentUser, candidate: event.candidate }));
+                        localWebSocket.send(JSON.stringify({ type: 'candidate', target: activeCallKey ? activeTarget : '', sender: currentUser, candidate: event.candidate }));
                     }
                 }
             };
@@ -1541,17 +1535,20 @@
         }
 
         function listenToIncomingCalls() {
+            if (incomingCallListenerAttached) return;
+            incomingCallListenerAttached = true;
+
             contacts.forEach(num => {
                 if(num === "GeminiAI") return;
                 const callKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 db.ref('iqchat_calls/' + callKey).on('value', async (snapshot) => {
                     let callData = snapshot.val();
                     if(callData && callData.caller !== currentUser && callData.status === 'calling') {
-                        // IGNORE calls that started before this app session to avoid stale missed call bugs on reload
                         if (!callData.timestamp || callData.timestamp < appSessionStartTime) {
                             return;
                         }
 
+                        activeCallKey = callKey;
                         activeCallRef = db.ref('iqchat_calls/' + callKey);
                         activeTarget = callData.caller;
                         callType = callData.callType || (callData.video ? 'video' : 'voice');
@@ -1564,7 +1561,7 @@
                         
                         let callTitleStr = callType === 'ht' ? "Panggilan HT Walkie-Talkie dari " : (callType === 'video' ? "Video Call Realtime dari " : "Panggilan Suara dari ");
                         document.getElementById('videoCallTitle').innerText = callTitleStr + `+${callData.caller}`;
-                        document.getElementById('videoCallStatus').innerText = "Panggilan masuk...";
+                        document.getElementById('videoCallStatus').innerText = "Panggilan masuk (Ketuk Angkat)...";
                         document.getElementById('btnAnswerCall').style.display = 'block';
                         document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
                         document.getElementById('btnPttLiveTx').style.display = (callType === 'ht') ? 'flex' : 'none';
@@ -1580,7 +1577,10 @@
                             document.getElementById('localVideoWrapper').style.display = 'none';
                         }
 
-                        navigator.mediaDevices.getUserMedia({ video: (callType !== 'voice'), audio: true })
+                        navigator.mediaDevices.getUserMedia({ 
+                            video: (callType !== 'voice') ? { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } } : false, 
+                            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+                        })
                             .then(stream => {
                                 localStream = stream;
                                 if(callType === 'ht') {
@@ -1595,7 +1595,7 @@
                                 }
                             }).catch(e => {});
                     } else if(callData && callData.status === 'ended') {
-                        closeCallModalUI();
+                        closeCallModalUI(true);
                     }
                 });
             });
@@ -1604,7 +1604,7 @@
         async function answerIncomingCall() {
             if(activeCallRef) {
                 document.getElementById('btnAnswerCall').style.display = 'none';
-                document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
+                document.getElementById('videoCallStatus').innerText = "Menghubungkan 1-Klik...";
                 callStartTime = Date.now();
 
                 setupPeerConnection();
@@ -1615,30 +1615,35 @@
                 activeCallRef.once('value', async (snapshot) => {
                     let callData = snapshot.val();
                     if(callData && callData.offer) {
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.offer)));
-                        await processPendingIceCandidates();
+                        try {
+                            await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.offer)));
+                            await processPendingIceCandidates();
 
-                        let answer = await peerConnection.createAnswer();
-                        await peerConnection.setLocalDescription(answer);
-                        
-                        activeCallRef.update({ answer: JSON.stringify(peerConnection.localDescription), status: 'accepted' });
-                        
-                        if(callType === 'ht') {
-                            document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
-                        } else {
-                            document.getElementById('videoCallStatus').innerText = "Terhubung Realtime";
+                            let answer = await peerConnection.createAnswer();
+                            await peerConnection.setLocalDescription(answer);
+                            
+                            activeCallRef.update({ answer: JSON.stringify(peerConnection.localDescription), status: 'accepted' });
+                            
+                            if(callType === 'ht') {
+                                document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
+                            } else {
+                                document.getElementById('videoCallStatus').innerText = "Terhubung Realtime";
+                            }
+                        } catch(err) {
+                            console.error("Gagal menerima panggilan:", err);
                         }
                     }
                 });
 
-                const callKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
-                db.ref('iqchat_calls/' + callKey + '/candidates').on('child_added', snapshot => {
-                    let cand = snapshot.val();
-                    if(cand) {
-                        const candidateObj = JSON.parse(cand);
-                        addOrQueueIceCandidate(candidateObj);
-                    }
-                });
+                if (activeCallKey) {
+                    db.ref('iqchat_calls/' + activeCallKey + '/candidates').on('child_added', snapshot => {
+                        let cand = snapshot.val();
+                        if(cand) {
+                            const candidateObj = JSON.parse(cand);
+                            addOrQueueIceCandidate(candidateObj);
+                        }
+                    });
+                }
             }
         }
 
@@ -1664,9 +1669,9 @@
             }
         }
 
-        function calculateAndLogEndCall(direction) {
+        function calculateAndLogEndCall(direction, wasConnected) {
             let statusText = "Tidak dijawab";
-            if (callStartTime) {
+            if (wasConnected && callStartTime) {
                 const durationSec = Math.floor((Date.now() - callStartTime) / 1000);
                 if (durationSec < 60) {
                     statusText = `${durationSec} dtk`;
@@ -1682,14 +1687,19 @@
         }
 
         function endVideoCall() {
-            calculateAndLogEndCall('outgoing');
+            const wasConnected = !!callStartTime;
+            calculateAndLogEndCall('outgoing', wasConnected);
             if(activeCallRef && isOnlineState) { 
                 activeCallRef.update({ status: 'ended' }); 
             }
-            closeCallModalUI();
+            closeCallModalUI(false);
         }
 
-        function closeCallModalUI() {
+        function closeCallModalUI(isIncomingDisconnect = false) {
+            if (isIncomingDisconnect && callStartTime) {
+                // Panggilan masuk sudah terhubung lalu ditutup lawan
+                calculateAndLogEndCall('incoming', true);
+            }
             if(localStream) { 
                 localStream.getTracks().forEach(track => track.stop()); 
                 localStream = null;
@@ -1699,6 +1709,7 @@
                 peerConnection = null; 
             }
             pendingIceCandidates = [];
+            activeCallKey = null;
             document.getElementById('videoCallModal').style.display = 'none';
             document.getElementById('remoteVideo').srcObject = null;
             document.getElementById('localVideo').srcObject = null;
@@ -1707,7 +1718,7 @@
 
         function startVoiceRecord() {
             navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
                 audioChunks = [];
                 mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
                 mediaRecorder.onstop = () => {
@@ -1731,10 +1742,10 @@
         function startRoundVideoRecord() {
             document.getElementById('attachMenu').style.display = 'none';
             document.getElementById('videoRoundModal').style.display = 'flex';
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+            navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 320 }, height: { ideal: 320 }, frameRate: { ideal: 15 } }, audio: true }).then(stream => {
                 localStream = stream;
                 document.getElementById('roundVideoPreview').srcObject = stream;
-                roundVideoRecorder = new MediaRecorder(stream);
+                roundVideoRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
                 roundVideoChunks = [];
                 roundVideoRecorder.ondataavailable = e => roundVideoChunks.push(e.data);
                 roundVideoRecorder.onstop = () => {
