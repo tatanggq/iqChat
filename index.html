@@ -386,11 +386,15 @@
         let incomingCallListenerAttached = false;
         let activeCallKey = null;
 
+        // Enhanced WebRTC ICE Configuration with multiple robust Public STUN and TURN Relays (UDP + TCP 443)
+        // This ensures calls connect seamlessly even when one peer is on Wi-Fi and another is on Cellular Data (Kuota).
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
                 { urls: 'stun:stun.services.mozilla.com' },
                 { urls: 'stun:global.stun.twilio.com:3478' },
                 { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
@@ -398,9 +402,10 @@
                 { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' },
                 { urls: 'turns:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
             ],
-            iceCandidatePoolSize: 10,
+            iceCandidatePoolSize: 15,
             bundlePolicy: 'max-bundle',
-            rtcpMuxPolicy: 'require'
+            rtcpMuxPolicy: 'require',
+            iceTransportPolicy: 'all'
         };
 
         window.addEventListener('online', updateNetworkConnectionStatus);
@@ -748,7 +753,7 @@
                         <div class="contact-name"><span style="${isMissed ? 'color:#ef4444;' : ''}">${displayName}</span></div>
                         <div class="contact-preview" style="display:flex; align-items:center; ${isMissed ? 'color:#ef4444;' : ''}">
                             ${directionIcon} 
-                            <span>${log.status} (${timeFormatted})</span>
+                            <span>Panggilan ${log.callType === 'ht' ? 'HT' : (log.callType === 'video' ? 'Video' : 'Suara')} (${log.status} - ${timeFormatted})</span>
                         </div>
                     </div>
                     <div class="contact-meta-right">
@@ -1333,7 +1338,7 @@
             else callTitleStr = "Panggilan Suara Realtime ";
 
             document.getElementById('videoCallTitle').innerText = callTitleStr + `+${activeTarget}`;
-            document.getElementById('videoCallStatus').innerText = "Memanggil...";
+            document.getElementById('videoCallStatus').innerText = "Menghubungkan via TURN Relay...";
             document.getElementById('btnAnswerCall').style.display = 'none';
             
             document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
@@ -1448,11 +1453,11 @@
                 const statusEl = document.getElementById('videoCallStatus');
                 if (statusEl) {
                     if (state === 'checking') {
-                        statusEl.innerText = "Menghubungkan lintas jaringan (Wi-Fi / Kuota)...";
+                        statusEl.innerText = "Menghubungkan lintas jaringan (Wi-Fi / Seluler)...";
                     } else if (state === 'connected' || state === 'completed') {
                         statusEl.innerText = callType === 'ht' ? "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)" : "Terhubung Realtime";
                     } else if (state === 'failed') {
-                        statusEl.innerText = "Koneksi terganggu. Mengaktifkan TURN Relay...";
+                        statusEl.innerText = "Jaringan berbeda terdeteksi. Mengaktifkan TURN Relay TCP...";
                         handleIceRestart();
                     } else if (state === 'disconnected') {
                         statusEl.innerText = "Sinyal terputus sementara...";
@@ -1460,7 +1465,7 @@
                             if (peerConnection && (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed')) {
                                 handleIceRestart();
                             }
-                        }, 2500);
+                        }, 2000);
                     }
                 }
             };
