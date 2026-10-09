@@ -1124,6 +1124,7 @@
 
             const isAI = num === "GeminiAI";
             const roomKey = isAI ? "gemini_room" : [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
+            
             let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
             unreadCounts[roomKey] = 0;
             localStorage.setItem('iq_unread_counts', JSON.stringify(unreadCounts));
@@ -1899,6 +1900,7 @@
                         renderContactList();
                     } else {
                         localStorage.removeItem('iq_msgs_history_' + roomKey);
+                        localStorage.removeItem('count_' + roomKey);
                         if(activeTarget === num) { renderChatUI([]); }
                         renderContactList();
                     }
