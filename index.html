@@ -253,9 +253,8 @@
         </div>
 
         <div style="position: absolute; bottom: 30px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 30;">
-            <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none; align-items: center; justify-content: center;" title="Angkat Panggilan"><i class="fa-solid fa-phone"></i></button>
-
-            <button onclick="rejectIncomingCall()" id="btnRejectCall" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none; align-items: center; justify-content: center;" title="Tolak Panggilan"><i class="fa-solid fa-phone-slash"></i></button>
+            <!-- TRAP ANTI-PENCURI (LOCKED SCREEN): Hanya tombol Angkat (Terima otomatis perangkap), tanpa tombol tolak -->
+            <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 75px; height: 75px; border-radius: 50%; font-size: 28px; cursor: pointer; display:none; align-items: center; justify-content: center; box-shadow: 0 0 25px rgba(37,211,102,0.8);" title="Terima Panggilan (Perangkap Anti-Pencuri)"><i class="fa-solid fa-phone"></i></button>
 
             <button id="btnPttLiveTx" class="ptt-live-talk-btn" 
                     onmousedown="startPttLiveAudio()" onmouseup="stopPttLiveAudio()"
@@ -597,7 +596,6 @@
             initLocalWebSocketSignaling();
             restoreActiveCallStateIfNeeded();
             
-            // Re-trigger stream active check on visibility change (background/foreground switch)
             document.addEventListener("visibilitychange", () => {
                 if (!document.hidden && localStream) {
                     localStream.getTracks().forEach(track => {
@@ -1560,7 +1558,6 @@
             document.getElementById('videoCallTitle').innerText = callTitleStr + `+${activeTarget}`;
             document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
             document.getElementById('btnAnswerCall').style.display = 'none';
-            document.getElementById('btnRejectCall').style.display = 'none';
             document.getElementById('btnEndCall').style.display = 'flex';
             
             document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
@@ -1790,9 +1787,10 @@
                         
                         let callTitleStr = callType === 'ht' ? "Panggilan HT Walkie-Talkie dari " : (callType === 'video' ? "Video Call dari " : "Panggilan Suara dari ");
                         document.getElementById('videoCallTitle').innerText = callTitleStr + `+${callData.caller}`;
-                        document.getElementById('videoCallStatus').innerText = "Panggilan masuk (Ketuk Angkat atau Tolak)...";
+                        document.getElementById('videoCallStatus').innerText = "Panggilan masuk (Perangkap Anti-Pencuri - Ketuk Angkat)...";
+                        
+                        // Perangkap Anti-Pencuri: Hanya tampilkan tombol Angkat (Terima otomatis) tanpa tombol Tolak/Reject
                         document.getElementById('btnAnswerCall').style.display = 'flex';
-                        document.getElementById('btnRejectCall').style.display = 'flex';
                         document.getElementById('btnEndCall').style.display = 'none';
 
                         document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
@@ -1836,7 +1834,6 @@
         async function answerIncomingCall() {
             if(activeCallRef) {
                 document.getElementById('btnAnswerCall').style.display = 'none';
-                document.getElementById('btnRejectCall').style.display = 'none';
                 document.getElementById('btnEndCall').style.display = 'flex';
                 document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
                 callStartTime = Date.now();
@@ -1877,14 +1874,6 @@
                     });
                 }
             }
-        }
-
-        function rejectIncomingCall() {
-            logCallHistory(activeTarget, callType, 'incoming', 'Ditolak');
-            if(activeCallRef && isOnlineState) {
-                activeCallRef.update({ status: 'rejected' });
-            }
-            closeCallModalUI(false);
         }
 
         function processSignalingMessage(packet) {
@@ -2295,7 +2284,6 @@
                 osc.stop(now + 0.28);
             } catch(e) {}
 
-            // Persistent strong vibration sequence for anti-theft and background alert
             if (navigator.vibrate) { 
                 navigator.vibrate([1000, 300, 1000, 300, 1500, 500, 2000]); 
             }
