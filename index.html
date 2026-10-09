@@ -856,7 +856,6 @@
                 let displayName = isAI ? "Gemini AI" : (details.name || ("+" + num));
                 let identifier = isAI ? "🤖" : (details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2));
                 
-                // Robust unread count resolution per roomKey
                 let unreadCount = unreadCounts[roomKey] || 0;
                 let avatarHtml = getOnlineAvatarHTML(identifier, details.photo, 48, true);
 
@@ -1347,7 +1346,7 @@
             else callTitleStr = "Panggilan Suara Realtime ";
 
             document.getElementById('videoCallTitle').innerText = callTitleStr + `+${activeTarget}`;
-            document.getElementById('videoCallStatus').innerText = "Menghubungkan via TURN/STUN Relay...";
+            document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
             document.getElementById('btnAnswerCall').style.display = 'none';
             
             document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
@@ -1462,7 +1461,7 @@
                     if (state === 'checking') {
                         statusEl.innerText = "Menghubungkan lintas jaringan (Wi-Fi / Seluler)...";
                     } else if (state === 'connected' || state === 'completed') {
-                        statusEl.innerText = callType === 'ht' ? "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)" : "Terhubung Realtime";
+                        statusEl.innerText = callType === 'ht' ? "Terhubung HT (Standby Mute - Tahan PTT saat Bicara)" : "Terhubung Realtime";
                     } else if (state === 'failed') {
                         statusEl.innerText = "Jaringan berbeda terdeteksi. Mengaktifkan TURN Relay TCP...";
                         handleIceRestart();
@@ -1637,7 +1636,7 @@
                             activeCallRef.update({ answer: JSON.stringify(peerConnection.localDescription), status: 'accepted' });
                             
                             if(callType === 'ht') {
-                                document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
+                                document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT Saat Bicara)";
                             } else {
                                 document.getElementById('videoCallStatus').innerText = "Terhubung Realtime";
                             }
