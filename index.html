@@ -44,6 +44,13 @@
         .header-title { font-weight: bold; font-size: 17px; display: flex; align-items: center; gap: 8px; cursor: pointer; z-index: 21; }
         .header-actions { display: flex; align-items: center; gap: 8px; z-index: 21; }
 
+        /* Menu Dropdown Profil / Pengaturan Akun Tersembunyi Rapi */
+        #profileDropdownMenu { position: absolute; top: 60px; left: 12px; background: #202c33; border-radius: 12px; padding: 8px; display: none; flex-direction: column; gap: 4px; z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,0.4); width: 220px; }
+        .dropdown-item { color: white; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 13.5px; }
+        .dropdown-item:hover { background: #374248; }
+        .dropdown-item.danger { color: #f87171; }
+        .dropdown-item.danger:hover { background: rgba(239, 68, 68, 0.15); }
+
         .search-bar-container { padding: 8px 12px; background: #f0f2f5; border-bottom: 1px solid #e9edef; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
         .search-box { flex: 1; padding: 8px 14px; background: #fff; border: none; border-radius: 20px; outline: none; font-size: 13px; }
         
@@ -100,8 +107,8 @@
         .attach-item { color: white; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; }
         .attach-item:hover { background: #374248; }
 
-        #mapModal, #liveMapModal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; display: none; flex-direction: column; padding: 16px; }
-        #mapContainer, #liveMapContainer { flex: 1; border-radius: 12px; width: 100%; position: relative; margin-top: 8px; margin-bottom: 8px; }
+        #mapModal, #liveMapModal, #businessProfileModal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; display: none; flex-direction: column; padding: 16px; overflow-y: auto; }
+        #mapContainer, #liveMapContainer { flex: 1; border-radius: 12px; width: 100%; position: relative; margin-top: 8px; margin-bottom: 8px; min-height: 250px; }
         .btn-gps-locate { position: absolute; top: 15px; right: 15px; z-index: 1000; background: white; border: none; width: 42px; height: 42px; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #075E54; }
 
         #navChoiceModal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100000; display: none; align-items: center; justify-content: center; padding: 20px; }
@@ -122,8 +129,7 @@
         .form-input { width: 100%; max-width: 320px; padding: 12px 16px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #fff; font-size: 15px; margin-top: 12px; text-align: center; outline: none; }
         .btn-green { width: 100%; max-width: 320px; padding: 12px; background: var(--wa-green); color: #000; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; margin-top: 16px; cursor: pointer; }
         
-        .btn-pwa-install, .btn-logout { background: #0288d1; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
-        .btn-logout { background: #dc2626; }
+        .btn-pwa-install { background: #0288d1; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
 
         .ptt-live-talk-btn { background: #ef4444; color: white; border: 3px solid #ffffff; width: 85px; height: 85px; border-radius: 50%; font-size: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(239, 68, 68, 0.8); user-select: none; touch-action: manipulation; transition: all 0.2s ease; }
         .ptt-live-talk-btn.active-tx { background: #22c55e; box-shadow: 0 0 35px rgba(34, 197, 94, 1); transform: scale(1.12); }
@@ -157,6 +163,35 @@
             <button onclick="openNavOption('gmaps')" style="flex:1; background:#1a73e8; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-map"></i> Google Maps</button>
             <button onclick="openNavOption('indrive')" style="flex:1; background:#0066cc; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-car"></i> inDrive</button>
             <button onclick="openNavOption('iqbike')" style="flex:1; background:var(--wa-dark-green); color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-motorcycle"></i> iqBike</button>
+        </div>
+    </div>
+
+    <div id="businessProfileModal">
+        <div style="display:flex; justify-content:space-between; align-items:center; color:white; padding: 0 4px; margin-bottom: 12px;">
+            <h3 style="color:#25D366;"><i class="fa-solid fa-store"></i> Profil</h3>
+            <button onclick="document.getElementById('businessProfileModal').style.display='none'" style="background:red; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Tutup</button>
+        </div>
+        <div style="background:#fff; border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:16px; color:#111;">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <div id="bizModalAvatar" style="width:64px; height:64px; border-radius:50%; background:#075E54; display:flex; align-items:center; justify-content:center; color:white; font-size:22px; font-weight:bold; background-size:cover; background-position:center;">-</div>
+                <div>
+                    <h2 id="bizModalName" style="font-size:18px; color:#111b21;">Nama Usaha</h2>
+                    <p id="bizModalPhone" style="font-size:13px; color:#667781;">+62...</p>
+                </div>
+            </div>
+            <hr style="border:0; border-top:1px solid #e9edef;">
+            <div>
+                <label style="font-size:12px; font-weight:bold; color:var(--wa-dark-green);">Kategori Bisnis & Deskripsi:</label>
+                <p id="bizModalDesc" style="font-size:14px; color:#333; margin-top:4px;">Belum ada deskripsi usaha.</p>
+            </div>
+            <div>
+                <label style="font-size:12px; font-weight:bold; color:var(--wa-dark-green);">Alamat Toko / Kantor:</label>
+                <p id="bizModalAddress" style="font-size:14px; color:#333; margin-top:4px;">Alamat belum diatur.</p>
+            </div>
+            <div>
+                <label style="font-size:12px; font-weight:bold; color:var(--wa-dark-green);">Jam Operasional:</label>
+                <p id="bizModalHours" style="font-size:14px; color:#333; margin-top:4px;">Buka 24 Jam</p>
+            </div>
         </div>
     </div>
 
@@ -233,7 +268,7 @@
     <div id="loginModal" class="overlay-screen">
         <i class="fa-brands fa-whatsapp" style="font-size: 68px; color: var(--wa-green); margin-bottom: 16px;"></i>
         <h2>iqChat</h2>
-        <p style="font-size: 13px; color: #8696a0; margin-top: 6px;">Masukkan nomor WhatsApp aktif Anda.</p>
+        <p style="font-size: 13px; color: #8696a0; margin-top: 6px;">Masukkan nomor WhatsApp aktif Anda untuk verifikasi.</p>
         <input type="tel" id="inputPhone" class="form-input" placeholder="Contoh: 628123456789">
         <button class="btn-green" onclick="requestOtpCode()">Kirim Kode Verifikasi OTP</button>
     </div>
@@ -241,22 +276,33 @@
     <div id="otpModal" class="overlay-screen" style="display:none;">
         <i class="fa-solid fa-shield-halved" style="font-size: 58px; color: var(--wa-green); margin-bottom: 16px;"></i>
         <h2>Konfirmasi OTP WhatsApp</h2>
-        <p style="font-size: 13px; color: #8696a0; margin-top: 6px;">Kode verifikasi simulasi: <b style="color:var(--wa-green);">8888</b></p>
+        <p style="font-size: 13px; color: #8696a0; margin-top: 6px;">Kode verifikasi terkirim ke <b id="otpTargetPhoneLabel" style="color:white;">+62...</b></p>
+        <p style="font-size: 11px; color: #38bdf8; margin-top: 2px;">(Gunakan kode <b id="generatedOtpBadge" style="color:var(--wa-green);">8888</b> atau sandi simulasi sistem)</p>
         <input type="text" id="inputOtp" class="form-input" placeholder="4 digit OTP" maxlength="4" style="letter-spacing: 4px; font-weight: bold;">
         <button class="btn-green" onclick="verifyOtpCode()">Verifikasi & Masuk</button>
+        <button onclick="document.getElementById('otpModal').style.display='none'; document.getElementById('loginModal').style.display='flex';" style="background:none; border:none; color:#8696a0; margin-top:12px; cursor:pointer; text-decoration:underline;">Ubah Nomor WhatsApp</button>
     </div>
 
     <div class="app-window" id="appWindowContainer">
         
         <div id="viewContactList" class="view-panel active">
             <div class="app-header">
-                <div class="header-title" onclick="openProfileSettings()">
-                    <div id="myHeaderAvatarContainer"></div>
-                    <span id="headerMyName">iqChat</span>
+                <!-- Dropdown Menu Tersembunyi untuk Edit Profil & Keluar (Logout) agar header utama tetap bersih ala WhatsApp -->
+                <div style="position: relative;">
+                    <div class="header-title" onclick="toggleProfileDropdown(event)">
+                        <div id="myHeaderAvatarContainer"></div>
+                        <span id="headerMyName">iqChat</span>
+                        <i class="fa-solid fa-chevron-down" style="font-size: 11px; margin-left: 2px; color: #dcf8c6;"></i>
+                    </div>
+
+                    <div id="profileDropdownMenu">
+                        <div class="dropdown-item" onclick="openProfileSettings()"><i class="fa-solid fa-user-pen" style="color:#25D366;"></i> Edit Profil & Usaha</div>
+                        <div class="dropdown-item danger" onclick="logoutAccount()"><i class="fa-solid fa-right-from-bracket"></i> Keluar (Ganti Nomor)</div>
+                    </div>
                 </div>
+
                 <div class="header-actions">
                     <button id="btnInstall" class="btn-pwa-install" onclick="triggerPwaInstall()"><i class="fa-solid fa-download"></i> Install</button>
-                    <button class="btn-logout" onclick="logoutSession()"><i class="fa-solid fa-right-from-bracket"></i> Keluar</button>
                 </div>
             </div>
             
@@ -287,9 +333,9 @@
             <div class="app-header">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <button onclick="backToContactList()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer; padding:4px 8px; z-index:22;"><i class="fa-solid fa-arrow-left"></i></button>
-                    <div id="activeAvatarContainer"></div>
+                    <div id="activeAvatarContainer" onclick="openRecipientBusinessProfile()" style="cursor:pointer;" title="Lihat Profil Usaha"></div>
                     <div>
-                        <div id="activeName" style="font-weight: bold; font-size: 14px;">+62...</div>
+                        <div id="activeName" onclick="openRecipientBusinessProfile()" style="font-weight: bold; font-size: 14px; cursor:pointer;" title="Lihat Profil Usaha">+62...</div>
                         <div style="font-size: 10.5px; color: #dcf8c6; display:flex; align-items:center; gap:6px;">
                             <span>Nada:</span>
                             <select id="contactToneSelect" onchange="updateContactTone(this.value)" style="background:transparent; color:#dcf8c6; border:none; font-size:10.5px; outline:none; cursor:pointer;">
@@ -385,8 +431,9 @@
         let localWsServerUrl = localStorage.getItem('iq_local_ws_url') || "";
         let incomingCallListenerAttached = false;
         let activeCallKey = null;
+        let currentDynamicOtp = "8888";
 
-        // Expanded TURN & STUN Ice Servers to ensure successful NAT traversal between Wi-Fi and mobile cellular networks
+        // Expanded TURN & STUN Ice Servers for robust NAT traversal
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -422,6 +469,17 @@
                 badge.innerHTML = `<i class="fa-solid fa-tower-broadcast"></i> Offline (HT Walkie Talkie)`;
             }
         }
+
+        function toggleProfileDropdown(e) {
+            if(e) e.stopPropagation();
+            const menu = document.getElementById('profileDropdownMenu');
+            menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        window.addEventListener('click', () => {
+            const menu = document.getElementById('profileDropdownMenu');
+            if(menu) menu.style.display = 'none';
+        });
 
         function formatCallTimeDetailed(timestamp) {
             if(!timestamp) return "Baru saja";
@@ -536,7 +594,24 @@
             initPersistentBackgroundGPS();
             updateNetworkConnectionStatus();
             initLocalWebSocketSignaling();
+            restoreActiveCallStateIfNeeded();
         });
+
+        function restoreActiveCallStateIfNeeded() {
+            let activeCallState = localStorage.getItem('iq_active_call_session');
+            if (activeCallState) {
+                try {
+                    let callObj = JSON.parse(activeCallState);
+                    if (callObj && callObj.target) {
+                        activeTarget = callObj.target;
+                        callType = callObj.callType || 'video';
+                        setTimeout(() => {
+                            initiateCallProcess(true);
+                        }, 1000);
+                    }
+                } catch(e) {}
+            }
+        }
 
         function initPersistentBackgroundGPS() {
             if (navigator.geolocation) {
@@ -560,7 +635,7 @@
                         liveAvatarMarker.setLatLng([currentLat, currentLng]);
                         if(livePulsingDot) livePulsingDot.setLatLng([currentLat, currentLng]);
                     }
-                }, err => {}, { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 });
+                }, err => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 5000 });
             }
         }
 
@@ -588,25 +663,37 @@
             if(phone.startsWith('0')) { phone = '62' + phone.slice(1); }
             else if(!phone.startsWith('62')) { phone = '62' + phone; }
 
+            currentDynamicOtp = String(Math.floor(1000 + Math.random() * 9000));
+            
             localStorage.setItem('temp_phone', phone);
+            document.getElementById('otpTargetPhoneLabel').innerText = "+" + phone;
+            document.getElementById('generatedOtpBadge').innerText = currentDynamicOtp;
+
             document.getElementById('loginModal').style.display = 'none';
             document.getElementById('otpModal').style.display = 'flex';
         }
 
         function verifyOtpCode() {
             const otp = document.getElementById('inputOtp').value.trim();
-            if(otp === "8888") {
+            if(otp === currentDynamicOtp || otp === "8888") {
                 currentUser = localStorage.getItem('temp_phone');
                 localStorage.setItem('iq_user_phone', currentUser);
                 document.getElementById('otpModal').style.display = 'none';
                 initAppSession();
+            } else {
+                alert("Kode OTP salah! Silakan masukkan kode " + currentDynamicOtp + " atau 8888.");
             }
         }
 
-        function logoutSession() {
-            db.ref('iqchat_presence/' + currentUser).set({ online: false, lastSeen: Date.now() });
-            localStorage.removeItem('iq_user_phone');
-            location.reload();
+        function logoutAccount() {
+            if(confirm("Apakah Anda yakin ingin keluar (logout) dari akun ini untuk mengganti nomor WhatsApp?")) {
+                currentUser = "";
+                localStorage.removeItem('iq_user_phone');
+                localStorage.removeItem('iq_active_target');
+                document.getElementById('viewChatRoom').classList.remove('active');
+                document.getElementById('viewContactList').classList.remove('active');
+                document.getElementById('loginModal').style.display = 'flex';
+            }
         }
 
         function initAppSession() {
@@ -617,6 +704,34 @@
             setupDraggableChatHead();
             listenToIncomingCalls();
             updateMyPresence();
+            syncProfileToCloudAndLocal();
+        }
+
+        function syncProfileToCloudAndLocal() {
+            if(!currentUser) return;
+            let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
+            let myProf = profiles[currentUser] || { 
+                name: "+" + currentUser, 
+                photo: "", 
+                desc: "Akun Resmi",
+                address: "Banjaran, Bandung, Indonesia",
+                hours: "Buka Setiap Hari"
+            };
+            
+            if(isOnlineState) {
+                db.ref('iqchat_profiles/' + currentUser).set(myProf);
+                db.ref('iqchat_profiles').on('value', snapshot => {
+                    let cloudProfiles = snapshot.val();
+                    if(cloudProfiles) {
+                        let localProfMap = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
+                        Object.keys(cloudProfiles).forEach(phone => {
+                            localProfMap[phone] = cloudProfiles[phone];
+                        });
+                        localStorage.setItem('iq_profiles', JSON.stringify(localProfMap));
+                        renderContactList();
+                    }
+                });
+            }
         }
 
         function getOnlineAvatarHTML(nameOrNumber, photoData, size = 48, isOnline = true) {
@@ -650,11 +765,24 @@
         function openProfileSettings() {
             let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
             let current = profiles[currentUser] || {};
-            let newName = prompt("Ubah Nama Profil Anda:", current.name || ("+" + currentUser));
+            let newName = prompt("Ubah Nama Usaha / Profil Anda:", current.name || ("+" + currentUser));
             if(newName !== null) {
-                profiles[currentUser] = { name: newName, photo: current.photo || "" };
+                let newDesc = prompt("Ubah Deskripsi / Kategori Bisnis:", current.desc || "Akun Resmi");
+                let newAddress = prompt("Ubah Alamat Toko / Kantor:", current.address || "Banjaran, Bandung, Indonesia");
+                let newHours = prompt("Ubah Jam Operasional Bisnis:", current.hours || "Buka Setiap Hari (08:00 - 21:00)");
+
+                profiles[currentUser] = { 
+                    name: newName, 
+                    photo: current.photo || "",
+                    desc: newDesc,
+                    address: newAddress,
+                    hours: newHours
+                };
                 localStorage.setItem('iq_profiles', JSON.stringify(profiles));
                 updateMyHeaderProfile();
+                if(isOnlineState) {
+                    db.ref('iqchat_profiles/' + currentUser).set(profiles[currentUser]);
+                }
                 document.getElementById('profileImageInput').click();
             }
         }
@@ -669,9 +797,45 @@
                     profiles[currentUser] = current;
                     localStorage.setItem('iq_profiles', JSON.stringify(profiles));
                     updateMyHeaderProfile();
+                    if(isOnlineState) {
+                        db.ref('iqchat_profiles/' + currentUser).set(current);
+                    }
+                    renderContactList();
                 };
                 reader.readAsDataURL(input.files[0]);
             }
+        }
+
+        function openRecipientBusinessProfile() {
+            if(!activeTarget || activeTarget === "GeminiAI") return;
+            let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
+            let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
+            let prof = profiles[activeTarget] || {};
+            let details = contactDetails[activeTarget] || {};
+
+            let dispName = details.name || prof.name || ("+" + activeTarget);
+            let dispPhoto = details.photo || prof.photo || "";
+            let dispDesc = prof.desc || "Akun Terverifikasi";
+            let dispAddress = prof.address || "Lokasi tersimpan via Sharelok";
+            let dispHours = prof.hours || "Buka 24 Jam";
+
+            document.getElementById('bizModalName').innerText = dispName;
+            document.getElementById('bizModalPhone').innerText = "+" + activeTarget;
+            document.getElementById('bizModalDesc').innerText = dispDesc;
+            document.getElementById('bizModalAddress').innerText = dispAddress;
+            document.getElementById('bizModalHours').innerText = dispHours;
+
+            let identifier = dispName.slice(0,2).toUpperCase();
+            let avatarBox = document.getElementById('bizModalAvatar');
+            if(dispPhoto) {
+                avatarBox.style.backgroundImage = `url('${dispPhoto}')`;
+                avatarBox.innerText = "";
+            } else {
+                avatarBox.style.backgroundImage = "none";
+                avatarBox.innerText = identifier;
+            }
+
+            document.getElementById('businessProfileModal').style.display = 'flex';
         }
 
         function editContactProfile() {
@@ -725,7 +889,10 @@
 
             callLogs.slice().reverse().forEach(log => {
                 let details = contactDetails[log.target] || {};
-                let displayName = details.name || ("+" + log.target);
+                let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
+                let prof = profiles[log.target] || {};
+                let displayName = details.name || prof.name || ("+" + log.target);
+                let photoUrl = details.photo || prof.photo || "";
                 let callIconType = log.callType === 'ht' ? '<i class="fa-solid fa-walkie-talkie"></i>' : (log.callType === 'video' ? '<i class="fa-solid fa-video"></i>' : '<i class="fa-solid fa-phone"></i>');
                 
                 const isMissed = log.status === "Tidak dijawab" || log.status === "Dibatalkan";
@@ -738,8 +905,8 @@
                 }
 
                 let timeFormatted = formatCallTimeDetailed(log.timestamp);
-                let identifier = details.name ? details.name.slice(0,2).toUpperCase() : log.target.slice(-2);
-                let avatarHtml = getOnlineAvatarHTML(identifier, details.photo, 48, false);
+                let identifier = displayName.slice(0,2).toUpperCase();
+                let avatarHtml = getOnlineAvatarHTML(identifier, photoUrl, 48, false);
 
                 const div = document.createElement('div');
                 div.className = 'contact-item';
@@ -810,6 +977,7 @@
             const container = document.getElementById('contactListContainer');
             container.innerHTML = "";
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
+            let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
             let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
 
             if(!contacts.includes("GeminiAI")) contacts.push("GeminiAI");
@@ -857,11 +1025,13 @@
 
                 let lastTime = lastMsgObj ? lastMsgObj.time : '';
                 let details = contactDetails[num] || {};
-                let displayName = isAI ? "Gemini AI" : (details.name || ("+" + num));
-                let identifier = isAI ? "🤖" : (details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2));
+                let prof = profiles[num] || {};
+                let displayName = isAI ? "Gemini AI" : (details.name || prof.name || ("+" + num));
+                let photoUrl = details.photo || prof.photo || "";
+                let identifier = isAI ? "🤖" : displayName.slice(0,2).toUpperCase();
                 
                 let unreadCount = unreadCounts[roomKey] || 0;
-                let avatarHtml = getOnlineAvatarHTML(identifier, details.photo, 48, true);
+                let avatarHtml = getOnlineAvatarHTML(identifier, photoUrl, 48, true);
 
                 const div = document.createElement('div');
                 div.className = 'contact-item';
@@ -1123,11 +1293,15 @@
             }
 
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
+            let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
             let details = contactDetails[num] || {};
-            document.getElementById('activeName').innerText = isAI ? "Gemini AI" : (details.name || ("+" + num));
-            
-            let identifier = isAI ? "🤖" : (details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2));
-            document.getElementById('activeAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 38, true);
+            let prof = profiles[num] || {};
+            let displayName = isAI ? "Gemini AI" : (details.name || prof.name || ("+" + num));
+            let photoUrl = details.photo || prof.photo || "";
+
+            document.getElementById('activeName').innerText = displayName;
+            let identifier = isAI ? "🤖" : displayName.slice(0,2).toUpperCase();
+            document.getElementById('activeAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, photoUrl, 38, true);
 
             document.getElementById('viewContactList').classList.remove('active');
             document.getElementById('viewChatRoom').classList.add('active');
@@ -1300,7 +1474,7 @@
                 const webMaps = `https://www.google.com/maps/search/?api=1&query=${tempSelectedLat},${tempSelectedLng}`;
                 window.open(webMaps, '_blank');
             } else if(type === 'indrive') {
-                const intentUrl = `intent://taxi?destination_lat=${tempSelectedLat}&destination_lon=${tempSelectedLng}#Intent;package=sinet.startup.inDriver;scheme=indrive;end;`;
+                const indriveDeepLink = `indrive://order?drop_lat=${tempSelectedLat}&drop_lon=${tempSelectedLng}&pickup_lat=${currentLat}&pickup_lon=${currentLng}`;
                 const fallbackStoreUrl = `https://play.google.com/store/apps/details?id=sinet.startup.inDriver`;
                 
                 let fallbackTriggered = false;
@@ -1316,7 +1490,7 @@
                     fallbackTriggered = true;
                 }, { once: true });
 
-                window.location.href = intentUrl;
+                window.location.href = indriveDeepLink;
             } else if(type === 'iqbike') {
                 console.log(`Memesan Ojol iqBike ke koordinat: ${tempSelectedLat.toFixed(5)}, ${tempSelectedLng.toFixed(5)}`);
             }
@@ -1340,13 +1514,16 @@
             initiateCallProcess();
         }
 
-        function initiateCallProcess() {
+        function initiateCallProcess(isRecovery = false) {
             activeCallKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
             activeCallRef = db.ref('iqchat_calls/' + activeCallKey);
-            callStartTime = null;
-            pendingIceCandidates = [];
+            if (!isRecovery) {
+                callStartTime = null;
+                pendingIceCandidates = [];
+                localStorage.setItem('iq_active_call_session', JSON.stringify({ target: activeTarget, callType: callType }));
+            }
 
-            if (isOnlineState) {
+            if (isOnlineState && !isRecovery) {
                 activeCallRef.set({ caller: currentUser, status: 'calling', callType: callType, timestamp: Date.now() });
             }
 
@@ -1399,15 +1576,17 @@
                     setupPeerConnection();
                     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
                     
-                    peerConnection.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: (callType !== 'voice') })
-                        .then(offer => peerConnection.setLocalDescription(offer))
-                        .then(() => {
-                            if(isOnlineState) {
-                                activeCallRef.update({ offer: JSON.stringify(peerConnection.localDescription) });
-                            } else if (localWebSocket && localWebSocket.readyState === WebSocket.OPEN) {
-                                localWebSocket.send(JSON.stringify({ type: 'offer', target: activeTarget, sender: currentUser, offer: peerConnection.localDescription }));
-                            }
-                        });
+                    if (!isRecovery) {
+                        peerConnection.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: (callType !== 'voice') })
+                            .then(offer => peerConnection.setLocalDescription(offer))
+                            .then(() => {
+                                if(isOnlineState) {
+                                    activeCallRef.update({ offer: JSON.stringify(peerConnection.localDescription) });
+                                } else if (localWebSocket && localWebSocket.readyState === WebSocket.OPEN) {
+                                    localWebSocket.send(JSON.stringify({ type: 'offer', target: activeTarget, sender: currentUser, offer: peerConnection.localDescription }));
+                                }
+                            });
+                    }
                 }).catch(e => {});
 
             if(isOnlineState) {
@@ -1577,6 +1756,7 @@
                         callType = callData.callType || (callData.video ? 'video' : 'voice');
                         callStartTime = null;
                         pendingIceCandidates = [];
+                        localStorage.setItem('iq_active_call_session', JSON.stringify({ target: activeTarget, callType: callType }));
 
                         playCustomNotification(callData.caller, callData.caller, "Panggilan Masuk (" + (callType === 'ht' ? 'HT Walkie-Talkie' : (callType === 'video' ? 'Video' : 'Suara')) + ")");
 
@@ -1730,6 +1910,7 @@
             }
             pendingIceCandidates = [];
             activeCallKey = null;
+            localStorage.removeItem('iq_active_call_session');
             document.getElementById('videoCallModal').style.display = 'none';
             document.getElementById('remoteVideo').srcObject = null;
             document.getElementById('localVideo').srcObject = null;
@@ -1938,6 +2119,7 @@
             const area = document.getElementById('chatMessagesArea');
             area.innerHTML = "";
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
+            let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
             
             messages.forEach(msg => {
                 if(!msg) return;
@@ -1948,8 +2130,11 @@
                 bubble.className = `bubble ${isMe ? 'outgoing' : 'incoming'}`;
                 
                 let details = contactDetails[msg.sender] || {};
-                let senderInitial = details.name ? details.name.slice(0,2).toUpperCase() : (msg.sender === currentUser ? currentUser.slice(-2) : msg.sender.slice(-2));
-                let avatarMini = getOnlineAvatarHTML(senderInitial, details.photo, 28, true);
+                let prof = profiles[msg.sender] || {};
+                let senderDisplayName = details.name || prof.name || (isMe ? "Anda" : ("+" + msg.sender));
+                let senderPhoto = details.photo || prof.photo || "";
+                let senderInitial = senderDisplayName.slice(0,2).toUpperCase();
+                let avatarMini = getOnlineAvatarHTML(senderInitial, senderPhoto, 28, true);
 
                 let replyQuoteHtml = "";
                 if(msg.replyTo) {
@@ -2039,11 +2224,10 @@
                     }
                 }
 
-                let senderLabel = isMe ? "Anda" : (details.name || ("+" + activeTarget));
                 bubble.innerHTML = `
                     ${bodyHtml}
                     <div class="bubble-meta">
-                        ${msg.type !== 'calllog' ? `<i class="fa-solid fa-reply" style="cursor:pointer; margin-right:6px;" onclick="replyToMessage('${msg.id}', '${senderLabel}', '${rawTextForReply.replace(/'/g, "\\'")}')" title="Balas"></i>` : ''}
+                        ${msg.type !== 'calllog' ? `<i class="fa-solid fa-reply" style="cursor:pointer; margin-right:6px;" onclick="replyToMessage('${msg.id}', '${senderDisplayName}', '${rawTextForReply.replace(/'/g, "\\'")}')" title="Balas"></i>` : ''}
                         ${msg.time} ${checkIcon} 
                         <i class="fa-solid fa-trash" style="font-size:9px; cursor:pointer; margin-left:4px;" onclick="deleteMessageItem('${msg.id}')" title="Hapus Pesan"></i>
                     </div>`;
@@ -2093,13 +2277,18 @@
         function showChatHeadBubble(num) {
             pendingPopupTarget = num;
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
+            let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
             let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
             let details = contactDetails[num] || {};
+            let prof = profiles[num] || {};
+            let photoUrl = details.photo || prof.photo || "";
+            let dispName = details.name || prof.name || ("+" + num);
+
             const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
             let unread = unreadCounts[roomKey] || 1;
 
-            let identifier = details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2);
-            document.getElementById('chatHeadAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 60, true);
+            let identifier = dispName.slice(0,2).toUpperCase();
+            document.getElementById('chatHeadAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, photoUrl, 60, true);
 
             let unreadEl = document.getElementById('chatHeadUnread');
             unreadEl.innerText = unread;
@@ -2155,11 +2344,16 @@
         function showIncomingPopup(num, name, text) {
             pendingPopupTarget = num;
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
+            let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
             let details = contactDetails[num] || {};
-            let identifier = details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2);
-            document.getElementById('popupAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 42, true);
+            let prof = profiles[num] || {};
+            let dispName = details.name || prof.name || ("+" + num);
+            let photoUrl = details.photo || prof.photo || "";
 
-            document.getElementById('popupSenderName').innerText = "+" + num;
+            let identifier = dispName.slice(0,2).toUpperCase();
+            document.getElementById('popupAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, photoUrl, 42, true);
+
+            document.getElementById('popupSenderName').innerText = dispName;
             document.getElementById('popupMessageText').innerText = typeof text === 'object' ? '[Media/Panggilan]' : text;
             document.getElementById('incomingPopup').style.display = 'flex';
             setTimeout(() => { document.getElementById('incomingPopup').style.display = 'none'; }, 6000);
