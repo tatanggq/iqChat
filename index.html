@@ -386,7 +386,7 @@
         let incomingCallListenerAttached = false;
         let activeCallKey = null;
 
-        // Enhanced STUN/TURN Ice Servers configuration to seamlessly traverse Wi-Fi vs Cell network NAT/Firewalls
+        // Expanded TURN & STUN Ice Servers to ensure successful NAT traversal between Wi-Fi and mobile cellular networks
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -1012,6 +1012,13 @@
             if(localStream) {
                 localStream.getAudioTracks().forEach(track => { track.enabled = true; });
             }
+            if(peerConnection) {
+                peerConnection.getSenders().forEach(sender => {
+                    if(sender.track && sender.track.kind === 'audio') {
+                        sender.track.enabled = true;
+                    }
+                });
+            }
         }
 
         function stopPttLiveAudio() {
@@ -1022,6 +1029,13 @@
             playWalkieChirp('end');
             if(localStream) {
                 localStream.getAudioTracks().forEach(track => { track.enabled = false; });
+            }
+            if(peerConnection) {
+                peerConnection.getSenders().forEach(sender => {
+                    if(sender.track && sender.track.kind === 'audio') {
+                        sender.track.enabled = false;
+                    }
+                });
             }
         }
 
@@ -1877,7 +1891,7 @@
                         let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
                         if (activeTarget !== num) {
                             let unreadFromOther = messages.filter(m => m && m.sender !== currentUser && m.timestamp > appSessionStartTime && m.status !== 'read').length;
-                            unreadCounts[roomKey] = Math.max(unreadCounts[roomKey] || 0, unreadFromOther);
+                            unreadCounts[roomKey] = unreadFromOther;
                         } else {
                             unreadCounts[roomKey] = 0;
                         }
