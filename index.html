@@ -208,7 +208,7 @@
             <video id="remoteVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
             <div id="audioOnlyIndicator" style="display:none; flex-direction:column; align-items:center; color:white; gap:12px;">
                 <i class="fa-solid fa-phone" style="font-size: 64px; color: var(--wa-green);"></i>
-                <h4 id="audioCallIndicatorText" style="font-size: 20px;">Panggilan Suara Realtime</h4>
+                <h4 id="audioCallIndicatorText" style="font-size: 20px;">Panggilan Suara</h4>
             </div>
         </div>
         
@@ -262,7 +262,7 @@
             
             <div style="background:#115e59; color:white; padding:6px 14px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
                 <span>Akun: <b id="myPhoneBadge">-</b></span>
-                <span id="connectionStatusBadge" style="color:#a7f3d0;"><i class="fa-solid fa-tower-cell"></i> Online Realtime</span>
+                <span id="connectionStatusBadge" style="color:#a7f3d0;"><i class="fa-solid fa-tower-cell"></i> WHATSAPP </span>
             </div>
 
             <div style="display:flex; background:#075E54; color:white; font-weight:bold; font-size:14px;">
@@ -305,8 +305,8 @@
                     <button class="btn-icon" id="btnTogglePttMode" onclick="startHtCall()" title="Panggilan HT Walkie-Talkie" style="color:#38bdf8;"><i class="fa-solid fa-walkie-talkie"></i></button>
                     <button class="btn-icon" onclick="clearChatHistoryConfirm()" title="Bersihkan Riwayat Chat" style="color:white;"><i class="fa-solid fa-trash-can"></i></button>
                     <button class="btn-icon" onclick="editContactProfile()" title="Simpan / Edit Kontak" style="color:white;"><i class="fa-solid fa-pen-to-square"></i></button>
-                    <button class="btn-icon" onclick="startVoiceCall()" style="color:white;" title="Panggilan Suara Realtime"><i class="fa-solid fa-phone"></i></button>
-                    <button class="btn-icon" onclick="startVideoCall()" style="color:white;" title="Video Call Realtime"><i class="fa-solid fa-video"></i></button>
+                    <button class="btn-icon" onclick="startVoiceCall()" style="color:white;" title="Panggilan Suara"><i class="fa-solid fa-phone"></i></button>
+                    <button class="btn-icon" onclick="startVideoCall()" style="color:white;" title="Video Call"><i class="fa-solid fa-video"></i></button>
                 </div>
             </div>
 
@@ -415,11 +415,11 @@
             const badge = document.getElementById('connectionStatusBadge');
             if (isOnlineState) {
                 badge.style.color = '#a7f3d0';
-                badge.innerHTML = `<i class="fa-solid fa-tower-cell"></i> Online Realtime`;
+                badge.innerHTML = `<i class="fa-solid fa-tower-cell"></i> WHATSAPP`;
                 flushOfflineMeshQueueToCloud();
             } else {
                 badge.style.color = '#fef08a';
-                badge.innerHTML = `<i class="fa-solid fa-wifi-slash"></i> Offline Mesh Relay (P2P HT)`;
+                badge.innerHTML = `<i class="fa-solid fa-wifi-slash"></i> Offline (P2P HT)`;
             }
         }
 
@@ -1342,8 +1342,8 @@
             
             let callTitleStr = "";
             if(callType === 'ht') callTitleStr = "Panggilan HT Walkie-Talkie ";
-            else if(callType === 'video') callTitleStr = "Video Call Realtime ";
-            else callTitleStr = "Panggilan Suara Realtime ";
+            else if(callType === 'video') callTitleStr = "Video Call";
+            else callTitleStr = "Panggilan Suara";
 
             document.getElementById('videoCallTitle').innerText = callTitleStr + `+${activeTarget}`;
             document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
@@ -1359,7 +1359,7 @@
             } else {
                 document.getElementById('remoteVideo').style.display = 'none';
                 document.getElementById('audioOnlyIndicator').style.display = 'flex';
-                document.getElementById('audioCallIndicatorText').innerText = "Panggilan Suara Realtime";
+                document.getElementById('audioCallIndicatorText').innerText = "Panggilan Suara";
                 document.getElementById('localVideoWrapper').style.display = 'none';
             }
 
@@ -1408,7 +1408,7 @@
                         if(callType === 'ht') {
                             document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
                         } else {
-                            document.getElementById('videoCallStatus').innerText = "Terhubung Realtime";
+                            document.getElementById('videoCallStatus').innerText = "Terhubung.";
                         }
 
                         if(callData.answer && peerConnection && !peerConnection.currentRemoteDescription) {
@@ -1461,7 +1461,7 @@
                     if (state === 'checking') {
                         statusEl.innerText = "Menghubungkan lintas jaringan (Wi-Fi / Seluler)...";
                     } else if (state === 'connected' || state === 'completed') {
-                        statusEl.innerText = callType === 'ht' ? "Terhubung HT (Standby Mute - Tahan PTT saat Bicara)" : "Terhubung Realtime";
+                        statusEl.innerText = callType === 'ht' ? "Terhubung HT (Standby Mute - Tahan PTT saat Bicara)" : "Terhubung.";
                     } else if (state === 'failed') {
                         statusEl.innerText = "Jaringan berbeda terdeteksi. Mengaktifkan TURN Relay TCP...";
                         handleIceRestart();
@@ -1570,7 +1570,7 @@
 
                         document.getElementById('videoCallModal').style.display = 'flex';
                         
-                        let callTitleStr = callType === 'ht' ? "Panggilan HT Walkie-Talkie dari " : (callType === 'video' ? "Video Call Realtime dari " : "Panggilan Suara dari ");
+                        let callTitleStr = callType === 'ht' ? "Panggilan HT Walkie-Talkie dari " : (callType === 'video' ? "Video Call dari " : "Panggilan Suara dari ");
                         document.getElementById('videoCallTitle').innerText = callTitleStr + `+${callData.caller}`;
                         document.getElementById('videoCallStatus').innerText = "Panggilan masuk (Ketuk Angkat)...";
                         document.getElementById('btnAnswerCall').style.display = 'block';
@@ -1584,7 +1584,7 @@
                         } else {
                             document.getElementById('remoteVideo').style.display = 'none';
                             document.getElementById('audioOnlyIndicator').style.display = 'flex';
-                            document.getElementById('audioCallIndicatorText').innerText = "Panggilan Suara Realtime";
+                            document.getElementById('audioCallIndicatorText').innerText = "Panggilan Suara";
                             document.getElementById('localVideoWrapper').style.display = 'none';
                         }
 
@@ -1638,7 +1638,7 @@
                             if(callType === 'ht') {
                                 document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT Saat Bicara)";
                             } else {
-                                document.getElementById('videoCallStatus').innerText = "Terhubung Realtime";
+                                document.getElementById('videoCallStatus').innerText = "Terhubung.";
                             }
                         } catch(err) {}
                     }
