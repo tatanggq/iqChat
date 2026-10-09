@@ -386,8 +386,6 @@
         let incomingCallListenerAttached = false;
         let activeCallKey = null;
 
-        // Enhanced WebRTC ICE Configuration with multiple robust Public STUN and TURN Relays (UDP + TCP 443)
-        // This ensures calls connect seamlessly even when one peer is on Wi-Fi and another is on Cellular Data (Kuota).
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -579,12 +577,14 @@
                     if (choiceResult.outcome === 'accepted') { document.getElementById('btnInstall').style.display = 'none'; }
                     deferredPrompt = null;
                 });
-            } else { alert("Aplikasi siap dipasang atau tambahkan ke Layar Utama."); }
+            } else { 
+                console.log("Aplikasi siap dipasang."); 
+            }
         }
 
         function requestOtpCode() {
             let phone = document.getElementById('inputPhone').value.trim();
-            if(!phone || phone.length < 9) { alert("Masukkan nomor valid!"); return; }
+            if(!phone || phone.length < 9) { console.warn("Masukkan nomor valid!"); return; }
             phone = phone.replace(/\D/g,'');
             if(phone.startsWith('0')) { phone = '62' + phone.slice(1); }
             else if(!phone.startsWith('62')) { phone = '62' + phone; }
@@ -601,15 +601,15 @@
                 localStorage.setItem('iq_user_phone', currentUser);
                 document.getElementById('otpModal').style.display = 'none';
                 initAppSession();
-            } else { alert("OTP Salah! Gunakan: 8888"); }
+            } else { 
+                console.warn("OTP Salah! Gunakan: 8888"); 
+            }
         }
 
         function logoutSession() {
-            if(confirm("Keluar akun?")) {
-                db.ref('iqchat_presence/' + currentUser).set({ online: false, lastSeen: Date.now() });
-                localStorage.removeItem('iq_user_phone');
-                location.reload();
-            }
+            db.ref('iqchat_presence/' + currentUser).set({ online: false, lastSeen: Date.now() });
+            localStorage.removeItem('iq_user_phone');
+            location.reload();
         }
 
         function initAppSession() {
@@ -672,7 +672,6 @@
                     profiles[currentUser] = current;
                     localStorage.setItem('iq_profiles', JSON.stringify(profiles));
                     updateMyHeaderProfile();
-                    alert("Foto profil berhasil diperbarui!");
                 };
                 reader.readAsDataURL(input.files[0]);
             }
@@ -711,7 +710,7 @@
                 chatBtn.style.borderBottom = '3px solid transparent';
                 chatBtn.style.color = '#cfd8dc';
                 callContent.style.display = 'flex';
-                callContent.style.display = 'none';
+                chatContent.style.display = 'none';
                 renderCallLogs();
             }
         }
@@ -916,14 +915,13 @@
             try {
                 localWebSocket = new WebSocket(localWsServerUrl);
                 localWebSocket.onopen = () => {
-                    console.log("Terhubung ke Local Wi-Fi WebSocket Signaling Server!");
                     localWebSocket.send(JSON.stringify({ type: 'register', phone: currentUser }));
                 };
                 localWebSocket.onmessage = (event) => {
                     let msg = JSON.parse(event.data);
                     handleLocalSignalingPacket(msg);
                 };
-                localWebSocket.onerror = (e) => console.log("Local WebSocket Error:", e);
+                localWebSocket.onerror = (e) => {};
             } catch(e) {}
         }
 
@@ -985,7 +983,7 @@
                     reader.readAsDataURL(audioBlob);
                 };
                 pttRecorder.start();
-            }).catch(e => alert("Akses mikrofon ditolak untuk PTT."));
+            }).catch(e => {});
         }
 
         function stopPttTransmit() {
@@ -1088,8 +1086,6 @@
                     }
                 }
             } catch (err) {
-                console.warn("Gagal beralih kamera:", err);
-                alert("Tidak dapat beralih kamera: " + (err.message || "Kamera lain tidak tersedia."));
                 currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
             }
         }
@@ -1210,7 +1206,7 @@
                     mapInstance.setView([currentLat, currentLng], 17);
                     markerInstance.setLatLng([currentLat, currentLng]);
                     if(blueDotCircle) blueDotCircle.setLatLng([currentLat, currentLng]);
-                }, () => alert("Gagal mendapatkan lokasi GPS perangkat."));
+                }, () => {});
             }
         }
 
@@ -1298,7 +1294,7 @@
                 window.location.href = indriveApp;
                 setTimeout(() => { window.open(indriveWeb, '_blank'); }, 600);
             } else if(type === 'iqbike') {
-                alert(`Memesan Ojol iqBike ke koordinat: ${tempSelectedLat.toFixed(5)}, ${tempSelectedLng.toFixed(5)}`);
+                console.log(`Memesan Ojol iqBike ke koordinat: ${tempSelectedLat.toFixed(5)}, ${tempSelectedLng.toFixed(5)}`);
             }
         }
 
@@ -1388,7 +1384,7 @@
                                 localWebSocket.send(JSON.stringify({ type: 'offer', target: activeTarget, sender: currentUser, offer: peerConnection.localDescription }));
                             }
                         });
-                }).catch(e => alert("Gagal akses kamera/mic: " + e.message));
+                }).catch(e => {});
 
             if(isOnlineState) {
                 activeCallRef.on('value', async (snapshot) => {
@@ -1426,7 +1422,7 @@
             if (peerConnection && peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
                 try {
                     await peerConnection.addIceCandidate(new RTCIceCandidate(candidateObj));
-                } catch(e) { console.warn("Failed adding candidate:", e); }
+                } catch(e) {}
             } else {
                 pendingIceCandidates.push(candidateObj);
             }
@@ -1438,7 +1434,7 @@
                 const cand = pendingIceCandidates.shift();
                 try {
                     await peerConnection.addIceCandidate(new RTCIceCandidate(cand));
-                } catch(e) { console.warn("Error processing buffered candidate:", e); }
+                } catch(e) {}
             }
         }
 
@@ -1448,8 +1444,6 @@
             
             peerConnection.oniceconnectionstatechange = () => {
                 const state = peerConnection.iceConnectionState;
-                console.log("ICE Connection StateChanged:", state);
-                
                 const statusEl = document.getElementById('videoCallStatus');
                 if (statusEl) {
                     if (state === 'checking') {
@@ -1472,7 +1466,7 @@
 
             try {
                 meshDataChannel = peerConnection.createDataChannel("iqchat_mesh_channel");
-                meshDataChannel.onopen = () => console.log("Mesh DataChannel Connected");
+                meshDataChannel.onopen = () => {};
                 meshDataChannel.onmessage = (e) => {
                     let pkt = JSON.parse(e.data);
                     if (isOnlineState) {
@@ -1523,9 +1517,7 @@
                         restartTimestamp: Date.now()
                     });
                 }
-            } catch (err) {
-                console.error("Gagal melakukan ICE restart:", err);
-            }
+            } catch (err) {}
         }
 
         function switchVideoView() {
@@ -1545,6 +1537,10 @@
             contacts.forEach(num => {
                 if(num === "GeminiAI") return;
                 const callKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
+                
+                // Fixed: Detach previous Firebase listeners to avoid duplicate memory leaks and race conditions
+                db.ref('iqchat_calls/' + callKey).off();
+
                 db.ref('iqchat_calls/' + callKey).on('value', async (snapshot) => {
                     let callData = snapshot.val();
                     if(callData && callData.caller !== currentUser && callData.status === 'calling') {
@@ -1633,9 +1629,7 @@
                             } else {
                                 document.getElementById('videoCallStatus').innerText = "Terhubung Realtime";
                             }
-                        } catch(err) {
-                            console.error("Gagal menerima panggilan:", err);
-                        }
+                        } catch(err) {}
                     }
                 });
 
@@ -1732,7 +1726,7 @@
                 };
                 mediaRecorder.start();
                 document.getElementById('btnVoiceRecord').style.color = 'red';
-            }).catch(e => alert("Gagal akses mic"));
+            }).catch(e => {});
         }
 
         function stopVoiceRecord() {
@@ -1758,7 +1752,7 @@
                     reader.readAsDataURL(vidBlob);
                 };
                 roundVideoRecorder.start();
-            }).catch(e => alert("Gagal akses kamera video bulat"));
+            }).catch(e => {});
         }
 
         function stopRoundVideoRecord() {
@@ -1844,7 +1838,6 @@
                 loadAndListenMessages();
                 renderContactList();
                 backToContactList();
-                alert("Riwayat chat & kontak berhasil dibersihkan!");
             }
         }
 
