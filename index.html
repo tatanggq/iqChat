@@ -415,11 +415,11 @@
             const badge = document.getElementById('connectionStatusBadge');
             if (isOnlineState) {
                 badge.style.color = '#a7f3d0';
-                badge.innerHTML = `<i class="fa-solid fa-tower-cell"></i> WHATSAPP`;
+                badge.innerHTML = `<i class="fa-solid fa-tower-cell"></i> WHATSAPP (Online Cloud)`;
                 flushOfflineMeshQueueToCloud();
             } else {
                 badge.style.color = '#fef08a';
-                badge.innerHTML = `<i class="fa-solid fa-wifi-slash"></i> Offline (HT Walkie Talkie)`;
+                badge.innerHTML = `<i class="fa-solid fa-tower-broadcast"></i> Offline (HT Walkie Talkie)`;
             }
         }
 
@@ -961,7 +961,7 @@
                 localStorage.removeItem('iq_mesh_queue');
                 const badge = document.getElementById('connectionStatusBadge');
                 badge.style.color = '#38bdf8';
-                badge.innerHTML = `<i class="fa-solid fa-server"></i> Gateway Active (Sync Done)`;
+                badge.innerHTML = `<i class="fa-solid fa-server"></i> (Sync Gateway)`;
             }
         }
 
@@ -1047,57 +1047,45 @@
             
             currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
 
-            let newConstraints = {
-                video: { facingMode: { exact: currentFacingMode }, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } },
-                audio: true
-            };
-
             try {
+                if(localStream) {
+                    localStream.getTracks().forEach(t => t.stop());
+                }
+
+                let constraints = {
+                    video: { facingMode: { exact: currentFacingMode }, width: { ideal: 640 }, height: { ideal: 480 } },
+                    audio: true
+                };
+
                 let newStream;
                 try {
-                    newStream = await navigator.mediaDevices.getUserMedia(newConstraints);
-                } catch(e) {
-                    try {
-                        newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode }, audio: true });
-                    } catch(e2) {
-                        const devices = await navigator.mediaDevices.enumerateDevices();
-                        const videoDevices = devices.filter(d => d.kind === 'videoinput');
-                        if(videoDevices.length > 1) {
-                            const nextDev = videoDevices.find(d => d.deviceId !== currentVideoDeviceId) || videoDevices[0];
-                            currentVideoDeviceId = nextDev.deviceId;
-                            newStream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: currentVideoDeviceId } }, audio: true });
-                        } else {
-                            throw new Error("Kamera sekunder tidak ditemukan.");
-                        }
-                    }
-                }
-
-                const newVideoTrack = newStream.getVideoTracks()[0];
-                if(newVideoTrack) {
-                    currentVideoDeviceId = newVideoTrack.getSettings().deviceId || null;
-                }
-                
-                if(callType === 'ht') {
-                    const pttBtn = document.getElementById('btnPttLiveTx');
-                    const isTxActive = pttBtn && pttBtn.classList.contains('active-tx');
-                    newStream.getAudioTracks().forEach(t => t.enabled = isTxActive);
-                } else {
-                    newStream.getAudioTracks().forEach(t => t.enabled = true);
-                }
-
-                if(localStream) {
-                    localStream.getVideoTracks().forEach(t => t.stop());
+                    newStream = await navigator.mediaDevices.getUserMedia(constraints);
+                } catch(errExact) {
+                    constraints = {
+                        video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 480 } },
+                        audio: true
+                    };
+                    newStream = await navigator.mediaDevices.getUserMedia(constraints);
                 }
 
                 localStream = newStream;
+                if(callType === 'ht') {
+                    const pttBtn = document.getElementById('btnPttLiveTx');
+                    const isTxActive = pttBtn && pttBtn.classList.contains('active-tx');
+                    localStream.getAudioTracks().forEach(t => t.enabled = isTxActive);
+                } else {
+                    localStream.getAudioTracks().forEach(t => t.enabled = true);
+                }
+
                 const localVid = document.getElementById('localVideo');
                 localVid.srcObject = localStream;
                 await localVid.play().catch(e => {});
 
-                if(peerConnection) {
+                const newVideoTrack = localStream.getVideoTracks()[0];
+                if(peerConnection && newVideoTrack) {
                     const senders = peerConnection.getSenders();
                     const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-                    if(videoSender && newVideoTrack) {
+                    if(videoSender) {
                         await videoSender.replaceTrack(newVideoTrack);
                     }
                 }
@@ -1230,7 +1218,6 @@
 
         function sendPickedLocation() {
             closeMapModal();
-            // Use the exact coordinates where the user dropped/dragged the pin on the map
             let finalLat = currentLat;
             let finalLng = currentLng;
             if (markerInstance) {
@@ -1313,25 +1300,23 @@
                 const webMaps = `https://www.google.com/maps/search/?api=1&query=${tempSelectedLat},${tempSelectedLng}`;
                 window.open(webMaps, '_blank');
             } else if(type === 'indrive') {
-                // Direct app URI scheme for inDrive passing destination coordinates for ordering
-                const indriveAppUrl = `indrive://taxi?destination_lat=${tempSelectedLat}&destination_lon=${tempSelectedLng}`;
-                // Fallback store/web link if app is not installed
-                const indriveStoreUrl = `https://indrive.com/`;
+                const intentUrl = `intent://taxi?destination_lat=${tempSelectedLat}&destination_lon=${tempSelectedLng}#Intent;package=sinet.startup.inDriver;scheme=indrive;end;`;
+                const fallbackStoreUrl = `https://play.google.com/store/apps/details?id=sinet.startup.inDriver`;
                 
                 let fallbackTriggered = false;
                 const timer = setTimeout(() => {
                     if (!fallbackTriggered) {
                         fallbackTriggered = true;
-                        window.open(indriveStoreUrl, '_blank');
+                        window.open(fallbackStoreUrl, '_blank');
                     }
-                }, 1200);
+                }, 1500);
 
                 window.addEventListener('blur', () => {
                     clearTimeout(timer);
                     fallbackTriggered = true;
                 }, { once: true });
 
-                window.location.href = indriveAppUrl;
+                window.location.href = intentUrl;
             } else if(type === 'iqbike') {
                 console.log(`Memesan Ojol iqBike ke koordinat: ${tempSelectedLat.toFixed(5)}, ${tempSelectedLng.toFixed(5)}`);
             }
