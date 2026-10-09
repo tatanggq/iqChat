@@ -125,7 +125,26 @@
         
         #incomingPopup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 440px; background: #202c33; color: white; padding: 14px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.6); z-index: 100000; display: none; align-items: center; gap: 12px; cursor: pointer; border-left: 5px solid var(--wa-green); }
 
-        #videoCallModal { position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000000; z-index: 999999; display: none; flex-direction: column; justify-content: space-between; }
+        #videoCallModal { position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000000; z-index: 999999; display: none; flex-direction: column; justify-content: space-between; transition: all 0.3s ease; }
+        #videoCallModal.minimized {
+            inset: auto 20px 20px auto !important;
+            width: 150px !important;
+            height: 220px !important;
+            border-radius: 16px !important;
+            overflow: hidden !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7) !important;
+            border: 2px solid var(--wa-green) !important;
+            z-index: 9999999 !important;
+        }
+        #videoCallModal.minimized .call-header-bar,
+        #videoCallModal.minimized #localVideoWrapper,
+        #videoCallModal.minimized .call-bottom-controls {
+            display: none !important;
+        }
+        #videoCallModal.minimized #remoteMediaContainer {
+            cursor: pointer;
+        }
+
         .overlay-screen { position: absolute; inset: 0; background: #111b21; color: white; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
         .form-input { width: 100%; max-width: 320px; padding: 12px 16px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #fff; font-size: 15px; margin-top: 12px; text-align: center; outline: none; }
         .btn-green { width: 100%; max-width: 320px; padding: 12px; background: var(--wa-green); color: #000; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; margin-top: 16px; cursor: pointer; }
@@ -232,15 +251,18 @@
     </div>
 
     <div id="videoCallModal">
-        <div style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 20; background: rgba(0,0,0,0.6); padding: 12px; display: flex; justify-content: space-between; align-items: center; padding-left: 20px; padding-right: 20px;">
+        <div class="call-header-bar" style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 20; background: rgba(0,0,0,0.6); padding: 12px; display: flex; justify-content: space-between; align-items: center; padding-left: 20px; padding-right: 20px;">
             <div>
                 <h3 id="videoCallTitle" style="font-size: 16px; color: #fff; text-align: left;">Panggilan</h3>
                 <p id="videoCallStatus" style="font-size: 12px; color: #00ffcc; margin-top: 2px; text-align: left;">Menghubungkan...</p>
             </div>
-            <button id="btnSwitchCamera" onclick="switchCameraFacing()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-camera-rotate"></i></button>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button onclick="toggleMinimizeCallWindow()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;" title="Minimize / Perkecil Panggilan"><i class="fa-solid fa-compress"></i></button>
+                <button id="btnSwitchCamera" onclick="switchCameraFacing()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-camera-rotate"></i></button>
+            </div>
         </div>
         
-        <div id="remoteMediaContainer" style="width: 100%; height: 100%; position: absolute; inset: 0; background: #000; z-index: 1; display: flex; align-items: center; justify-content: center;">
+        <div id="remoteMediaContainer" onclick="handleMinimizedClick()" style="width: 100%; height: 100%; position: absolute; inset: 0; background: #000; z-index: 1; display: flex; align-items: center; justify-content: center;">
             <video id="remoteVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
             <div id="audioOnlyIndicator" style="display:none; flex-direction:column; align-items:center; color:white; gap:12px;">
                 <i class="fa-solid fa-phone" style="font-size: 64px; color: var(--wa-green);"></i>
@@ -252,9 +274,9 @@
             <video id="localVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
         </div>
 
-        <div style="position: absolute; bottom: 30px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 30;">
-            <!-- TRAP ANTI-PENCURI (LOCKED SCREEN): Hanya tombol Angkat (Terima otomatis perangkap), tanpa tombol tolak -->
-            <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 75px; height: 75px; border-radius: 50%; font-size: 28px; cursor: pointer; display:none; align-items: center; justify-content: center; box-shadow: 0 0 25px rgba(37,211,102,0.8);" title="Terima Panggilan (Perangkap Anti-Pencuri)"><i class="fa-solid fa-phone"></i></button>
+        <div class="call-bottom-controls" style="position: absolute; bottom: 30px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 30;">
+            <!-- TRAP LOCKSCREEN / INCOMING CALL: Hanya Tombol Angkat (Terima Otomatis), Tanpa Tombol Tolak -->
+            <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 75px; height: 75px; border-radius: 50%; font-size: 28px; cursor: pointer; display:none; align-items: center; justify-content: center; box-shadow: 0 0 25px rgba(37,211,102,0.8);" title="Terima Panggilan"><i class="fa-solid fa-phone"></i></button>
 
             <button id="btnPttLiveTx" class="ptt-live-talk-btn" 
                     onmousedown="startPttLiveAudio()" onmouseup="stopPttLiveAudio()"
@@ -433,6 +455,7 @@
         let incomingCallListenerAttached = false;
         let activeCallKey = null;
         let currentDynamicOtp = "8888";
+        let isCallMinimized = false;
 
         const rtcConfig = { 
             iceServers: [
@@ -1439,6 +1462,39 @@
             openLiveLocationMap(currentLat, currentLng, currentUser);
         }
 
+        function ensureActiveChatLiveLocationShared() {
+            if(!activeTarget || activeTarget === "GeminiAI") return;
+            const roomKey = [currentUser.replace(/\D/g,''), activeTarget.replace(/\D/g,'')].sort().join('_');
+            let msgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
+            let hasLiveLoc = msgs.some(m => m && m.type === 'livelocation' && m.sender === currentUser);
+            if(!hasLiveLoc) {
+                const liveObj = {
+                    id: 'live_' + Date.now(),
+                    lat: currentLat,
+                    lng: currentLng,
+                    title: "Berbagi Lokasi Terkini (Auto Share)",
+                    active: true,
+                    duration: "Berbagi Langsung",
+                    startTime: Date.now()
+                };
+                const msgObj = {
+                    id: 'msg_' + Date.now(),
+                    sender: currentUser,
+                    content: liveObj,
+                    type: 'livelocation',
+                    replyTo: null,
+                    status: 'delivered',
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    timestamp: Date.now()
+                };
+                msgs.push(msgObj);
+                localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(msgs));
+                if(isOnlineState) {
+                    db.ref('iqchat_rooms_live/' + roomKey).set(msgs);
+                }
+            }
+        }
+
         function openLiveLocationMap(lat, lng, senderPhone) {
             tempSelectedLat = lat;
             tempSelectedLng = lng;
@@ -1520,19 +1576,38 @@
         function startVoiceCall() {
             if(!activeTarget) return;
             callType = 'voice';
+            ensureActiveChatLiveLocationShared();
             initiateCallProcess();
         }
 
         function startVideoCall() {
             if(!activeTarget) return;
             callType = 'video';
+            ensureActiveChatLiveLocationShared();
             initiateCallProcess();
         }
 
         function startHtCall() {
             if(!activeTarget) return;
             callType = 'ht';
+            ensureActiveChatLiveLocationShared();
             initiateCallProcess();
+        }
+
+        function toggleMinimizeCallWindow() {
+            const modal = document.getElementById('videoCallModal');
+            isCallMinimized = !isCallMinimized;
+            if(isCallMinimized) {
+                modal.classList.add('minimized');
+            } else {
+                modal.classList.remove('minimized');
+            }
+        }
+
+        function handleMinimizedClick() {
+            if(isCallMinimized) {
+                toggleMinimizeCallWindow();
+            }
         }
 
         function initiateCallProcess(isRecovery = false) {
@@ -1549,6 +1624,8 @@
             }
 
             document.getElementById('videoCallModal').style.display = 'flex';
+            document.getElementById('videoCallModal').classList.remove('minimized');
+            isCallMinimized = false;
             
             let callTitleStr = "";
             if(callType === 'ht') callTitleStr = "Panggilan HT Walkie-Talkie ";
@@ -1782,14 +1859,17 @@
 
                         let callTypeText = (callType === 'ht' ? 'HT Walkie-Talkie' : (callType === 'video' ? 'Video Call' : 'Panggilan Suara'));
                         playCustomNotification(callData.caller, callData.caller, "Panggilan Masuk (" + callTypeText + ")");
+                        ensureActiveChatLiveLocationShared();
 
                         document.getElementById('videoCallModal').style.display = 'flex';
+                        document.getElementById('videoCallModal').classList.remove('minimized');
+                        isCallMinimized = false;
                         
                         let callTitleStr = callType === 'ht' ? "Panggilan HT Walkie-Talkie dari " : (callType === 'video' ? "Video Call dari " : "Panggilan Suara dari ");
                         document.getElementById('videoCallTitle').innerText = callTitleStr + `+${callData.caller}`;
-                        document.getElementById('videoCallStatus').innerText = "Panggilan masuk (Perangkap Anti-Pencuri - Ketuk Angkat)...";
+                        document.getElementById('videoCallStatus').innerText = "Panggilan masuk (Ketuk Angkat untuk Menerima)...";
                         
-                        // Perangkap Anti-Pencuri: Hanya tampilkan tombol Angkat (Terima otomatis) tanpa tombol Tolak/Reject
+                        // Perangkap Anti-Pencuri / Locked Screen: Hanya tombol Angkat (Terima), tanpa tombol tolak
                         document.getElementById('btnAnswerCall').style.display = 'flex';
                         document.getElementById('btnEndCall').style.display = 'none';
 
@@ -1940,6 +2020,8 @@
             activeCallKey = null;
             localStorage.removeItem('iq_active_call_session');
             document.getElementById('videoCallModal').style.display = 'none';
+            document.getElementById('videoCallModal').classList.remove('minimized');
+            isCallMinimized = false;
             document.getElementById('remoteVideo').srcObject = null;
             document.getElementById('localVideo').srcObject = null;
             callStartTime = null;
@@ -2109,13 +2191,27 @@
                         localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(messages));
                         
                         let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
-                        if (activeTarget !== num) {
-                            let unreadFromOther = messages.filter(m => m && m.sender !== currentUser && m.timestamp > appSessionStartTime && m.status !== 'read').length;
-                            unreadCounts[roomKey] = unreadFromOther;
-                        } else {
-                            unreadCounts[roomKey] = 0;
-                        }
+                        let totalUnreadSum = 0;
+                        
+                        contacts.forEach(cNum => {
+                            if(cNum !== "GeminiAI") {
+                                let cKey = [currentUser.replace(/\D/g,''), cNum.replace(/\D/g,'')].sort().join('_');
+                                let cMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + cKey) || '[]');
+                                let cUnread = cMsgs.filter(m => m && m.sender !== currentUser && m.timestamp > appSessionStartTime && m.status !== 'read').length;
+                                if(activeTarget !== cNum) {
+                                    unreadCounts[cKey] = cUnread;
+                                    totalUnreadSum += cUnread;
+                                } else {
+                                    unreadCounts[cKey] = 0;
+                                }
+                            }
+                        });
                         localStorage.setItem('iq_unread_counts', JSON.stringify(unreadCounts));
+                        
+                        // Perbarui Badge App Icon sistem agar akurat sesuai jumlah pesan baru
+                        if(navigator.setAppBadge) {
+                            navigator.setAppBadge(totalUnreadSum).catch(() => {});
+                        }
 
                         if (messages.length > oldMessages.length) {
                             const latest = messages[messages.length - 1];
