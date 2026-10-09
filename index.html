@@ -258,7 +258,7 @@
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
                 <button onclick="toggleMinimizeCallWindow()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;" title="Minimize / Perkecil Panggilan"><i class="fa-solid fa-compress"></i></button>
-                <button id="btnSwitchCamera" onclick="switchCameraFacing()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-camera-rotate"></i></button>
+                <button id="btnSwitchCamera" onclick="switchCameraFacing()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;" title="Balik Kamera"><i class="fa-solid fa-camera-rotate"></i></button>
             </div>
         </div>
         
@@ -275,8 +275,11 @@
         </div>
 
         <div class="call-bottom-controls" style="position: absolute; bottom: 30px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 30;">
-            <!-- LOCKSCREEN / INCOMING CALL TRAP: Hanya Tombol Angkat (Terima), Tanpa Tombol Tolak, Tanpa Timeout -->
+            <!-- Tombol Terima (Angkat) -->
             <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 75px; height: 75px; border-radius: 50%; font-size: 28px; cursor: pointer; display:none; align-items: center; justify-content: center; box-shadow: 0 0 25px rgba(37,211,102,0.8);" title="Terima Panggilan"><i class="fa-solid fa-phone"></i></button>
+
+            <!-- Tombol Tolak / Reject Panggilan Masuk -->
+            <button onclick="rejectIncomingCall()" id="btnRejectCall" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display: none; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(239,68,68,0.7);" title="Tolak Panggilan"><i class="fa-solid fa-phone-slash"></i></button>
 
             <button id="btnPttLiveTx" class="ptt-live-talk-btn" 
                     onmousedown="startPttLiveAudio()" onmouseup="stopPttLiveAudio()"
@@ -285,8 +288,8 @@
                 <i class="fa-solid fa-microphone"></i>
             </button>
 
-            <!-- Tombol Tutup Panggilan -->
-            <button onclick="endVideoCall()" id="btnEndCall" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-phone-slash"></i></button>
+            <!-- Tombol Tutup Panggilan Aktif -->
+            <button onclick="endVideoCall()" id="btnEndCall" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Akhiri Panggilan"><i class="fa-solid fa-phone-slash"></i></button>
         </div>
     </div>
 
@@ -1679,6 +1682,7 @@
             const videoCallTitle = document.getElementById('videoCallTitle');
             const videoCallStatus = document.getElementById('videoCallStatus');
             const btnAnswerCall = document.getElementById('btnAnswerCall');
+            const btnRejectCall = document.getElementById('btnRejectCall');
             const btnEndCall = document.getElementById('btnEndCall');
             const btnSwitchCamera = document.getElementById('btnSwitchCamera');
             const btnPttLiveTx = document.getElementById('btnPttLiveTx');
@@ -1686,6 +1690,7 @@
             if(videoCallTitle) videoCallTitle.innerText = callTitleStr + `+${activeTarget}`;
             if(videoCallStatus) videoCallStatus.innerText = "Menghubungkan...";
             if(btnAnswerCall) btnAnswerCall.style.display = 'none';
+            if(btnRejectCall) btnRejectCall.style.display = 'none';
             if(btnEndCall) btnEndCall.style.display = 'flex';
             
             if(btnSwitchCamera) btnSwitchCamera.style.display = (callType === 'voice') ? 'none' : 'flex';
@@ -1982,16 +1987,16 @@
                         const videoCallTitle = document.getElementById('videoCallTitle');
                         const videoCallStatus = document.getElementById('videoCallStatus');
                         if(videoCallTitle) videoCallTitle.innerText = callTitleStr + `+${callData.caller}`;
-                        if(videoCallStatus) videoCallStatus.innerText = "Panggilan masuk (Lockscreen Security Trap - Tekan Angkat untuk Auto Stream)...";
+                        if(videoCallStatus) videoCallStatus.innerText = "Panggilan masuk... Silakan Angkat atau Tolak.";
                         
-                        // KETENTUAN LOCKSCREEN: Hanya tombol Angkat (Terima), tanpa tombol tolak.
-                        // Jika dalam 45 detik tidak diangkat, otomatis terputus sebagai panggilan tidak terjawab.
                         const btnAnswerCall = document.getElementById('btnAnswerCall');
+                        const btnRejectCall = document.getElementById('btnRejectCall');
                         const btnEndCall = document.getElementById('btnEndCall');
                         const btnSwitchCamera = document.getElementById('btnSwitchCamera');
                         const btnPttLiveTx = document.getElementById('btnPttLiveTx');
 
                         if(btnAnswerCall) btnAnswerCall.style.display = 'flex';
+                        if(btnRejectCall) btnRejectCall.style.display = 'flex';
                         if(btnEndCall) btnEndCall.style.display = 'none';
 
                         if(btnSwitchCamera) btnSwitchCamera.style.display = (callType === 'voice') ? 'none' : 'flex';
@@ -2013,7 +2018,6 @@
                             if(localVideoWrapper) localVideoWrapper.style.display = 'none';
                         }
 
-                        // Timeout 45 detik otomatis terputus jika tidak diangkat
                         if (incomingCallTimeoutTimer) clearTimeout(incomingCallTimeoutTimer);
                         incomingCallTimeoutTimer = setTimeout(() => {
                             if (activeCallRef && (!callStartTime)) {
@@ -2053,11 +2057,12 @@
             if(incomingCallTimeoutTimer) { clearTimeout(incomingCallTimeoutTimer); incomingCallTimeoutTimer = null; }
             if(activeCallRef) {
                 const btnAnswerCall = document.getElementById('btnAnswerCall');
+                const btnRejectCall = document.getElementById('btnRejectCall');
                 const btnEndCall = document.getElementById('btnEndCall');
                 const videoCallStatus = document.getElementById('videoCallStatus');
 
-                // Setelah diangkat, tombol Berhenti (EndCall) dimunculkan kembali untuk kontrol penuh
                 if(btnAnswerCall) btnAnswerCall.style.display = 'none';
+                if(btnRejectCall) btnRejectCall.style.display = 'none';
                 if(btnEndCall) btnEndCall.style.display = 'flex';
                 if(videoCallStatus) videoCallStatus.innerText = "Menghubungkan & Streaming...";
                 callStartTime = Date.now();
@@ -2096,6 +2101,15 @@
                     });
                 }
             }
+        }
+
+        function rejectIncomingCall() {
+            if(incomingCallTimeoutTimer) { clearTimeout(incomingCallTimeoutTimer); incomingCallTimeoutTimer = null; }
+            logCallHistory(activeTarget, callType, 'incoming', 'Ditolak');
+            if(activeCallRef && isOnlineState) {
+                activeCallRef.update({ status: 'rejected' });
+            }
+            closeCallModalUI(false);
         }
 
         function processSignalingMessage(packet) {
