@@ -117,7 +117,8 @@
 
         #videoRoundModal { position: fixed; inset: 0; background: #000; z-index: 99999; display: none; flex-direction: column; align-items: center; justify-content: center; }
 
-        .chat-head-bubble { position: fixed; bottom: 100px; right: 25px; width: 60px; height: 60px; background: #075E54; border-radius: 50%; display: none; align-items: center; justify-content: center; color: white; box-shadow: 0 6px 25px rgba(0,0,0,0.5); cursor: pointer; z-index: 99999; background-size: cover; background-position: center; border: 3px solid white; touch-action: none; }
+        .chat-head-bubble { position: fixed; bottom: 100px; right: 25px; width: 60px; height: 60px; background: #075E54; border-radius: 50%; display: none; align-items: center; justify-content: center; color: white; box-shadow: 0 6px 25px rgba(0,0,0,0.5); cursor: pointer; z-index: 99999; background-size: cover; background-position: center; border: 3px solid white; touch-action: none; animation: messengerBounce 2s infinite ease-in-out; }
+        @keyframes messengerBounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); box-shadow: 0 0 25px rgba(37,211,102,0.8); } }
         .chat-head-unread { position: absolute; top: -2px; right: -2px; background: #25D366; color: #000; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 50%; min-width: 20px; height: 20px; display: none; align-items: center; justify-content: center; text-align: center; border: 2px solid white; z-index: 6; }
 
         #dropZoneX { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); width: 54px; height: 54px; background: rgba(0,0,0,0.75); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 22px; z-index: 99998; border: 2px dashed #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
@@ -204,7 +205,7 @@
         <i class="fa-solid fa-chevron-right" style="color: #8696a0; font-size: 14px;"></i>
     </div>
 
-    <div id="chatHead" class="chat-head-bubble" title="Geser ke X untuk menutup">
+    <div id="chatHead" class="chat-head-bubble" title="Geser ke X untuk menutup" onclick="openChatFromPopup()">
         <div id="chatHeadAvatarContainer" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; position:relative;"></div>
         <div id="chatHeadUnread" class="chat-head-unread">0</div>
     </div>
@@ -252,7 +253,9 @@
         </div>
 
         <div style="position: absolute; bottom: 30px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 30;">
-            <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none;"><i class="fa-solid fa-phone"></i></button>
+            <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none;" title="Angkat Panggilan"><i class="fa-solid fa-phone"></i></button>
+
+            <button onclick="rejectIncomingCall()" id="btnRejectCall" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none;" title="Tolak Panggilan"><i class="fa-solid fa-phone-slash"></i></button>
 
             <button id="btnPttLiveTx" class="ptt-live-talk-btn" 
                     onmousedown="startPttLiveAudio()" onmouseup="stopPttLiveAudio()"
@@ -261,7 +264,7 @@
                 <i class="fa-solid fa-microphone"></i>
             </button>
 
-            <button onclick="endVideoCall()" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer;"><i class="fa-solid fa-phone-slash"></i></button>
+            <button onclick="endVideoCall()" id="btnEndCall" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer;"><i class="fa-solid fa-phone-slash"></i></button>
         </div>
     </div>
 
@@ -287,7 +290,6 @@
         
         <div id="viewContactList" class="view-panel active">
             <div class="app-header">
-                <!-- Dropdown Menu Tersembunyi untuk Edit Profil & Keluar (Logout) agar header utama tetap bersih ala WhatsApp -->
                 <div style="position: relative;">
                     <div class="header-title" onclick="toggleProfileDropdown(event)">
                         <div id="myHeaderAvatarContainer"></div>
@@ -433,7 +435,6 @@
         let activeCallKey = null;
         let currentDynamicOtp = "8888";
 
-        // Expanded TURN & STUN Ice Servers for robust NAT traversal
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -686,7 +687,7 @@
         }
 
         function logoutAccount() {
-            if(confirm("Apakah Anda yakin ingin keluar (logout) dari akun ini untuk mengganti nomor WhatsApp?")) {
+            if(confirm("Apakah Anda yakin ingin keluar (logout) dari akun ini untuk mengganti nomor?")) {
                 currentUser = "";
                 localStorage.removeItem('iq_user_phone');
                 localStorage.removeItem('iq_active_target');
@@ -895,7 +896,7 @@
                 let photoUrl = details.photo || prof.photo || "";
                 let callIconType = log.callType === 'ht' ? '<i class="fa-solid fa-walkie-talkie"></i>' : (log.callType === 'video' ? '<i class="fa-solid fa-video"></i>' : '<i class="fa-solid fa-phone"></i>');
                 
-                const isMissed = log.status === "Tidak dijawab" || log.status === "Dibatalkan";
+                const isMissed = log.status === "Tidak dijawab" || log.status === "Dibatalkan" || log.status === "Ditolak";
                 
                 let directionIcon = '';
                 if (log.type === 'outgoing') {
@@ -1004,7 +1005,7 @@
                 if (lastMsgObj) {
                     if (typeof lastMsgObj.content === 'object') {
                         if (lastMsgObj.type === 'calllog') {
-                            const isMissed = lastMsgObj.content.status === "Tidak dijawab" || lastMsgObj.content.status === "Dibatalkan";
+                            const isMissed = lastMsgObj.content.status === "Tidak dijawab" || lastMsgObj.content.status === "Dibatalkan" || lastMsgObj.content.status === "Ditolak";
                             const callLabel = lastMsgObj.content.callType === 'ht' ? 'HT' : (lastMsgObj.content.video ? 'Video' : 'Suara');
                             lastMsg = `<span style="${isMissed ? 'color:#ef4444;' : ''}">📞 Panggilan ${callLabel} (${lastMsgObj.content.status})</span>`;
                         } else if (lastMsgObj.type === 'ptt') {
@@ -1219,7 +1220,7 @@
 
             try {
                 if(localStream) {
-                    localStream.getTracks().forEach(t => t.stop());
+                    localStream.getVideoTracks().forEach(t => t.stop());
                 }
 
                 let constraints = {
@@ -1238,7 +1239,18 @@
                     newStream = await navigator.mediaDevices.getUserMedia(constraints);
                 }
 
-                localStream = newStream;
+                const newVideoTrack = newStream.getVideoTracks()[0];
+                if(localStream && newVideoTrack) {
+                    const audioTrack = localStream.getAudioTracks()[0];
+                    if (audioTrack) {
+                        newStream.addTrack(audioTrack);
+                    }
+                    localStream.getVideoTracks().forEach(t => t.stop());
+                    localStream = newStream;
+                } else {
+                    localStream = newStream;
+                }
+
                 if(callType === 'ht') {
                     const pttBtn = document.getElementById('btnPttLiveTx');
                     const isTxActive = pttBtn && pttBtn.classList.contains('active-tx');
@@ -1251,7 +1263,6 @@
                 localVid.srcObject = localStream;
                 await localVid.play().catch(e => {});
 
-                const newVideoTrack = localStream.getVideoTracks()[0];
                 if(peerConnection && newVideoTrack) {
                     const senders = peerConnection.getSenders();
                     const videoSender = senders.find(s => s.track && s.track.kind === 'video');
@@ -1267,6 +1278,8 @@
         function openChatRoom(num) {
             activeTarget = num;
             localStorage.setItem('iq_active_target', activeTarget);
+            document.getElementById('chatHead').style.display = 'none';
+            document.getElementById('incomingPopup').style.display = 'none';
             
             if (!contacts.includes(num)) {
                 contacts.push(num);
@@ -1305,7 +1318,6 @@
 
             document.getElementById('viewContactList').classList.remove('active');
             document.getElementById('viewChatRoom').classList.add('active');
-            document.getElementById('chatHead').style.display = 'none';
             loadAndListenMessages();
             renderContactList();
         }
@@ -1537,6 +1549,8 @@
             document.getElementById('videoCallTitle').innerText = callTitleStr + `+${activeTarget}`;
             document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
             document.getElementById('btnAnswerCall').style.display = 'none';
+            document.getElementById('btnRejectCall').style.display = 'none';
+            document.getElementById('btnEndCall').style.display = 'flex';
             
             document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
             document.getElementById('btnPttLiveTx').style.display = (callType === 'ht') ? 'flex' : 'none';
@@ -1606,7 +1620,7 @@
                             await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(callData.answer)));
                             await processPendingIceCandidates();
                         }
-                    } else if(callData.status === 'ended') {
+                    } else if(callData.status === 'ended' || callData.status === 'rejected') {
                         closeCallModalUI(false);
                     }
                 });
@@ -1758,14 +1772,18 @@
                         pendingIceCandidates = [];
                         localStorage.setItem('iq_active_call_session', JSON.stringify({ target: activeTarget, callType: callType }));
 
-                        playCustomNotification(callData.caller, callData.caller, "Panggilan Masuk (" + (callType === 'ht' ? 'HT Walkie-Talkie' : (callType === 'video' ? 'Video' : 'Suara')) + ")");
+                        let callTypeText = (callType === 'ht' ? 'HT Walkie-Talkie' : (callType === 'video' ? 'Video Call' : 'Panggilan Suara'));
+                        playCustomNotification(callData.caller, callData.caller, "Panggilan Masuk (" + callTypeText + ")");
 
                         document.getElementById('videoCallModal').style.display = 'flex';
                         
                         let callTitleStr = callType === 'ht' ? "Panggilan HT Walkie-Talkie dari " : (callType === 'video' ? "Video Call dari " : "Panggilan Suara dari ");
                         document.getElementById('videoCallTitle').innerText = callTitleStr + `+${callData.caller}`;
-                        document.getElementById('videoCallStatus').innerText = "Panggilan masuk (Ketuk Angkat)...";
+                        document.getElementById('videoCallStatus').innerText = "Panggilan masuk (Ketuk Angkat atau Tolak)...";
                         document.getElementById('btnAnswerCall').style.display = 'block';
+                        document.getElementById('btnRejectCall').style.display = 'block';
+                        document.getElementById('btnEndCall').style.display = 'none';
+
                         document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
                         document.getElementById('btnPttLiveTx').style.display = (callType === 'ht') ? 'flex' : 'none';
 
@@ -1797,7 +1815,7 @@
                                     localVid.play().catch(e => {});
                                 }
                             }).catch(e => {});
-                    } else if(callData && callData.status === 'ended') {
+                    } else if(callData && (callData.status === 'ended' || callData.status === 'rejected')) {
                         closeCallModalUI(true);
                     }
                 });
@@ -1807,6 +1825,8 @@
         async function answerIncomingCall() {
             if(activeCallRef) {
                 document.getElementById('btnAnswerCall').style.display = 'none';
+                document.getElementById('btnRejectCall').style.display = 'none';
+                document.getElementById('btnEndCall').style.display = 'flex';
                 document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
                 callStartTime = Date.now();
 
@@ -1846,6 +1866,14 @@
                     });
                 }
             }
+        }
+
+        function rejectIncomingCall() {
+            logCallHistory(activeTarget, callType, 'incoming', 'Ditolak');
+            if(activeCallRef && isOnlineState) {
+                activeCallRef.update({ status: 'rejected' });
+            }
+            closeCallModalUI(false);
         }
 
         function processSignalingMessage(packet) {
@@ -2182,7 +2210,7 @@
                     bodyHtml = `${replyQuoteHtml}<video controls src="${msg.content.data}" style="width:160px; height:160px; border-radius:50%; object-fit:cover;"></video>`;
                 } else if(msg.type === 'calllog') {
                     rawTextForReply = "[Riwayat Panggilan]";
-                    const isMissed = msg.content.status === "Tidak dijawab" || msg.content.status === "Dibatalkan";
+                    const isMissed = msg.content.status === "Tidak dijawab" || msg.content.status === "Dibatalkan" || msg.content.status === "Ditolak";
                     
                     let callTitle = "Panggilan suara";
                     let iconClass = "fa-solid fa-phone";
@@ -2270,11 +2298,10 @@
                 });
             }
 
-            showIncomingPopup(targetNum, senderName, messageText);
-            showChatHeadBubble(targetNum);
+            showChatHeadBubble(targetNum, messageText);
         }
 
-        function showChatHeadBubble(num) {
+        function showChatHeadBubble(num, messageText = "Pesan baru masuk") {
             pendingPopupTarget = num;
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
             let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
@@ -2294,6 +2321,8 @@
             unreadEl.innerText = unread;
             unreadEl.style.display = 'flex';
             document.getElementById('chatHead').style.display = 'flex';
+
+            showIncomingPopup(num, dispName, messageText);
         }
 
         function setupDraggableChatHead() {
