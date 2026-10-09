@@ -402,7 +402,7 @@
         let swRegistration = null;
         let audioCtx = null;
         let callStartTime = null;
-
+        let appSessionStartTime = Date.now();
         let meshDataChannel = null;
         let isOnlineState = navigator.onLine;
         let pendingIceCandidates = [];
@@ -1564,6 +1564,9 @@
                 db.ref('iqchat_calls/' + callKey).on('value', async (snapshot) => {
                     let callData = snapshot.val();
                     if(callData && callData.caller !== currentUser && callData.status === 'calling') {
+                        if (callData.timestamp && callData.timestamp < appSessionStartTime) {
+                            return;
+                        }
                         activeCallRef = db.ref('iqchat_calls/' + callKey);
                         activeTarget = callData.caller;
                         callType = callData.callType || (callData.video ? 'video' : 'voice');
@@ -1878,29 +1881,32 @@
                     const data = snapshot.val();
                     if(data) {
                         let messages = Array.isArray(data) ? data : Object.values(data);
+                        let oldMessages = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
+                        
                         localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(messages));
                         
-                        let countKey = 'count_' + roomKey;
-                        let prevCount = parseInt(localStorage.getItem(countKey) || messages.length);
-                        
-                        if (messages.length > prevCount) {
+                        let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
+                        if (activeTarget !== num) {
+                            let newIncomingCount = messages.filter(m => m && m.sender !== currentUser && m.timestamp > appSessionStartTime).length;
+                            // Check against previously tracked local unread or calculate accurately
+                            let unreadFromOther = messages.filter(m => m && m.sender !== currentUser && m.status !== 'read').length;
+                            unreadCounts[roomKey] = Math.max(unreadCounts[roomKey] || 0, unreadFromOther);
+                        } else {
+                            unreadCounts[roomKey] = 0;
+                        }
+                        localStorage.setItem('iq_unread_counts', JSON.stringify(unreadCounts));
+
+                        if (messages.length > oldMessages.length) {
                             const latest = messages[messages.length - 1];
-                            if (latest && latest.sender !== currentUser) {
-                                if (activeTarget !== num) {
-                                    let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
-                                    unreadCounts[roomKey] = (unreadCounts[roomKey] || 0) + 1;
-                                    localStorage.setItem('iq_unread_counts', JSON.stringify(unreadCounts));
-                                }
+                            if (latest && latest.sender !== currentUser && latest.timestamp > appSessionStartTime) {
                                 playCustomNotification(num, num, latest.content);
                             }
                         }
-                        localStorage.setItem(countKey, messages.length);
 
                         if(activeTarget === num) { renderChatUI(messages); }
                         renderContactList();
                     } else {
                         localStorage.removeItem('iq_msgs_history_' + roomKey);
-                        localStorage.removeItem('count_' + roomKey);
                         if(activeTarget === num) { renderChatUI([]); }
                         renderContactList();
                     }
