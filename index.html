@@ -729,7 +729,7 @@
                 chatBtn.style.borderBottom = '3px solid transparent';
                 chatBtn.style.color = '#cfd8dc';
                 callContent.style.display = 'flex';
-                chatContent.style.display = 'none';
+                callContent.style.display = 'none';
                 renderCallLogs();
             }
         }
@@ -1563,9 +1563,10 @@
                 const callKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 db.ref('iqchat_calls/' + callKey).on('value', async (snapshot) => {
                     let callData = snapshot.val();
+                    // STRICT CHECK: callData must be status 'calling' AND timestamp must be newer than app session start time
                     if(callData && callData.caller !== currentUser && callData.status === 'calling') {
-                        if (callData.timestamp && callData.timestamp < appSessionStartTime) {
-                            return;
+                        if (!callData.timestamp || callData.timestamp < appSessionStartTime) {
+                            return; // Skip stale or old calls from previous sessions upon refresh
                         }
                         activeCallRef = db.ref('iqchat_calls/' + callKey);
                         activeTarget = callData.caller;
@@ -1610,7 +1611,6 @@
                                 }
                             }).catch(e => {});
                     } else if(callData && callData.status === 'ended') {
-                        calculateAndLogEndCall('incoming');
                         closeCallModalUI();
                     }
                 });
@@ -1887,9 +1887,8 @@
                         
                         let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
                         if (activeTarget !== num) {
-                            let newIncomingCount = messages.filter(m => m && m.sender !== currentUser && m.timestamp > appSessionStartTime).length;
-                            // Check against previously tracked local unread or calculate accurately
-                            let unreadFromOther = messages.filter(m => m && m.sender !== currentUser && m.status !== 'read').length;
+                            // Hitung pesan masuk dari pengirim lain yang timestamp-nya lebih baru dari waktu session saat ini
+                            let unreadFromOther = messages.filter(m => m && m.sender !== currentUser && m.timestamp > appSessionStartTime && m.status !== 'read').length;
                             unreadCounts[roomKey] = Math.max(unreadCounts[roomKey] || 0, unreadFromOther);
                         } else {
                             unreadCounts[roomKey] = 0;
@@ -2147,7 +2146,7 @@
             let identifier = details.name ? details.name.slice(0,2).toUpperCase() : num.slice(-2);
             document.getElementById('popupAvatarContainer').innerHTML = getOnlineAvatarHTML(identifier, details.photo, 42, true);
 
-            document.getElementById('popupSenderName').innerText = "+" + num;
+            document.getElementById('popupSenderName', "+" + num);
             document.getElementById('popupMessageText').innerText = typeof text === 'object' ? '[Media/Panggilan]' : text;
             document.getElementById('incomingPopup').style.display = 'flex';
             setTimeout(() => { document.getElementById('incomingPopup').style.display = 'none'; }, 6000);
