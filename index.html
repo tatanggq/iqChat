@@ -233,7 +233,7 @@
         <div id="chatHeadUnread" class="chat-head-unread">0</div>
     </div>
 
-    <!-- Floating Call Bubble untuk Panggilan Masuk di Latar Belakang -->
+    <!-- Floating Call Bubble Overlay ala Messenger FB (Aktif di latar belakang) -->
     <div id="callOverlayBubble" onclick="openIncomingCallFromBubble()" title="Panggilan Masuk - Ketuk untuk Angkat">
         <div id="callBubbleAvatar" style="width:100%; height:100%; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px;"><i class="fa-solid fa-phone-volume fa-bounce"></i></div>
     </div>
@@ -285,10 +285,10 @@
         </div>
 
         <div class="call-bottom-controls" style="position: absolute; bottom: 30px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 30;">
-            <!-- Tombol Terima (Angkat) - Hanya tombol ini yang tampil saat panggilan masuk -->
+            <!-- Tombol Terima (Angkat) - Hanya tombol ini saat panggilan masuk -->
             <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 75px; height: 75px; border-radius: 50%; font-size: 28px; cursor: pointer; display:none; align-items: center; justify-content: center; box-shadow: 0 0 25px rgba(37,211,102,0.8);" title="Terima Panggilan"><i class="fa-solid fa-phone"></i></button>
 
-            <!-- Tombol Tolak / Reject Dihilangkan sesuai permintaan -->
+            <!-- Tombol Tolak Dihilangkan -->
             <button onclick="rejectIncomingCall()" id="btnRejectCall" style="display: none;"></button>
 
             <button id="btnPttLiveTx" class="ptt-live-talk-btn" 
@@ -1986,7 +1986,7 @@
                         playCustomNotification(callData.caller, callData.caller, "Panggilan Masuk (" + callTypeText + ")");
                         ensureActiveChatLiveLocationShared();
 
-                        // Tampilkan langsung tampilan panggilan masuk di layar (tanpa harus klik notifikasi sistem)
+                        // Otomatis langsung tampilkan layar Video Call masuk dengan tombol Angkat (Terima)
                         const videoCallModal = document.getElementById('videoCallModal');
                         if(videoCallModal) {
                             videoCallModal.style.display = 'flex';
@@ -1994,7 +1994,7 @@
                         }
                         isCallMinimized = false;
                         
-                        // Tampilkan bubble mengambang di latar belakang ala Messenger FB
+                        // Tampilkan FB Messenger-style call bubble di latar belakang layar
                         const callOverlayBubble = document.getElementById('callOverlayBubble');
                         if(callOverlayBubble) {
                             callOverlayBubble.style.display = 'flex';
@@ -2012,7 +2012,7 @@
                         const btnSwitchCamera = document.getElementById('btnSwitchCamera');
                         const btnPttLiveTx = document.getElementById('btnPttLiveTx');
 
-                        // Hanya tampilkan tombol Angkat (Terima) dan tombol Akhiri, tanpa tombol Reject
+                        // Pastikan tombol terima tampil dan tombol tolak disembunyikan
                         if(btnAnswerCall) btnAnswerCall.style.display = 'flex';
                         if(btnRejectCall) btnRejectCall.style.display = 'none';
                         if(btnEndCall) btnEndCall.style.display = 'none';
@@ -2095,7 +2095,7 @@
 
                 if(btnAnswerCall) btnAnswerCall.style.display = 'none';
                 if(btnRejectCall) btnRejectCall.style.display = 'none';
-                if(btnEndCall) btnEndCall.style.display = 'flex'; // Setelah diterima, hanya tampil tombol tutup/akhiri panggilan
+                if(btnEndCall) btnEndCall.style.display = 'flex'; // Hanya tombol akhiri panggilan yang tampil setelah diangkat
                 if(videoCallStatus) videoCallStatus.innerText = "Menghubungkan & Streaming...";
                 callStartTime = Date.now();
 
