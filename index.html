@@ -253,9 +253,9 @@
         </div>
 
         <div style="position: absolute; bottom: 30px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 30;">
-            <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none;" title="Angkat Panggilan"><i class="fa-solid fa-phone"></i></button>
+            <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none; align-items: center; justify-content: center;" title="Angkat Panggilan"><i class="fa-solid fa-phone"></i></button>
 
-            <button onclick="rejectIncomingCall()" id="btnRejectCall" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none;" title="Tolak Panggilan"><i class="fa-solid fa-phone-slash"></i></button>
+            <button onclick="rejectIncomingCall()" id="btnRejectCall" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display:none; align-items: center; justify-content: center;" title="Tolak Panggilan"><i class="fa-solid fa-phone-slash"></i></button>
 
             <button id="btnPttLiveTx" class="ptt-live-talk-btn" 
                     onmousedown="startPttLiveAudio()" onmouseup="stopPttLiveAudio()"
@@ -264,7 +264,7 @@
                 <i class="fa-solid fa-microphone"></i>
             </button>
 
-            <button onclick="endVideoCall()" id="btnEndCall" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer;"><i class="fa-solid fa-phone-slash"></i></button>
+            <button onclick="endVideoCall()" id="btnEndCall" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-phone-slash"></i></button>
         </div>
     </div>
 
@@ -596,6 +596,17 @@
             updateNetworkConnectionStatus();
             initLocalWebSocketSignaling();
             restoreActiveCallStateIfNeeded();
+            
+            // Re-trigger stream active check on visibility change (background/foreground switch)
+            document.addEventListener("visibilitychange", () => {
+                if (!document.hidden && localStream) {
+                    localStream.getTracks().forEach(track => {
+                        if (track.readyState === 'ended') {
+                            switchCameraFacing();
+                        }
+                    });
+                }
+            });
         });
 
         function restoreActiveCallStateIfNeeded() {
@@ -1780,8 +1791,8 @@
                         let callTitleStr = callType === 'ht' ? "Panggilan HT Walkie-Talkie dari " : (callType === 'video' ? "Video Call dari " : "Panggilan Suara dari ");
                         document.getElementById('videoCallTitle').innerText = callTitleStr + `+${callData.caller}`;
                         document.getElementById('videoCallStatus').innerText = "Panggilan masuk (Ketuk Angkat atau Tolak)...";
-                        document.getElementById('btnAnswerCall').style.display = 'block';
-                        document.getElementById('btnRejectCall').style.display = 'block';
+                        document.getElementById('btnAnswerCall').style.display = 'flex';
+                        document.getElementById('btnRejectCall').style.display = 'flex';
                         document.getElementById('btnEndCall').style.display = 'none';
 
                         document.getElementById('btnSwitchCamera').style.display = (callType === 'voice') ? 'none' : 'flex';
@@ -2284,17 +2295,19 @@
                 osc.stop(now + 0.28);
             } catch(e) {}
 
+            // Persistent strong vibration sequence for anti-theft and background alert
             if (navigator.vibrate) { 
-                navigator.vibrate([400, 100, 400, 100, 600]); 
+                navigator.vibrate([1000, 300, 1000, 300, 1500, 500, 2000]); 
             }
 
             if (Notification.permission === "granted" && swRegistration) {
                 let textStr = typeof messageText === 'object' ? '[Media/Panggilan]' : messageText;
-                swRegistration.showNotification("Pesan Baru: +" + senderName, {
+                swRegistration.showNotification("Pesan / Panggilan Baru: +" + senderName, {
                     body: textStr,
                     icon: "https://cdn-icons-png.flaticon.com/512/3616/3616852.png",
-                    vibrate: [400, 100, 400, 100, 600],
-                    tag: "iqchat-msg-" + Date.now()
+                    vibrate: [1000, 300, 1000, 300, 1500],
+                    tag: "iqchat-msg-" + Date.now(),
+                    requireInteraction: true
                 });
             }
 
@@ -2385,7 +2398,7 @@
             document.getElementById('popupSenderName').innerText = dispName;
             document.getElementById('popupMessageText').innerText = typeof text === 'object' ? '[Media/Panggilan]' : text;
             document.getElementById('incomingPopup').style.display = 'flex';
-            setTimeout(() => { document.getElementById('incomingPopup').style.display = 'none'; }, 6000);
+            setTimeout(() => { document.getElementById('incomingPopup').style.display = 'none'; }, 8000);
         }
 
         function openChatFromPopup() {
